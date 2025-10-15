@@ -11,8 +11,7 @@ function loadAssets($type, $path)
 
 function addtailwindcss()
 {
-    return "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css'>";
-    // return loadAssets('css', 'tailwind.min.css');
+    return loadAssets('css', 'style.css');
 }
 
 function addjqueryjs()
