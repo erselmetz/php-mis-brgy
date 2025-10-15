@@ -10,9 +10,9 @@
         <?php if ($_SESSION['role'] == "admin") {
             echo "<a href='/admin/account.php' class='block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200'>🧑‍💼 Staff</a>";
         } ?>
-        <!-- <a href="#" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
-            📊 Reports
-        </a> -->
+        <a href="/certificate.php" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+            📊 Certificates
+        </a>
         <a href="/profile.php" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
             ⚙️ Settings
         </a>
