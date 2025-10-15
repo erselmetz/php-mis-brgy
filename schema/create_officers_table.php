@@ -3,7 +3,7 @@
 // Creates the `officers` table for MIS Barangay (Pure PHP)
 // Merged with: add_resident_id_to_officers_table.php
 
-include './includes/db.php';
+include '../includes/db.php';
 
 $sql = "
 CREATE TABLE IF NOT EXISTS officers (

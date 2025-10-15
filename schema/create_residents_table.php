@@ -3,7 +3,7 @@
 // Creates the `residents` table for MIS Barangay (Pure PHP)
 // Fixed: removed generated column for age
 
-include './includes/db.php';
+include '../includes/db.php';
 
 $sql = "
 CREATE TABLE IF NOT EXISTS residents (

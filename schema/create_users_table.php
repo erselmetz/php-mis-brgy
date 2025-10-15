@@ -2,7 +2,7 @@
 // schema/create_users_table.php
 // Creates the `users` table for MIS Barangay (Pure PHP)
 
-include './includes/db.php';
+include '../includes/db.php';
 
 $sql = "
 CREATE TABLE IF NOT EXISTS users (

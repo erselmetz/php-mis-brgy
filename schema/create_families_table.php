@@ -2,7 +2,7 @@
 // schema/create_families_table.php
 // Creates the `families` table for MIS Barangay (Pure PHP)
 
-include './includes/db.php';
+include '../includes/db.php';
 
 $sql = "
 CREATE TABLE IF NOT EXISTS families (
