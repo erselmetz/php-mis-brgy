@@ -4,7 +4,7 @@
         <a href="/dashboard.php" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
             🏠 Dashboard
         </a>
-        <a href="/resident.php" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+        <a href="/residents.php" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
             👥 Residents
         </a>
         <?php if ($_SESSION['role'] == "admin") {

@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /
+
+# --- Redirect requests that include .php to the version without it (SEO-friendly) ---
+RewriteCond %{THE_REQUEST} \s/([^.]+)\.php[\s?] [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# --- Do not rewrite if it's a real directory ---
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# --- If a .php file exists for the requested path (even in subfolders), rewrite it ---
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.+?)/?$ $1.php [L,QSA]
