@@ -8,8 +8,11 @@ function requireLogin() {
 }
 
 function requireAdmin() {
+    requireLogin();
     if ($_SESSION['role'] !== 'admin') {
-        header("Location: /index.php");
-        exit();
+        if($_SESSION['role'] === 'staff') {
+            header("Location: /dashboard.php");
+            exit();
+        }
     }
 }
