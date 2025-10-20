@@ -49,7 +49,6 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
                 <table id="accountsTable" class="display">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Name</th>
                             <th>Username</th>
                             <th>Role</th>
@@ -61,7 +60,6 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
                     <tbody>
                         <?php while ($row = $result->fetch_assoc()): ?>
                             <tr>
-                                <td><?= $row['id']; ?></td>
                                 <td><?= htmlspecialchars($row['name']); ?></td>
                                 <td><?= htmlspecialchars($row['username']); ?></td>
                                 <td><?= ucfirst($row['role']); ?></td>
