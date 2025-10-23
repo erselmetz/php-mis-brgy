@@ -14,8 +14,7 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
 
 <head>
     <title>Accounts Management</title>
-    <?php loadAllStyles(); ?>
-
+    <?php loadAllAssets(); ?>
 </head>
 
 <body>
@@ -164,7 +163,6 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
             </div>
         </form>
     </div>
-    <?php loadAllScripts(); ?>
     <script>
         $(function() {
             $('#accountsTable').DataTable();

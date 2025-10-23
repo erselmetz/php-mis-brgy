@@ -16,7 +16,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
   <meta charset="UTF-8">
   <title>Resident - MIS Barangay</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <?php loadAllStyles(); ?>
+  <?php loadAllAssets(); ?>
 </head>
 
 <body class="bg-gray-100">
@@ -221,7 +221,6 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
     </form>
 
   </div>
-  <?php loadAllScripts(); ?>
   <script>
     $(function() {
       $("#residentsTable").DataTable();
