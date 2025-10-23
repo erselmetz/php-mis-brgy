@@ -6,6 +6,10 @@ function loadAssets($type, $path)
         return "<link rel='stylesheet' href='/assets/css/$path'>";
     } elseif ($type == 'js') {
         return "<script src='/assets/js/$path'></script>";
+    }  elseif ($type == 'node_modules_js') {
+        return "<script src='/node_modules/$path'></script>";
+    } elseif ($type == 'node_modules_css') {
+        return "<link rel='stylesheet' href='/node_modules/$path'>";
     }
 }  
 
@@ -16,27 +20,39 @@ function addtailwindcss()
 
 function addjqueryjs()
 {
-    return loadAssets('js', 'jquery-3.7.1.min.js');
+    return loadAssets('node_modules_js', 'jquery/dist/jquery.js');
 }
 
 function addjqueryuijs()
 {
-    return loadAssets('js', 'jquery-ui-1.14.1/jquery-ui.min.js');
+    return loadAssets('node_modules_js', 'jquery-ui/dist/jquery-ui.js');
 }
 
 function addjqueruicss()
 {
-    return loadAssets('css', 'jquery-ui-1.14.1/jquery-ui.min.css');
+    return loadAssets('node_modules_css', 'jquery-ui/dist/themes/base/jquery-ui.css');
 }
 
-function adddatatablejs()
+function addDataTablejs()
 {
-    return loadAssets('js', 'DataTables/datatables.min.js');
+    return loadAssets('node_modules_js', 'datatables.net/js/dataTables.js');
 }
 
 function adddatatablecss()
 {
-    return loadAssets('css', 'DataTables/datatables.min.css');
+    return loadAssets('node_modules_css', 'datatables.net-jqui/css/datatables.jqueryui.css');
+}
+
+function loadAllStyles(){
+    echo addtailwindcss();
+    echo adddatatablecss();
+    echo addjqueruicss();
+}
+
+function loadAllScripts(){
+    echo addjqueryjs();
+    echo addjqueryuijs();
+    echo addDataTablejs();
 }
 
 function loadAllAssets(){
@@ -45,7 +61,7 @@ function loadAllAssets(){
     echo addjqueruicss();
     echo addjqueryjs();
     echo addjqueryuijs();
-    echo adddatatablejs();
+    echo addDataTablejs();
 }
 
 // create alert message using jquery ui dialog make it complete and functional

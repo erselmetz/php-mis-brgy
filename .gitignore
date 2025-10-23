@@ -1,4 +1,1 @@
-/node_modules
-/public/assets/css/input.css
-package-lock.json
-package.json
+/public/node_modules/

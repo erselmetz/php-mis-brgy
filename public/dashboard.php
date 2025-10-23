@@ -25,7 +25,7 @@ $voter_unregistered_count = $conn->query("SELECT COUNT(*) AS total FROM resident
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - MIS Barangay</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <?php loadAllStyles();?>
 </head>
 
 <body class="bg-gray-100">

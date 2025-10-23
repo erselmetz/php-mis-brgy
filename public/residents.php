@@ -16,11 +16,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
   <meta charset="UTF-8">
   <title>Resident - MIS Barangay</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <?php echo adddatatablecss() ?>
-  <?php echo addjqueruicss() ?>
-  <?php echo addjqueryjs() ?>
-  <?php echo addjqueryuijs() ?>
-  <?php echo adddatatablejs() ?>
+  <?php loadAllStyles(); ?>
 </head>
 
 <body class="bg-gray-100">
@@ -225,6 +221,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
     </form>
 
   </div>
+  <?php loadAllScripts(); ?>
   <script>
     $(function() {
       $("#residentsTable").DataTable();
@@ -232,7 +229,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
       $("#addResidentModal").dialog({
         autoOpen: false,
         modal: true,
-        width: window.screen / 2,
+        width: window.screen,
         show: {
           effect: "fadeIn",
           duration: 200

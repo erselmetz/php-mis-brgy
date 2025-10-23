@@ -14,14 +14,7 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
 
 <head>
     <title>Accounts Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <?php
-    echo adddatatablecss();
-    echo addjqueryjs();
-    echo adddatatablejs();
-    echo addjqueruicss();
-    echo addjqueryuijs();
-    ?>
+    <?php loadAllStyles(); ?>
 
 </head>
 
@@ -171,7 +164,7 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
             </div>
         </form>
     </div>
-
+    <?php loadAllScripts(); ?>
     <script>
         $(function() {
             $('#accountsTable').DataTable();
