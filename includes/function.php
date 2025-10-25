@@ -17,6 +17,9 @@ function addtailwindcss()
 {
     return loadAssets('css', 'style.css');
 }
+function addtailwindcssjs(){
+    return loadAssets('js', 'tailwindcss.js');
+}
 
 function addjqueryjs()
 {
@@ -62,6 +65,7 @@ function loadAllAssets(){
     echo addjqueryjs();
     echo addjqueryuijs();
     echo addDataTablejs();
+    echo addtailwindcssjs();
 }
 
 // create alert message using jquery ui dialog make it complete and functional

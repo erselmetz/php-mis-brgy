@@ -204,6 +204,16 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
         </select>
       </div>
 
+      <!-- Disability Status -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Disability Status</label>
+        <select name="disability_status"
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+
       <!-- Remarks -->
       <div>
         <label class="block text-sm font-medium text-gray-700">Remarks</label>

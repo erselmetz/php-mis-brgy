@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS residents (
     contact_no VARCHAR(20) NULL,
     address VARCHAR(100) NULL,
     voter_status ENUM('Yes', 'No') DEFAULT 'No',
+    disability_status ENUM('Yes', 'No') DEFAULT 'No',
     remarks TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -2,21 +2,59 @@
 require_once '../includes/app.php';
 requireLogin();
 // Fetch sample data (replace with real queries)
-$totalPopulation = 1250;
-$maleCount = 620;
-$femaleCount = 630;
-$seniorCount = 150;
-$pwdCount = 45;
-$voter_registered_count = 900;
-$voter_unregistered_count = 350;
+// --- Default values (in case table is empty or query fails) ---
+$totalPopulation = 0;
+$maleCount = 0;
+$femaleCount = 0;
+$seniorCount = 0;
+$pwdCount = 0;
+$voter_registered_count = 0;
+$voter_unregistered_count = 0;
 
-$residentAge = $conn->query("SELECT birthdate FROM residents")->fetch_assoc()['birthdate'];
-$totalPopulation = $conn->query("SELECT COUNT(*) AS total FROM residents")->fetch_assoc()['total'];
-$maleCount = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE gender='Male'")->fetch_assoc()['total'];
-$femaleCount = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE gender='Female'")->fetch_assoc()['total'];
-$seniorCount = AutoComputeAge($residentAge >= 60);
-$voter_registered_count = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE voter_status='Yes'")->fetch_assoc()['total'];
-$voter_unregistered_count = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE voter_status='No'")->fetch_assoc()['total'];
+// --- Check if residents table has data ---
+$result = $conn->query("SELECT COUNT(*) AS total FROM residents");
+if ($result && $row = $result->fetch_assoc()) {
+  $totalPopulation = (int)$row['total'];
+}
+
+// --- Run queries only if residents exist ---
+if ($totalPopulation > 0) {
+  // Male count
+  $maleCount = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE gender='Male'")
+    ->fetch_assoc()['total'];
+
+  // Female count
+  $femaleCount = $conn->query("SELECT COUNT(*) AS total FROM residents WHERE gender='Female'")
+    ->fetch_assoc()['total'];
+
+  // Senior citizens (60 years old and above)
+  $seniorCount = $conn->query("
+        SELECT COUNT(*) AS total 
+        FROM residents 
+        WHERE TIMESTAMPDIFF(YEAR, birthdate, CURDATE()) >= 60
+    ")->fetch_assoc()['total'];
+
+  // Persons with disability
+  $pwdCount = $conn->query("
+        SELECT COUNT(*) AS total 
+        FROM residents 
+        WHERE disability_status='Yes'
+    ")->fetch_assoc()['total'];
+
+  // Voter registered
+  $voter_registered_count = $conn->query("
+        SELECT COUNT(*) AS total 
+        FROM residents 
+        WHERE voter_status='Yes'
+    ")->fetch_assoc()['total'];
+
+  // Voter unregistered
+  $voter_unregistered_count = $conn->query("
+        SELECT COUNT(*) AS total 
+        FROM residents 
+        WHERE voter_status='No'
+    ")->fetch_assoc()['total'];
+}
 
 ?>
 <!DOCTYPE html>
@@ -25,14 +63,14 @@ $voter_unregistered_count = $conn->query("SELECT COUNT(*) AS total FROM resident
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - MIS Barangay</title>
-  <?php loadAllStyles();?>
+  <?php loadAllStyles(); ?>
 </head>
 
 <body class="bg-gray-100">
 
   <?php include './navbar.php'; ?>
   <div class="flex bg-gray-100">
-    <?php include './sidebar.php';?>
+    <?php include './sidebar.php'; ?>
     <main class="p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
       <!-- Population Report -->

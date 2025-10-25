@@ -17,6 +17,7 @@ if ($action === 'add_resident') {
     $contact_no = trim($_POST['contact_no'] ?? '');
     $address = trim($_POST['address'] ?? '');
     $voter_status = $_POST['voter_status'] ?? 'No';
+    $disability_status = $_POST['disability_status'] ?? 'No';
     $remarks = trim($_POST['remarks'] ?? '');
 
     // --- Auto-compute age ---
@@ -39,11 +40,11 @@ if ($action === 'add_resident') {
         // --- Step 2: Insert new record ---
         $sql = $conn->prepare("
             INSERT INTO residents 
-            (household_id, first_name, middle_name, last_name, suffix, gender, birthdate, birthplace, civil_status, religion, occupation, citizenship, contact_no, address, voter_status, remarks)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (household_id, first_name, middle_name, last_name, suffix, gender, birthdate, birthplace, civil_status, religion, occupation, citizenship, contact_no, address, voter_status, disability_status, remarks)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $sql->bind_param(
-            "isssssssssssssss",
+            "issssssssssssssss",
             $household_id,
             $first_name,
             $middle_name,
@@ -59,12 +60,13 @@ if ($action === 'add_resident') {
             $contact_no,
             $address,
             $voter_status,
+            $disability_status,
             $remarks
         );
 
         if ($sql->execute()) {
             // success — return to resident list or send success flag
-            header("Location: /resident.php?success=1");
+            header("Location: /residents?success=1");
             exit();
         } else {
             $error = "❌ Error adding resident: " . $conn->error;
