@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php loadAllAssets();?>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100" style="display: none;">
 
   <?php include_once './navbar.php'; ?>
 
@@ -119,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <script>
     $(function () {
+      $("body").show();
       // ✅ Dialogs for feedback
       <?php if (!empty($success)): ?>
         $("<div><?= addslashes($success) ?></div>").dialog({
