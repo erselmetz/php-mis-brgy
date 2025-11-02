@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/app.php';
+require_once '../../includes/app.php';
 requireLogin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -15,16 +15,15 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
 <head>
   <meta charset="UTF-8">
   <title>Resident - MIS Barangay</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100" style="display:none;">
 
-  <?php include_once './navbar.php'; ?>
+  <?php include_once '../navbar.php'; ?>
 
   <div class="flex bg-gray-100">
-    <?php include_once './sidebar.php'; ?>
+    <?php include_once '../sidebar.php'; ?>
     <main class="p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
@@ -56,7 +55,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
               <?php while ($row = $result->fetch_assoc()): ?>
                 <tr>
                   <td class="p-2">
-                    <a href="resident/view.php?id=<?= $row['id']; ?>" class="text-blue-600 hover:underline">
+                    <a href="/resident/view?id=<?= $row['id']; ?>" class="text-blue-600 hover:underline">
                       <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
                     </a>
                   </td>
@@ -233,6 +232,7 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
   </div>
   <script>
     $(function() {
+      $("body").show();
       $("#residentsTable").DataTable();
       // Initialize modal (hidden by default)
       $("#addResidentModal").dialog({

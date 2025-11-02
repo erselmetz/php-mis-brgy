@@ -46,6 +46,11 @@ function adddatatablecss()
     return loadAssets('node_modules_css', 'datatables.net-jqui/css/datatables.jqueryui.css');
 }
 
+function addappjs()
+{
+    return loadAssets('js', 'app.js');
+}
+
 function loadAllStyles(){
     echo addtailwindcss();
     echo adddatatablecss();
@@ -62,6 +67,7 @@ function loadAllAssets(){
     echo addtailwindcss();
     echo adddatatablecss();
     echo addjqueruicss();
+    echo addappjs();
     echo addjqueryjs();
     echo addjqueryuijs();
     echo addDataTablejs();

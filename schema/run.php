@@ -12,7 +12,7 @@ $schemaFiles = [
     'create_families_table.php',
     'create_residents_table.php',
     'create_officers_table.php',
-    'create_certificates_table.php'
+    'create_certificates_request_table.php'
 ];
 
 foreach ($schemaFiles as $file) {

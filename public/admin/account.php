@@ -17,7 +17,7 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
     <?php loadAllAssets(); ?>
 </head>
 
-<body>
+<body style="display: none;">
     <?php include '../navbar.php'; ?>
     <div class="flex bg-gray-100">
         <?php include '../sidebar.php'; ?>
@@ -165,6 +165,7 @@ $result = $conn->query("SELECT * FROM users ORDER BY id DESC");
     </div>
     <script>
         $(function() {
+            $('body').show();
             $('#accountsTable').DataTable();
 
 
