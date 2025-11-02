@@ -1,78 +1,65 @@
 <?php
-
-function loadAssets($type, $path)
+function loadAsset($type, $path)
 {
-    if ($type == 'css') {
-        return "<link rel='stylesheet' href='/assets/css/$path'>";
-    } elseif ($type == 'js') {
-        return "<script src='/assets/js/$path'></script>";
-    }  elseif ($type == 'node_modules_js') {
-        return "<script src='/node_modules/$path'></script>";
-    } elseif ($type == 'node_modules_css') {
-        return "<link rel='stylesheet' href='/node_modules/$path'>";
+    $basePaths = [
+        'css' => '/assets/css/',
+        'js' => '/assets/js/',
+        'node_css' => '/node_modules/',
+        'node_js' => '/node_modules/',
+    ];
+
+    switch ($type) {
+        case 'css':
+        case 'node_css':
+            return "<link rel='stylesheet' href='{$basePaths[$type]}$path'>\n";
+        case 'js':
+        case 'node_js':
+            return "<script src='{$basePaths[$type]}$path'></script>\n";
+        default:
+            return '';
     }
-}  
+}
 
-function addtailwindcss()
+function loadAssets(array $assets)
 {
-    return loadAssets('css', 'style.css');
-}
-function addtailwindcssjs(){
-    return loadAssets('js', 'tailwindcss.js');
+    foreach ($assets as $type => $files) {
+        foreach ($files as $file) {
+            echo loadAsset($type, $file);
+        }
+    }
 }
 
-function addjqueryjs()
+/* ---- Grouped Loaders ---- */
+
+function loadAllStyles()
 {
-    return loadAssets('node_modules_js', 'jquery/dist/jquery.js');
+    loadAssets([
+        'css' => ['style.css'],
+        'node_css' => [
+            'datatables.net-jqui/css/dataTables.jqueryui.css',
+            'jquery-ui/dist/themes/base/jquery-ui.css',
+        ],
+    ]);
 }
 
-function addjqueryuijs()
+function loadAllScripts()
 {
-    return loadAssets('node_modules_js', 'jquery-ui/dist/jquery-ui.js');
+    loadAssets([
+        'node_js' => [
+            'jquery/dist/jquery.js',
+            'jquery-ui/dist/jquery-ui.js',
+            'datatables.net/js/dataTables.js',
+        ],
+        'js' => ['tailwindcss.js', 'app.js'],
+    ]);
 }
 
-function addjqueruicss()
+function loadAllAssets()
 {
-    return loadAssets('node_modules_css', 'jquery-ui/dist/themes/base/jquery-ui.css');
+    loadAllStyles();
+    loadAllScripts();
 }
 
-function addDataTablejs()
-{
-    return loadAssets('node_modules_js', 'datatables.net/js/dataTables.js');
-}
-
-function adddatatablecss()
-{
-    return loadAssets('node_modules_css', 'datatables.net-jqui/css/datatables.jqueryui.css');
-}
-
-function addappjs()
-{
-    return loadAssets('js', 'app.js');
-}
-
-function loadAllStyles(){
-    echo addtailwindcss();
-    echo adddatatablecss();
-    echo addjqueruicss();
-}
-
-function loadAllScripts(){
-    echo addjqueryjs();
-    echo addjqueryuijs();
-    echo addDataTablejs();
-}
-
-function loadAllAssets(){
-    echo addtailwindcss();
-    echo adddatatablecss();
-    echo addjqueruicss();
-    echo addappjs();
-    echo addjqueryjs();
-    echo addjqueryuijs();
-    echo addDataTablejs();
-    echo addtailwindcssjs();
-}
 
 // create alert message using jquery ui dialog make it complete and functional
 function AlertMessage($message, $title = "Alert")
