@@ -71,7 +71,7 @@ requireLogin();
                                 </select> </div>
                             <div class="sm:col-span-2"> <label class="block text-sm font-medium text-gray-700">Remarks</label> <textarea name="remarks" id="remarks" rows="3" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm"></textarea> </div>
                         </div>
-                        <div class="mt-4 flex items-center gap-2"> <button id="saveBtn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm">Save</button> <button id="resetBtn" type="button" class="px-4 py-2 bg-gray-200 rounded-lg">Reset</button> <button id="exportJson" type="button" class="ml-auto px-4 py-2 border rounded-lg">Export JSON</button> </div>
+                        <div class="mt-4 flex items-center gap-2"> <button id="saveBtn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm">Save</button> <button id="exportJson" type="button" class="ml-auto px-4 py-2 border rounded-lg">Export JSON</button> </div>
                     </form>
                 </section>
 
@@ -117,6 +117,7 @@ requireLogin();
 
                     <div class="mt-4">
                         <button id="showRaw" class="px-3 py-1 border rounded-lg text-sm">Show raw data</button>
+                        <button id="refreshBtn" class="px-3 py-1 border rounded-lg text-sm">Refresh</button>
                     </div>
                 </aside>
             </div>
@@ -179,24 +180,43 @@ requireLogin();
             $('#saveBtn').click(() => {
                 const payload = {};
                 $('#residentForm').serializeArray().forEach(f => payload[f.name] = f.value);
-                $('<div>Data ready to be sent to server. (Check console for JSON)</div>').dialog({
-                    modal: true,
-                    title: 'Save',
-                    width: 420,
-                    buttons: {
-                        Ok: function() {
-                            $(this).dialog('close');
-                        }
+                payload.id = residentId;
+
+                $.ajax({
+                    url: '/resident/update_resident',
+                    type: 'POST',
+                    data: payload,
+                    dataType: 'json',
+                    success: function(res) {
+                        $('<div>' + res.message + '</div>').dialog({
+                            modal: true,
+                            title: res.success ? 'Saved' : 'Error',
+                            width: 420,
+                            buttons: {
+                                Ok: function() {
+                                    $(this).dialog('close');
+                                }
+                            }
+                        });
+                    },
+                    error: function() {
+                        $('<div>Failed to connect to server.</div>').dialog({
+                            modal: true,
+                            title: 'Error',
+                            width: 420,
+                            buttons: {
+                                Ok: function() {
+                                    $(this).dialog('close');
+                                }
+                            }
+                        });
                     }
                 });
-                console.log('Payload:', payload);
             });
 
-            $('#resetBtn').click(() => {
-                if (confirm('Reset the form?')) {
-                    $('#residentForm')[0].reset();
-                    updatePreview();
-                }
+
+            $('#refreshBtn').click(() => {
+                updatePreview();
             });
 
             $('#exportJson').click(() => {
@@ -230,6 +250,24 @@ requireLogin();
                 });
             });
         });
+        // ajax to fetch resident data and populate the form
+        // --- Load Resident Info ---
+        const residentId = new URLSearchParams(window.location.search).get('id');
+        if (residentId) {
+            $.getJSON(`get_resident.php?id=${residentId}`, function(res) {
+                if (res.error) {
+                    alert(res.error);
+                    return;
+                }
+                // Fill all form fields
+                for (const key in res) {
+                    if ($(`[name=${key}]`).length) {
+                        $(`[name=${key}]`).val(res[key]);
+                    }
+                }
+                updatePreview();
+            });
+        }
     </script>
 </body>
 
