@@ -48,6 +48,7 @@
           "title": "Account Management UI",
           "content": "**Enhanced Staff & Officers Page**\n\n• Position column added to accounts table\n• Toggle checkbox to mark users as officers\n• Officer fields (position, term dates, resident link) shown conditionally\n• Manual position field for non-officers\n• Searchable resident selection for officers\n• Clear visual distinction between officers and staff"
         }
+      ]
     },
     {
       "id": "removed-features",
