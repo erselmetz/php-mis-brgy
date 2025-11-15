@@ -1,1 +1,1 @@
-<?php echo header("Location: login.php");
+<?php header("Location: /login"); exit;

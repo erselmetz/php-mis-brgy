@@ -2,31 +2,39 @@
 require_once '../includes/app.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $username = $conn->real_escape_string($_POST['username']);
-  $password = $conn->real_escape_string($_POST['password']);
+  $username = trim($_POST['username'] ?? '');
+  $password = $_POST['password'] ?? '';
 
-  $sql = "SELECT * FROM users WHERE username='$username' LIMIT 1";
-  $result = $conn->query($sql);
+  if (empty($username) || empty($password)) {
+    $error = "Username and password are required.";
+  } else {
+    // Use prepared statement to prevent SQL injection
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-  if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
+    if ($result->num_rows > 0) {
+      $user = $result->fetch_assoc();
 
-    if (password_verify($password, $user['password'])) {
-      if ($user['status'] !== 'active') {
-        $error = "Account is " . $user['status'] . ". Please contact admin.";
+      if (password_verify($password, $user['password'])) {
+        if ($user['status'] !== 'active') {
+          $error = "Account is " . htmlspecialchars($user['status']) . ". Please contact admin.";
+        } else {
+          $_SESSION['user_id'] = $user['id'];
+          $_SESSION['username'] = $user['username'];
+          $_SESSION['name'] = $user['name'];
+          $_SESSION['role'] = $user['role'];
+          header("Location: /dashboard");
+          exit;
+        }
       } else {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['name'] = $user['name'];
-        $_SESSION['role'] = $user['role'];
-        header("Location: dashboard.php");
-        exit;
+        $error = "Invalid password.";
       }
     } else {
-      $error = "Invalid password.";
+      $error = "No account found.";
     }
-  } else {
-    $error = "No account found.";
+    $stmt->close();
   }
 }
 ?>

@@ -2,7 +2,7 @@
 include '../includes/db.php';
 
 $sql = "
-CREATE TABLE certificate_request (
+CREATE TABLE IF NOT EXISTS certificate_request (
   id INT AUTO_INCREMENT PRIMARY KEY,
   resident_id INT(11) UNSIGNED NOT NULL,
   certificate_type VARCHAR(100) NOT NULL,

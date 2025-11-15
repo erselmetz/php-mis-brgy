@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin(); // Ensures user is logged in
+requireStaff(); // Only Staff and Admin can access
 
 header('Content-Type: application/json');
 
@@ -38,31 +38,49 @@ try {
         exit;
     }
 
-    // Insert new record securely
+    // Insert new record securely using mysqli prepared statements
     $stmt = $conn->prepare("
         INSERT INTO residents (
             household_id, birthdate, first_name, middle_name, last_name, suffix,
             gender, birthplace, civil_status, religion, occupation, citizenship,
             contact_no, address, voter_status, remarks, created_at
         ) VALUES (
-            :household_id, :birthdate, :first_name, :middle_name, :last_name, :suffix,
-            :gender, :birthplace, :civil_status, :religion, :occupation, :citizenship,
-            :contact_no, :address, :voter_status, :remarks, NOW()
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW()
         )
     ");
 
-    foreach ($data as $key => $val) {
-        $stmt->bindValue(":$key", $val);
+    // Bind parameters in the correct order
+    $stmt->bind_param(
+        "isssssssssssssss",
+        $data['household_id'],
+        $data['birthdate'],
+        $data['first_name'],
+        $data['middle_name'],
+        $data['last_name'],
+        $data['suffix'],
+        $data['gender'],
+        $data['birthplace'],
+        $data['civil_status'],
+        $data['religion'],
+        $data['occupation'],
+        $data['citizenship'],
+        $data['contact_no'],
+        $data['address'],
+        $data['voter_status'],
+        $data['remarks']
+    );
+
+    if ($stmt->execute()) {
+        echo json_encode(['status' => 'success', 'message' => 'Resident saved successfully.']);
+    } else {
+        error_log('Resident Save Error: ' . $stmt->error);
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
     }
+    
+    $stmt->close();
 
-    $stmt->execute();
-
-    echo json_encode(['status' => 'success', 'message' => 'Resident saved successfully.']);
-
-} catch (PDOException $e) {
+} catch (Exception $e) {
     // Log error internally (not shown to user)
     error_log('Resident Save Error: ' . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
-} catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
 }

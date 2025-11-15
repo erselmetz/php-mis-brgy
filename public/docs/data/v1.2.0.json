@@ -1,0 +1,81 @@
+{
+  "version": "v1.2.0",
+  "date": "2024-01-16",
+  "time": "10:00:00",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "📋 Update Overview",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "This version introduces a major structural change by merging Staff and Officers management into a unified system, ensuring every officer has an account. Also includes improved migration system and documentation updates."
+        },
+        {
+          "type": "badge",
+          "text": "Version 1.2.0 - Staff & Officers Merge",
+          "variant": "info"
+        }
+      ]
+    },
+    {
+      "id": "major-changes",
+      "title": "🔄 Major Structural Changes",
+      "content": [
+        {
+          "type": "card",
+          "title": "Staff & Officers Management Merged",
+          "content": "**Unified Management System**\n\nStaff and Officers management have been merged into a single, unified interface accessible from the Admin panel.\n\n**Key Features:**\n\n• **Every Officer Must Have an Account** - Officers are now linked to user accounts via `user_id` foreign key\n• **Flexible Position Assignment** - Officers can have official positions (with term dates) or staff can have manual positions\n• **Resident Linking** - Officers can optionally be linked to resident records\n• **Unified Interface** - All account management (staff and officers) happens in one place\n• **Automatic Record Management** - System automatically creates/updates/deletes officer records when accounts are modified\n\n**Database Changes:**\n\n• Added `position` column to `users` table` (for non-officer positions)\n• Added `user_id` column to `officers` table (links officers to accounts)\n• Foreign key constraint ensures data integrity\n\n**Migration Required:** Run `schema/run.php` or visit `/schema/run` in browser to apply changes."
+        },
+        {
+          "type": "card",
+          "title": "Improved Migration System",
+          "content": "**Organized Migration Runner**\n\nEnhanced the migration system with better organization and dual-mode support:\n\n• **CLI Mode** - Run migrations from command line: `php schema/run.php`\n• **Browser Mode** - Run migrations via web interface: `/schema/run` (admin only)\n• **Organized by Type** - Migrations grouped into:\n  - Initial Setup (base tables)\n  - Feature Additions (new columns/features)\n  - Structural Changes (major refactoring)\n• **Human-Readable Output** - Clear formatting for easy debugging\n• **Error Handling** - Better error reporting and summary statistics\n\n**Benefits:**\n\n• Easy to debug migration issues\n• Can run from browser if CLI fails\n• Clear organization of migration types\n• Better visibility into what's happening"
+        }
+      ]
+    },
+    {
+      "id": "ui-improvements",
+      "title": "🎨 UI Improvements",
+      "content": [
+        {
+          "type": "card",
+          "title": "Documentation System Moved",
+          "content": "**Accessible Documentation**\n\n• Documentation moved to `public/docs` for web access\n• Added to sidebar navigation with version display\n• Current version shown in navigation bar\n• Easy access to version history and changelog"
+        },
+        {
+          "type": "card",
+          "title": "Account Management UI",
+          "content": "**Enhanced Staff & Officers Page**\n\n• Position column added to accounts table\n• Toggle checkbox to mark users as officers\n• Officer fields (position, term dates, resident link) shown conditionally\n• Manual position field for non-officers\n• Searchable resident selection for officers\n• Clear visual distinction between officers and staff"
+        }
+    },
+    {
+      "id": "removed-features",
+      "title": "🗑️ Removed/Deprecated",
+      "content": [
+        {
+          "type": "card",
+          "title": "Separate Officers Page Removed",
+          "content": "**Consolidation**\n\nThe separate `/officer/officers` page has been removed. All officer management is now done through the unified Staff & Officers Management page at `/admin/account`.\n\n**Migration Path:**\n\n• Existing officers should be linked to user accounts\n• Use the migration system to ensure data integrity\n• All officer functionality preserved in new unified interface"
+        }
+      ]
+    },
+    {
+      "id": "technical-details",
+      "title": "⚙️ Technical Details",
+      "content": [
+        {
+          "type": "card",
+          "title": "Database Schema Changes",
+          "content": "**New Columns:**\n\n• `users.position` (VARCHAR 150, NULL) - Manual position for non-officers\n• `officers.user_id` (INT 11, NULL) - Foreign key to users table\n\n**New Constraints:**\n\n• `fk_officer_user` - Foreign key from officers.user_id to users.id\n  - ON DELETE SET NULL\n  - ON UPDATE CASCADE\n\n**Migration File:** `schema/merge_staff_officers.php`"
+        },
+        {
+          "type": "card",
+          "title": "Code Changes",
+          "content": "**Modified Files:**\n\n• `public/admin/account.php` - Merged officer management\n• `public/admin/add_account.php` - Handle officer creation\n• `public/admin/edit_account.php` - Handle officer updates\n• `public/sidebar.php` - Removed separate officers link\n• `schema/run.php` - Enhanced migration system\n\n**New Files:**\n\n• `schema/merge_staff_officers.php` - Database migration\n• `public/docs/` - Moved documentation (was in root `docs/`)"
+        }
+      ]
+    }
+  ]
+}
+

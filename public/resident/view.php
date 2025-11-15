@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireStaff(); // Only Staff and Admin can access
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -6,8 +6,6 @@
     "datatables.net-jqui": "^2.3.4",
     "jquery": "^3.7.1",
     "jquery-ui": "^1.14.1",
-    "jquery-ui-dist": "^1.13.3",
-    "jqueryui": "^1.11.1",
     "tailwindcss": "^4.1.14"
   },
   "devDependencies": {

@@ -1,12 +1,20 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireStaff(); // Only Staff and Admin can access
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
-  include_once 'resident/add.php';
+  include_once __DIR__ . '/add.php';
 }
-$result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
+// Use prepared statement for better security (though no user input here, good practice)
+$stmt = $conn->prepare("SELECT * FROM residents ORDER BY id DESC");
+if ($stmt === false) {
+  error_log('Residents query error: ' . $conn->error);
+  $result = false;
+} else {
+  $stmt->execute();
+  $result = $stmt->get_result();
+}
 
 ?>
 <!DOCTYPE html>
@@ -33,47 +41,52 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
           ➕ Add Resident
         </button>
       </div>
-      <div class="content">
-        <div class="overflow-x-auto">
-          <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
-            <thead class="bg-gray-50 text-gray-700">
-              <tr>
-                <th class="p-2 text-left">Full Name</th>
-                <th class="p-2 text-left">Gender</th>
-                <th class="p-2 text-left">Birthdate</th>
-                <th class="p-2 text-left">Age</th>
-                <th class="p-2 text-left">Civil Status</th>
-                <th class="p-2 text-left">Religion</th>
-                <th class="p-2 text-left">Occupation</th>
-                <th class="p-2 text-left">Citizenship</th>
-                <th class="p-2 text-left">Contact No</th>
-                <th class="p-2 text-left">Address</th>
-                <th class="p-2 text-left">Voter</th>
-              </tr>
-            </thead>
-            <tbody>
+      <!-- Residents Table -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
+        <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
+          <thead class="bg-gray-50 text-gray-700">
+            <tr>
+              <th class="p-2 text-left">Full Name</th>
+              <th class="p-2 text-left">Gender</th>
+              <th class="p-2 text-left">Birthdate</th>
+              <th class="p-2 text-left">Age</th>
+              <th class="p-2 text-left">Civil Status</th>
+              <th class="p-2 text-left">Religion</th>
+              <th class="p-2 text-left">Occupation</th>
+              <th class="p-2 text-left">Citizenship</th>
+              <th class="p-2 text-left">Contact No</th>
+              <th class="p-2 text-left">Address</th>
+              <th class="p-2 text-left">Voter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if ($result !== false): ?>
               <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td class="p-2">
-                    <a href="/resident/view?id=<?= $row['id']; ?>" class="text-blue-600 hover:underline">
-                      <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
-                    </a>
-                  </td>
-                  <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['voter_status']); ?></td>
-                </tr>
+              <tr>
+                <td class="p-2">
+                  <a href="/resident/view?id=<?= $row['id']; ?>" class="text-blue-600 hover:underline">
+                    <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
+                  </a>
+                </td>
+                <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
+                <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['voter_status']); ?></td>
+              </tr>
               <?php endwhile; ?>
-            </tbody>
-          </table>
-        </div>
+            <?php else: ?>
+              <tr>
+                <td colspan="11" class="p-4 text-center text-gray-500">Error loading residents. Please try again later.</td>
+              </tr>
+            <?php endif; ?>
+          </tbody>
+        </table>
       </div>
     </main>
   </div>
@@ -234,11 +247,19 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
     $(function() {
       $("body").show();
       $("#residentsTable").DataTable();
-      // Initialize modal (hidden by default)
+      // Initialize modal (hidden by default) - Modernized
       $("#addResidentModal").dialog({
         autoOpen: false,
         modal: true,
-        width: window.screen,
+        width: 800,
+        height: 600,
+        resizable: true,
+        classes: {
+          'ui-dialog': 'rounded-lg shadow-lg',
+          'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
+          'ui-dialog-title': 'font-semibold',
+          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+        },
         show: {
           effect: "fadeIn",
           duration: 200
@@ -246,6 +267,9 @@ $result = $conn->query("SELECT * FROM residents ORDER BY id DESC");
         hide: {
           effect: "fadeOut",
           duration: 200
+        },
+        open: function() {
+          $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
         }
       });
       $("#openResidentModalBtn").on("click", function() {

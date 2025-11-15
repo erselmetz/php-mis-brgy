@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireStaff(); // Only Staff and Admin can access
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -8,7 +8,8 @@ requireLogin();
 <head>
     <meta charset="UTF-8">
     <title>Certificate - MIS Barangay</title>
-    <?php loadAllAssets(); ?>
+    <?php loadAllAssets(); 
+    echo showDialogReloadScript(); ?>
 </head>
 
 <body class="bg-gray-100" style="display: none;">
@@ -124,7 +125,43 @@ requireLogin();
                     },
                     success: function(html) {
                         $("#residentDetails").html(html);
-                        $("#historyTable").DataTable();
+                        
+                        // Destroy existing DataTable instance if it exists
+                        if ($.fn.DataTable.isDataTable('#historyTable')) {
+                            $('#historyTable').DataTable().destroy();
+                        }
+                        
+                        // Wait a bit for DOM to be ready, then initialize DataTable
+                        setTimeout(function() {
+                            const $table = $('#historyTable');
+                            if ($table.length) {
+                                // Check if table has actual data rows (not just the "no data" row)
+                                const $rows = $table.find('tbody tr');
+                                const hasData = $rows.length > 0 && !$rows.first().find('td[colspan]').length;
+                                
+                                if (hasData) {
+                                    // Verify all rows have the correct number of cells (5 columns)
+                                    let allRowsValid = true;
+                                    $rows.each(function() {
+                                        const cellCount = $(this).find('td').not('[colspan]').length;
+                                        if (cellCount !== 5) {
+                                            allRowsValid = false;
+                                            return false; // break
+                                        }
+                                    });
+                                    
+                                    if (allRowsValid) {
+                                        $table.DataTable({
+                                            pageLength: 10,
+                                            order: [[3, 'desc']], // Sort by Requested At column (4th column, index 3)
+                                            columnDefs: [
+                                                { orderable: false, targets: 4 } // Disable sorting on Actions column
+                                            ]
+                                        });
+                                    }
+                                }
+                            }
+                        }, 100);
                     },
                     error: function() {
                         $("#residentDetails").html('<div class="text-center text-red-500 py-6">Failed to load resident data.</div>');

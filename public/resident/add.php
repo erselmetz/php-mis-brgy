@@ -66,7 +66,7 @@ if ($action === 'add_resident') {
 
         if ($sql->execute()) {
             // success — return to resident list or send success flag
-            header("Location: /residents?success=1");
+            header("Location: /resident/residents?success=1");
             exit();
         } else {
             $error = "❌ Error adding resident: " . $conn->error;

@@ -29,7 +29,7 @@ $resident = $stmt->get_result()->fetch_assoc();
 
             <div>
                 <label class="block text-gray-700 mb-1 font-medium">Certificate Type</label>
-                <select name="certificate_type"
+                <select name="certificate_type" required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300">
                     <option value="Barangay Clearance">Barangay Clearance</option>
                     <option value="Indigency Certificate">Indigency Certificate</option>
@@ -39,7 +39,7 @@ $resident = $stmt->get_result()->fetch_assoc();
 
             <div>
                 <label class="block text-gray-700 mb-1 font-medium">Purpose</label>
-                <input type="text" name="purpose" placeholder="Enter purpose of certificate"
+                <input type="text" name="purpose" placeholder="Enter purpose of certificate" required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300">
             </div>
 
@@ -55,58 +55,71 @@ $resident = $stmt->get_result()->fetch_assoc();
     <h4 class="text-lg font-medium mb-4 text-gray-800">Certificate Request History</h4>
 
     <div class="overflow-x-auto">
-        <table id="historyTable" class="display min-w-full border border-gray-200 rounded-lg">
-            <thead class="bg-gray-50">
+        <table id="historyTable" class="display w-full text-sm border border-gray-200 rounded-lg">
+            <thead class="bg-gray-50 text-gray-700">
                 <tr>
-                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Certificate Type</th>
-                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Purpose</th>
-                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Status</th>
-                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-b">Requested At</th>
+                    <th class="p-2 text-left">Certificate Type</th>
+                    <th class="p-2 text-left">Purpose</th>
+                    <th class="p-2 text-left">Status</th>
+                    <th class="p-2 text-left">Requested At</th>
+                    <th class="p-2 text-left">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php
-                $stmt = $conn->prepare("SELECT * FROM certificate_request WHERE resident_id = ? ORDER BY requested_at DESC");
+                $stmt = $conn->prepare("SELECT cr.*, u.name as issued_by_name FROM certificate_request cr LEFT JOIN users u ON cr.issued_by = u.id WHERE cr.resident_id = ? ORDER BY cr.requested_at DESC");
                 $stmt->bind_param("i", $resident['id']);
                 $stmt->execute();
                 $result = $stmt->get_result();
                 if ($result->num_rows > 0):
                     while ($row = $result->fetch_assoc()):
                         $statusColor = [
-                            'Pending' => 'bg-yellow-100 text-yellow-700',
-                            'Approved' => 'bg-green-100 text-green-700',
-                            'Rejected' => 'bg-red-100 text-red-700'
-                        ][$row['status']] ?? 'bg-gray-100 text-gray-700';
+                            'Pending' => 'bg-yellow-100 text-yellow-800',
+                            'Printed' => 'bg-blue-100 text-blue-800',
+                            'Approved' => 'bg-green-100 text-green-800',
+                            'Rejected' => 'bg-red-100 text-red-800'
+                        ][$row['status']] ?? 'bg-gray-100 text-gray-800';
                 ?>
                         <tr>
-                            <td class="px-4 py-2 text-sm text-gray-800"><?= htmlspecialchars($row['certificate_type']) ?></td>
-                            <td class="px-4 py-2 text-sm text-gray-800"><?= htmlspecialchars($row['purpose']) ?></td>
-                            <td class="px-4 py-2 text-sm">
-                                <span class="px-2 py-1 rounded-full text-xs font-medium <?= $statusColor ?>">
+                            <td class="p-2 text-gray-800"><?= htmlspecialchars($row['certificate_type']) ?></td>
+                            <td class="p-2 text-gray-800"><?= htmlspecialchars($row['purpose']) ?></td>
+                            <td class="p-2">
+                                <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
                                     <?= htmlspecialchars($row['status']) ?>
                                 </span>
                             </td>
-                            <td class="px-4 py-2 text-sm text-gray-800"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($row['requested_at']))) ?></td>
+                            <td class="p-2 text-gray-800"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($row['requested_at']))) ?></td>
+                            <td class="p-2">
+                                <?php if ($row['status'] === 'Pending' || $row['status'] === 'Approved'): ?>
+                                    <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium">
+                                        🖨️ Print
+                                    </button>
+                                <?php elseif ($row['status'] === 'Printed'): ?>
+                                    <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
+                                        class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs font-medium">
+                                        🖨️ Re-print
+                                    </button>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-gray-500">No certificate requests found.</td>
-                        <td class="text-center py-4 text-gray-500"></td>
-                        <td class="text-center py-4 text-gray-500"></td>
-                        <td class="text-center py-4 text-gray-500"></td>
+                        <td colspan="5" class="p-4 text-center text-gray-500">No certificate requests found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
+
 <script>
     $(document).ready(function() {
         $("#certificateRequestForm").on("submit", function(e) {
-            e.preventDefault(); // prevent normal form submit
+            e.preventDefault();
             $.ajax({
-                url: "/certificate/certificate_request_submit", // relative path works perfectly
+                url: "/certificate/certificate_request_submit",
                 method: "POST",
                 data: $(this).serialize(),
                 dataType: "json",
@@ -115,11 +128,10 @@ $resident = $stmt->get_result()->fetch_assoc();
                 },
                 success: function(response) {
                     $("#submitBtn").prop("disabled", false).text("Submit Request");
-
                     if (response.status === "success") {
-                        showDialogReload("✅ Success",response.message);
+                        showDialogReload("✅ Success", response.message);
                     } else {
-                        showDialogReload("❌ Error",response.message);
+                        showDialogReload("❌ Error", response.message);
                     }
                 },
                 error: function(xhr, status, error) {
@@ -129,4 +141,27 @@ $resident = $stmt->get_result()->fetch_assoc();
             });
         });
     });
+
+    function printCertificate(certId, certType) {
+        // Open print window
+        const printWindow = window.open('/certificate/print?id=' + certId, '_blank', 'width=800,height=600');
+        
+        // Update status to "Printed" after printing
+        $.ajax({
+            url: '/certificate/update_status',
+            method: 'POST',
+            data: {
+                id: certId,
+                status: 'Printed'
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Reload the page to show updated status
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                }
+            }
+        });
+    }
 </script>

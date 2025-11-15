@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/app.php';
+requireStaff(); // Only Staff and Admin can access
 header('Content-Type: application/json');
 
 $response = [];
