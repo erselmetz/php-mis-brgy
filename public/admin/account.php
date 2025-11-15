@@ -263,7 +263,9 @@ if ($stmt === false) {
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Username</label>
+                <label class="block text-sm font-medium text-gray-700">
+                    Username <?= helpTooltip(HelpMessages::USERNAME) ?>
+                </label>
                 <input type="text" name="username" placeholder="Username" required
                     class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
@@ -275,7 +277,9 @@ if ($stmt === false) {
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Role</label>
+                <label class="block text-sm font-medium text-gray-700">
+                    Role <?= helpTooltip("Admin: Full access. Staff: Resident & certificate management. Tanod: Blotter only.") ?>
+                </label>
                 <select name="role" required
                     class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="staff">Staff</option>
@@ -317,7 +321,9 @@ if ($stmt === false) {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Position * <?= helpTooltip(HelpMessages::OFFICER_POSITION) ?>
+                    </label>
                     <input type="text" name="officer_position" id="addOfficerPosition"
                         placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">

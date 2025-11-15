@@ -34,7 +34,7 @@ function loadAssets(array $assets)
 function loadAllStyles()
 {
     loadAssets([
-        'css' => ['style.css'],
+        'css' => ['style.css', 'tooltips.css'],
         'node_css' => [
             'datatables.net-jqui/css/dataTables.jqueryui.css',
             'jquery-ui/dist/themes/base/jquery-ui.css',
