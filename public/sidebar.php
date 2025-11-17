@@ -39,7 +39,7 @@
             📚 Documentation
         </a>
         <div class="px-3 py-1 text-xs text-gray-500">
-            Version: <span class="font-semibold">v1.2.0</span>
+            Version: <span class="font-semibold">v1.3.0</span>
         </div>
     </nav>
 </aside>

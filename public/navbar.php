@@ -2,7 +2,7 @@
             <!-- Left: Title + Navigation -->
             <div class="flex items-center space-x-6">
                 <h1 class="text-2xl font-bold">MIS Barangay</h1>
-                <span class="text-sm text-blue-200">v1.2.0</span>
+                <span class="text-sm text-blue-200">v1.3.0</span>
             </div>
 
             <!-- Right: Profile Dropdown -->

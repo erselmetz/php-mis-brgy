@@ -1,7 +1,7 @@
 // Documentation System JavaScript
 class DocumentationSystem {
     constructor() {
-        this.currentVersion = 'v1.2.0';
+        this.currentVersion = 'v1.3.0';
         this.versions = {};
         this.currentSection = 'overview';
         this.init();

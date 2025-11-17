@@ -1,7 +1,7 @@
 # MIS Barangay - User Manual
 ## Basic User Guide
 
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Last Updated:** 2024-01-16
 
 ---
@@ -356,5 +356,5 @@ For additional support:
 ---
 
 **Document Version:** 1.0  
-**For System Version:** 1.2.0
+**For System Version:** 1.3.0
 
