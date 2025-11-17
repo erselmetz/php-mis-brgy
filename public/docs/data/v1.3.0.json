@@ -35,7 +35,7 @@
         {
           "type": "card",
           "title": "Coding Style Guide",
-          "content": "**Standardized Code Style**\n\n• Created comprehensive coding style guide (`docs/CODING_STYLE_GUIDE.md`)\n• Established consistent naming conventions\n• Defined code formatting standards\n• Documented best practices for PHP development"
+          "content": "**Standardized Code Style**\n\n• Created comprehensive coding style guide (`markdown/CODING_STYLE_GUIDE.md`)\n• Established consistent naming conventions\n• Defined code formatting standards\n• Documented best practices for PHP development"
         },
         {
           "type": "card",

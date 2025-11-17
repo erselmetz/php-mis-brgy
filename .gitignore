@@ -1,1 +1,4 @@
 /public/node_modules/
+
+# Markdown documentation (keep README.md in root)
+markdown/
