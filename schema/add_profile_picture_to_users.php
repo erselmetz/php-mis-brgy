@@ -1,20 +1,31 @@
 <?php
-// Add profile_picture column to users table
+/**
+ * Add profile_picture column to users table
+ * MIS Barangay - Profile Picture Feature
+ */
+
 include '../includes/db.php';
 
-$sql = "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(255) NULL AFTER password";
-
-if ($conn->query($sql) === TRUE) {
-    echo "✅ Column 'profile_picture' added to 'users' table successfully.";
-} else {
-    // Check if column already exists
-    if (strpos($conn->error, 'Duplicate column name') !== false) {
-        echo "✅ Column 'profile_picture' already exists in 'users' table.";
-    } else {
-        echo "❌ Error adding column: " . $conn->error;
+// Helper function to check if column exists
+if (!function_exists('columnExists')) {
+    function columnExists($conn, $table, $column) {
+        $result = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+        return $result->num_rows > 0;
     }
 }
 
-$conn->close();
+// Check if column already exists
+if (columnExists($conn, 'users', 'profile_picture')) {
+    echo "✅ Column 'profile_picture' already exists in 'users' table.\n";
+} else {
+    $sql = "ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) NULL AFTER password";
+    
+    if ($conn->query($sql) === TRUE) {
+        echo "✅ Column 'profile_picture' added to 'users' table successfully.\n";
+    } else {
+        echo "❌ Error adding column: " . $conn->error . "\n";
+    }
+}
+
 ?>
 

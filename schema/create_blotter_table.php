@@ -51,6 +51,5 @@ function generateCaseNumber($conn) {
     return "BLT-$year-" . str_pad($count, 4, '0', STR_PAD_LEFT);
 }
 
-$conn->close();
 ?>
 

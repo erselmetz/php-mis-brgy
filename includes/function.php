@@ -1,5 +1,19 @@
 <?php
-function loadAsset($type, $path)
+/**
+ * Helper Functions
+ * MIS Barangay - Utility Functions
+ * 
+ * This file contains various helper functions used throughout the application.
+ */
+
+/**
+ * Load an asset (CSS or JS file)
+ * 
+ * @param string $type Asset type (css, js, node_css, node_js)
+ * @param string $path Path to the asset file
+ * @return string HTML tag for the asset
+ */
+function loadAsset(string $type, string $path): string
 {
     $basePaths = [
         'css' => '/assets/css/',
@@ -20,7 +34,13 @@ function loadAsset($type, $path)
     }
 }
 
-function loadAssets(array $assets)
+/**
+ * Load multiple assets
+ * 
+ * @param array $assets Associative array of asset types and their files
+ * @return void
+ */
+function loadAssets(array $assets): void
 {
     foreach ($assets as $type => $files) {
         foreach ($files as $file) {
@@ -31,7 +51,11 @@ function loadAssets(array $assets)
 
 /* ---- Grouped Loaders ---- */
 
-function loadAllStyles()
+/**
+ * Load all CSS stylesheets
+ * @return void
+ */
+function loadAllStyles(): void
 {
     loadAssets([
         'css' => ['style.css', 'tooltips.css'],
@@ -42,7 +66,11 @@ function loadAllStyles()
     ]);
 }
 
-function loadAllScripts()
+/**
+ * Load all JavaScript files
+ * @return void
+ */
+function loadAllScripts(): void
 {
     loadAssets([
         'node_js' => [
@@ -54,19 +82,31 @@ function loadAllScripts()
     ]);
 }
 
-function loadAllAssets()
+/**
+ * Load all CSS and JavaScript assets
+ * @return void
+ */
+function loadAllAssets(): void
 {
     loadAllStyles();
     loadAllScripts();
 }
 
 
-// Modernized alert message using jQuery UI dialog
-function AlertMessage($message, $title = "Alert")
+/**
+ * Generate jQuery UI dialog HTML and JavaScript
+ * 
+ * @param string $message Dialog message to display
+ * @param string $title Dialog title
+ * @param bool $reloadOnClose Whether to reload page on close
+ * @return string HTML and JavaScript for the dialog
+ */
+function generateDialog(string $message, string $title, bool $reloadOnClose = false): string
 {
     $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $dialogId = 'dialog_' . uniqid();
+    $reloadScript = $reloadOnClose ? "\n                                location.reload();" : '';
     
     return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
                 <div class='p-4'>
@@ -88,7 +128,7 @@ function AlertMessage($message, $title = "Alert")
                         buttons: {
                             Ok: function() {
                                 $(this).dialog('close');
-                                $(this).remove();
+                                $(this).remove();$reloadScript
                             }
                         },
                         open: function() {
@@ -99,54 +139,49 @@ function AlertMessage($message, $title = "Alert")
             </script>";
 }
 
-// Modernized dialog message using jQuery UI dialog
-function DialogMessage($message, $title = "Message")
+/**
+ * Display an alert message using jQuery UI dialog
+ * 
+ * @param string $message Alert message to display
+ * @param string $title Dialog title (default: "Alert")
+ * @return string HTML and JavaScript for the alert dialog
+ */
+function AlertMessage(string $message, string $title = "Alert"): string
 {
-    $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
-    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $dialogId = 'dialog_' . uniqid();
-    
-    return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
-                <div class='p-4'>
-                    <p class='text-gray-700'>$safeMessage</p>
-                </div>
-            </div>
-            <script>
-                $(function() {
-                    $('#$dialogId').dialog({
-                        modal: true,
-                        width: 500,
-                        resizable: false,
-                        classes: {
-                            'ui-dialog': 'rounded-lg shadow-lg',
-                            'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-                            'ui-dialog-title': 'font-semibold',
-                            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                        },
-                        buttons: {
-                            Ok: function() {
-                                $(this).dialog('close');
-                                $(this).remove();
-                            }
-                        },
-                        open: function() {
-                            $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
-                        }
-                    });
-                });
-            </script>";
+    return generateDialog($message, $title, false);
 }
 
-// --- Auto-compute age ---
-function AutoComputeAge($birthdate)
+/**
+ * Display a dialog message using jQuery UI dialog
+ * 
+ * @param string $message Dialog message to display
+ * @param string $title Dialog title (default: "Message")
+ * @return string HTML and JavaScript for the dialog
+ */
+function DialogMessage(string $message, string $title = "Message"): string
+{
+    return generateDialog($message, $title, false);
+}
+
+/**
+ * Calculate age from birthdate
+ * 
+ * @param string $birthdate Birthdate in YYYY-MM-DD format
+ * @return int Age in years
+ */
+function AutoComputeAge(string $birthdate): int
 {
   $birthDateObj = new DateTime($birthdate);
   $today = new DateTime();
   return $birthDateObj->diff($today)->y;
 }
 
-// JavaScript function for dialog with reload
-function showDialogReloadScript()
+/**
+ * Generate JavaScript function for dialog with page reload
+ * 
+ * @return string JavaScript code for dialog with reload functionality
+ */
+function showDialogReloadScript(): string
 {
     return "<script>
         function showDialogReload(title, message) {

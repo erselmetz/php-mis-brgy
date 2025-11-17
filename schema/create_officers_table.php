@@ -27,5 +27,4 @@ if ($conn->query($sql) === TRUE) {
     echo "❌ Error creating table 'officers': " . $conn->error;
 }
 
-$conn->close();
 ?>

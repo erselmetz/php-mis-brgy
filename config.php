@@ -1,5 +1,12 @@
 <?php
-// config.php
+/**
+ * Main Configuration File
+ * MIS Barangay - Configuration
+ * 
+ * This file contains the main configuration settings for the application.
+ */
+
+// Database Configuration
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'admin');
 define('DB_PASS', 'phpmisbrgy');

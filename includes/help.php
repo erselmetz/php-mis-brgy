@@ -6,8 +6,12 @@
 
 /**
  * Generate help tooltip HTML
+ * 
+ * @param string $text Tooltip text
+ * @param string $position Tooltip position (default: 'right')
+ * @return string HTML for tooltip
  */
-function helpTooltip($text, $position = 'right')
+function helpTooltip(string $text, string $position = 'right'): string
 {
     $tooltipId = 'tooltip_' . uniqid();
     return '<span class="help-tooltip" data-tooltip="' . htmlspecialchars($text) . '" data-position="' . $position . '">
@@ -19,8 +23,12 @@ function helpTooltip($text, $position = 'right')
 
 /**
  * Generate help text below input
+ * 
+ * @param string $text Help text
+ * @param string $class CSS classes (default: 'text-xs text-gray-500 mt-1')
+ * @return string HTML for help text
  */
-function helpText($text, $class = 'text-xs text-gray-500 mt-1')
+function helpText(string $text, string $class = 'text-xs text-gray-500 mt-1'): string
 {
     return '<p class="' . $class . '">' . htmlspecialchars($text) . '</p>';
 }
