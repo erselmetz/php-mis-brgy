@@ -9,6 +9,9 @@
             <a href="/resident/residents" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
                 👥 Residents
             </a>
+            <a href="/household/households" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+                🏘️ Households
+            </a>
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "admin"): ?>
