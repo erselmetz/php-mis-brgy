@@ -1,5 +1,8 @@
 <?php
 require_once '../../includes/app.php';
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/residents/ResidentModel.php';
+header('Content-Type: application/json');
 
 $q = trim($_GET['q'] ?? '');
 if ($q === '') {
@@ -7,14 +10,24 @@ if ($q === '') {
   exit;
 }
 
-$stmt = $conn->prepare("SELECT id, first_name, middle_name, last_name, address FROM residents WHERE 
-  first_name LIKE CONCAT('%', ?, '%') OR 
-  middle_name LIKE CONCAT('%', ?, '%') OR 
-  last_name LIKE CONCAT('%', ?, '%') OR 
-  address LIKE CONCAT('%', ?, '%') 
-  LIMIT 10");
-$stmt->bind_param("ssss", $q, $q, $q, $q);
-$stmt->execute();
-$res = $stmt->get_result();
+// Use ResidentModel directly
+$model = new ResidentModel();
+$searchTerm = '%' . $q . '%';
+$conditions = [
+    'first_name LIKE ? OR middle_name LIKE ? OR last_name LIKE ? OR address LIKE ?'
+];
+$params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+$residents = $model->findWhere($conditions, $params, 'last_name, first_name', 10);
 
-echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+// Format response to match expected format
+$formatted = array_map(function($resident) {
+    return [
+        'id' => $resident['id'],
+        'first_name' => $resident['first_name'] ?? '',
+        'middle_name' => $resident['middle_name'] ?? '',
+        'last_name' => $resident['last_name'] ?? '',
+        'address' => $resident['address'] ?? ''
+    ];
+}, $residents);
+
+echo json_encode($formatted);

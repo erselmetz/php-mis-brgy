@@ -2,19 +2,7 @@
 require_once '../../includes/app.php';
 requireStaff(); // Only Staff and Admin can access
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $action = $_POST['action'] ?? '';
-  include_once __DIR__ . '/add.php';
-}
-// Use prepared statement for better security (though no user input here, good practice)
-$stmt = $conn->prepare("SELECT * FROM residents ORDER BY id DESC");
-if ($stmt === false) {
-  error_log('Residents query error: ' . $conn->error);
-  $result = false;
-} else {
-  $stmt->execute();
-  $result = $stmt->get_result();
-}
+// Form submission handled via API
 
 ?>
 <!DOCTYPE html>
@@ -60,31 +48,7 @@ if ($stmt === false) {
             </tr>
           </thead>
           <tbody>
-            <?php if ($result !== false): ?>
-              <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td class="p-2">
-                  <a href="/resident/view?id=<?= $row['id']; ?>" class="text-primary text-decoration-none">
-                    <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
-                  </a>
-                </td>
-                <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
-                <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['voter_status']); ?></td>
-              </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="11" class="p-4 text-center text-muted">Error loading residents. Please try again later.</td>
-              </tr>
-            <?php endif; ?>
+            <!-- Data loaded via API -->
           </tbody>
         </table>
       </div>
@@ -95,9 +59,8 @@ if ($stmt === false) {
     <div class="row g-4" style="max-height: 70vh; overflow-y: auto;">
       <!-- Form Section -->
       <div>
-        <form id="addResidentForm" method="POST">
-          <input type="hidden" name="action" value="add_resident">
-          <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
+        <form id="addResidentForm">
+          <div id="residentAlertContainer"></div>
 
       <!-- Household -->
       <div class="mb-3">
@@ -283,7 +246,154 @@ if ($stmt === false) {
   <script>
     $(function() {
       $("body").show();
-      $("#residentsTable").DataTable();
+      
+      // Helper function to calculate age
+      function calculateAge(birthdate) {
+        if (!birthdate) return '';
+        const parts = birthdate.split('-');
+        if (parts.length !== 3) return '';
+        const birth = new Date(parts[0], parts[1] - 1, parts[2]);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+          age--;
+        }
+        return age;
+      }
+      
+      let residentsTable = $("#residentsTable").DataTable({
+        ajax: {
+          url: '/api/v1/residents',
+          dataSrc: function(json) {
+            if (json.status === 'success' && json.data) {
+              return json.data;
+            }
+            return [];
+          },
+          error: function(xhr, error, thrown) {
+            console.error('Error loading residents:', error);
+            $('#residentsTable tbody').html('<tr><td colspan="11" class="p-4 text-center text-muted">Error loading data. Please refresh.</td></tr>');
+          }
+        },
+        columns: [
+          {
+            data: null,
+            render: function(data, type, row) {
+              const fullName = [row.first_name, row.middle_name, row.last_name, row.suffix].filter(Boolean).join(' ');
+              return '<a href="/resident/view?id=' + row.id + '" class="text-primary text-decoration-none">' + 
+                     escapeHtml(fullName) + '</a>';
+            }
+          },
+          { data: 'gender' },
+          { data: 'birthdate' },
+          {
+            data: 'birthdate',
+            render: function(data) {
+              return calculateAge(data);
+            }
+          },
+          { data: 'civil_status' },
+          { data: 'religion' },
+          { data: 'occupation' },
+          { data: 'citizenship' },
+          { data: 'contact_no' },
+          { data: 'address' },
+          { data: 'voter_status' }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25
+      });
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+      }
+      
+      function showAlert(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show mb-3" role="alert">' +
+          escapeHtml(message) +
+          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+          '</div>';
+        $('#residentAlertContainer').html(alertHtml);
+        setTimeout(function() {
+          $('#residentAlertContainer .alert').fadeOut(function() {
+            $(this).remove();
+          });
+        }, 5000);
+      }
+      
+      // Handle form submission
+      $('#addResidentForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          action: 'create',
+          household_id: $('[name="household_id"]').val() || null,
+          first_name: $('[name="first_name"]').val().trim(),
+          middle_name: $('[name="middle_name"]').val().trim(),
+          last_name: $('[name="last_name"]').val().trim(),
+          suffix: $('[name="suffix"]').val().trim(),
+          gender: $('[name="gender"]').val(),
+          birthdate: $('[name="birthdate"]').val(),
+          birthplace: $('[name="birthplace"]').val().trim(),
+          civil_status: $('[name="civil_status"]').val() || 'Single',
+          religion: $('[name="religion"]').val().trim(),
+          occupation: $('[name="occupation"]').val().trim(),
+          citizenship: $('[name="citizenship"]').val() || 'Filipino',
+          contact_no: $('[name="contact_no"]').val().trim(),
+          address: $('[name="address"]').val().trim(),
+          voter_status: $('[name="voter_status"]').val() || 'No',
+          disability_status: $('[name="disability_status"]').val() || 'No',
+          remarks: $('[name="remarks"]').val().trim()
+        };
+        
+        // Validation
+        if (!formData.first_name || !formData.last_name || !formData.gender || !formData.birthdate) {
+          showAlert('Please fill in all required fields (First Name, Last Name, Gender, and Birthdate).', 'error');
+          return;
+        }
+        
+        $.ajax({
+          url: '/api/v1/residents',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(formData),
+          success: function(response) {
+            if (response.status === 'success') {
+              showAlert('Resident added successfully!', 'success');
+              $('#addResidentForm')[0].reset();
+              // Reset defaults
+              $('[name="civil_status"]').val('Single');
+              $('[name="citizenship"]').val('Filipino');
+              $('[name="voter_status"]').val('No');
+              $('[name="disability_status"]').val('No');
+              updateModalPreview();
+              $("#addResidentModal").dialog("close");
+              residentsTable.ajax.reload();
+            } else {
+              showAlert(response.message || 'Error adding resident', 'error');
+            }
+          },
+          error: function(xhr) {
+            let errorMsg = 'Error adding resident';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+              errorMsg = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+              errorMsg = Object.values(xhr.responseJSON.errors).join(', ');
+            }
+            showAlert(errorMsg, 'error');
+          }
+        });
+      });
       
       // Live preview update function
       function updateModalPreview() {

@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="bg-light widget">
 
-  <section class="min-h-100 d-flex flex-column flex-lg-row">
+  <section class="v-100 d-flex flex-column flex-lg-row">
     <!-- Left: Landing info -->
     <div class="col-lg-8 bg-primary text-white p-5 d-flex flex-column justify-content-center">
       <h1 class="display-5 fw-bold mb-4">MIS Barangay</h1>

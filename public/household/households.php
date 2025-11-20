@@ -2,27 +2,7 @@
 require_once '../../includes/app.php';
 requireStaff(); // Only Staff and Admin can access
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $action = $_POST['action'] ?? '';
-  include_once __DIR__ . '/add.php';
-}
-
-// Fetch households with member count
-$stmt = $conn->prepare("
-    SELECT h.*, 
-           COUNT(r.id) as member_count
-    FROM households h
-    LEFT JOIN residents r ON r.household_id = h.id
-    GROUP BY h.id
-    ORDER BY h.id DESC
-");
-if ($stmt === false) {
-  error_log('Households query error: ' . $conn->error);
-  $result = false;
-} else {
-  $stmt->execute();
-  $result = $stmt->get_result();
-}
+// Form submission handled via API
 
 ?>
 <!DOCTYPE html>
@@ -63,29 +43,7 @@ if ($stmt === false) {
             </tr>
           </thead>
           <tbody>
-            <?php if ($result !== false): ?>
-              <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td class="p-2">
-                  <a href="/household/view?id=<?= $row['id']; ?>" class="text-primary text-decoration-none">
-                    <?= htmlspecialchars($row['household_no']); ?>
-                  </a>
-                </td>
-                <td class="p-2"><?= htmlspecialchars($row['head_name']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['member_count']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['created_at']); ?></td>
-                <td class="p-2">
-                  <a href="/household/view?id=<?= $row['id']; ?>" 
-                     class="text-primary text-decoration-none me-2">View</a>
-                </td>
-              </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="6" class="p-4 text-center text-muted">Error loading households. Please try again later.</td>
-              </tr>
-            <?php endif; ?>
+            <!-- Data loaded via API -->
           </tbody>
         </table>
       </div>
@@ -93,9 +51,8 @@ if ($stmt === false) {
   </div>
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
   <div id="addHouseholdModal" title="Add New Household">
-    <form method="POST" class="overflow-y-auto" style="max-height: 70vh;">
-      <input type="hidden" name="action" value="add_household">
-      <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
+    <form id="addHouseholdForm" class="overflow-y-auto" style="max-height: 70vh;">
+      <div id="householdAlertContainer"></div>
 
       <!-- Household Number -->
       <div class="mb-3">
@@ -131,8 +88,111 @@ if ($stmt === false) {
   <script>
     $(function() {
       $("body").show();
-      $("#householdsTable").DataTable();
-      // Initialize modal (hidden by default) - Modernized
+      
+      let householdsTable = $("#householdsTable").DataTable({
+        ajax: {
+          url: '/api/v1/households',
+          dataSrc: function(json) {
+            if (json.status === 'success' && json.data) {
+              return json.data;
+            }
+            return [];
+          },
+          error: function(xhr, error, thrown) {
+            console.error('Error loading households:', error);
+            $('#householdsTable tbody').html('<tr><td colspan="6" class="p-4 text-center text-muted">Error loading data. Please refresh.</td></tr>');
+          }
+        },
+        columns: [
+          {
+            data: 'household_no',
+            render: function(data, type, row) {
+              return '<a href="/household/view?id=' + row.id + '" class="text-primary text-decoration-none">' + 
+                     (data || '') + '</a>';
+            }
+          },
+          { data: 'head_name' },
+          { data: 'address' },
+          { data: 'member_count', defaultContent: '0' },
+          { data: 'created_at' },
+          {
+            data: null,
+            render: function(data, type, row) {
+              return '<a href="/household/view?id=' + row.id + '" class="text-primary text-decoration-none me-2">View</a>';
+            }
+          }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25
+      });
+      
+      function showAlert(message, type) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show mb-3" role="alert">' +
+          escapeHtml(message) +
+          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+          '</div>';
+        $('#householdAlertContainer').html(alertHtml);
+        setTimeout(function() {
+          $('#householdAlertContainer .alert').fadeOut(function() {
+            $(this).remove();
+          });
+        }, 5000);
+      }
+      
+      function escapeHtml(text) {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+      }
+      
+      // Handle form submission
+      $('#addHouseholdForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+          action: 'create',
+          household_no: $('[name="household_no"]').val().trim(),
+          head_name: $('[name="head_name"]').val().trim(),
+          address: $('[name="address"]').val().trim()
+        };
+        
+        if (!formData.household_no || !formData.head_name || !formData.address) {
+          showAlert('Please fill in all required fields.', 'error');
+          return;
+        }
+        
+        $.ajax({
+          url: '/api/v1/households',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(formData),
+          success: function(response) {
+            if (response.status === 'success') {
+              showAlert('Household added successfully!', 'success');
+              $('#addHouseholdForm')[0].reset();
+              $("#addHouseholdModal").dialog("close");
+              householdsTable.ajax.reload();
+            } else {
+              showAlert(response.message || 'Error adding household', 'error');
+            }
+          },
+          error: function(xhr) {
+            let errorMsg = 'Error adding household';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+              errorMsg = xhr.responseJSON.message;
+            }
+            showAlert(errorMsg, 'error');
+          }
+        });
+      });
+      
+      // Initialize modal
       $("#addHouseholdModal").dialog({
         autoOpen: false,
         modal: true,
@@ -155,8 +215,11 @@ if ($stmt === false) {
         },
         open: function() {
           $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+          $('#addHouseholdForm')[0].reset();
+          $('#householdAlertContainer').empty();
         }
       });
+      
       $("#openHouseholdModalBtn").on("click", function() {
         $("#addHouseholdModal").dialog("open");
       });

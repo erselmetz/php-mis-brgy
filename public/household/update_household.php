@@ -1,4 +1,9 @@
 <?php
+/**
+ * Household Update - API Proxy
+ * This file uses the API directly for backward compatibility
+ */
+
 require_once '../../includes/app.php';
 requireLogin();
 
@@ -15,62 +20,46 @@ if ($id <= 0) {
     exit;
 }
 
-$fields = [
-    'household_no', 'head_name', 'address'
-];
+// Use API models directly
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/households/HouseholdModel.php';
 
-$data = [];
-foreach ($fields as $field) {
-    $data[$field] = $_POST[$field] ?? null;
+try {
+    $model = new HouseholdModel();
+    
+    // Collect and sanitize POST data
+    $householdData = [
+        'household_no' => trim($_POST['household_no'] ?? ''),
+        'head_name' => trim($_POST['head_name'] ?? ''),
+        'address' => trim($_POST['address'] ?? ''),
+        'updated_at' => date('Y-m-d H:i:s')
+    ];
+    
+    // Validate required fields
+    if (empty($householdData['household_no']) || empty($householdData['head_name']) || empty($householdData['address'])) {
+        echo json_encode(['success' => false, 'message' => 'Household number, head name, and address are required']);
+        exit;
+    }
+    
+    // Check for duplicate household number (excluding current record)
+    if ($model->householdNumberExists($householdData['household_no'], $id)) {
+        echo json_encode(['success' => false, 'message' => 'Household number already exists']);
+        exit;
+    }
+    
+    // Update total_members based on actual resident count
+    $model->updateMemberCount($id);
+    
+    $success = $model->update($id, $householdData);
+    
+    if ($success) {
+        echo json_encode(['success' => true, 'message' => 'Household updated successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Update failed']);
+    }
+    
+} catch (Exception $e) {
+    error_log('Household Update Error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
 }
-
-// Validate required fields
-if (empty($data['household_no']) || empty($data['head_name']) || empty($data['address'])) {
-    echo json_encode(['success' => false, 'message' => 'Household number, head name, and address are required']);
-    exit;
-}
-
-// Check for duplicate household number (excluding current record)
-$check = $conn->prepare("SELECT id FROM households WHERE household_no = ? AND id != ?");
-$check->bind_param("si", $data['household_no'], $id);
-$check->execute();
-$result = $check->get_result();
-if ($result->num_rows > 0) {
-    echo json_encode(['success' => false, 'message' => 'Household number already exists']);
-    $check->close();
-    exit;
-}
-$check->close();
-
-// Update total_members based on actual resident count
-$countStmt = $conn->prepare("SELECT COUNT(*) as count FROM residents WHERE household_id = ?");
-$countStmt->bind_param("i", $id);
-$countStmt->execute();
-$countResult = $countStmt->get_result();
-$countRow = $countResult->fetch_assoc();
-$total_members = $countRow['count'];
-$countStmt->close();
-
-$sql = "UPDATE households SET
-    household_no = ?, head_name = ?, address = ?, total_members = ?
-    WHERE id = ?";
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param(
-    'sssii',
-    $data['household_no'],
-    $data['head_name'],
-    $data['address'],
-    $total_members,
-    $id
-);
-
-if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Household updated successfully']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Update failed: ' . $conn->error]);
-}
-
-$stmt->close();
-$conn->close();
 

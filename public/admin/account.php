@@ -1,31 +1,8 @@
 <?php
 include_once __DIR__ . '/../../includes/app.php';
-
-if($_SERVER['REQUEST_METHOD'] === 'POST'){
-    $action = $_POST['action'] ?? '';
-    include_once __DIR__ . '/add_account.php';
-    include_once __DIR__ . '/edit_account.php';
-}
 requireAdmin();
 
-// Fetch all users with their officer information and resident details
-$stmt = $conn->prepare("
-    SELECT u.*, 
-           o.id as officer_id, o.resident_id, o.position as officer_position, o.term_start, o.term_end, o.status as officer_status,
-           r.first_name, r.middle_name, r.last_name, r.suffix,
-           CONCAT(r.first_name, ' ', COALESCE(r.middle_name, ''), ' ', r.last_name, ' ', COALESCE(r.suffix, '')) as resident_full_name
-    FROM users u
-    LEFT JOIN officers o ON u.id = o.user_id
-    LEFT JOIN residents r ON o.resident_id = r.id
-    ORDER BY u.id DESC
-");
-if ($stmt === false) {
-  error_log('Account query error: ' . $conn->error);
-  $result = false;
-} else {
-  $stmt->execute();
-  $result = $stmt->get_result();
-}
+// Form submission handled via API
 ?>
 <!DOCTYPE html>
 <html>
@@ -70,61 +47,7 @@ if ($stmt === false) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if ($result !== false): ?>
-                            <?php while ($row = $result->fetch_assoc()): ?>
-                            <tr>
-                                <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
-                                <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
-                                <td class="p-2"><?= ucfirst($row['role']); ?></td>
-                                <td class="p-2">
-                                    <?php if ($row['officer_id']): ?>
-                                        <span class="text-primary fw-medium"><?= htmlspecialchars($row['officer_position']); ?></span>
-                                        <?php if ($row['resident_full_name']): ?>
-                                            <br><span class="small text-muted">(<?= htmlspecialchars(trim($row['resident_full_name'])); ?>)</span>
-                                        <?php endif; ?>
-                                    <?php elseif ($row['position']): ?>
-                                        <span class="text-dark"><?= htmlspecialchars($row['position']); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-muted fst-italic">—</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="p-2">
-                                    <?php
-                                    $statusColor = $row['status'] === 'active' 
-                                        ? 'bg-success bg-opacity-10 text-success' 
-                                        : 'bg-secondary bg-opacity-10 text-secondary';
-                                    ?>
-                                    <span class="badge <?= $statusColor ?>">
-                                        <?= ucfirst($row['status']); ?>
-                                    </span>
-                                </td>
-                                <td class="p-2"><?= (new DateTime($row['created_at']))->format('Y-m-d') ?></td>
-                                <td class="p-2">
-                                    <button
-                                        class="edit-btn btn btn-warning btn-sm"
-                                        data-id="<?= $row['id'] ?>"
-                                        data-name="<?= htmlspecialchars($row['name']) ?>"
-                                        data-username="<?= htmlspecialchars($row['username']) ?>"
-                                        data-role="<?= htmlspecialchars($row['role']) ?>"
-                                        data-status="<?= htmlspecialchars($row['status']) ?>"
-                                        data-position="<?= htmlspecialchars($row['position'] ?? '') ?>"
-                                        data-officer-id="<?= $row['officer_id'] ?? '' ?>"
-                                        data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
-                                        data-term-start="<?= $row['term_start'] ?? '' ?>"
-                                        data-term-end="<?= $row['term_end'] ?? '' ?>"
-                                        data-officer-status="<?= htmlspecialchars($row['officer_status'] ?? '') ?>"
-                                        data-resident-id="<?= $row['resident_id'] ?? '' ?>"
-                                        data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
-                                        ✏️ Edit
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="7" class="p-4 text-center text-muted">Error loading accounts. Please try again later.</td>
-                            </tr>
-                        <?php endif; ?>
+                        <!-- Data loaded via API -->
                     </tbody>
                 </table>
             </div>
@@ -133,8 +56,8 @@ if ($stmt === false) {
 
     <!-- Edit Account Dialog -->
     <div id="editAccountDialog" title="Edit Account">
-        <form id="editAccountForm" method="POST">
-            <input type="hidden" name="action" value="edit_account">
+        <div id="editAccountAlertContainer"></div>
+        <form id="editAccountForm">
             <input type="hidden" name="id" id="editAccountId">
             <input type="hidden" name="officer_id" id="editOfficerId">
             <input type="hidden" name="resident_id" id="editResidentId">
@@ -240,8 +163,8 @@ if ($stmt === false) {
 
     <!-- add account thru modal -->
     <div id="addAccountModal" title="Add New Account / Officer">
-        <form method="POST" id="addAccountForm" style="max-height: 70vh; overflow-y: auto;">
-            <input type="hidden" name="action" value="add_account">
+        <form id="addAccountForm" style="max-height: 70vh; overflow-y: auto;">
+            <div id="addAccountAlertContainer"></div>
             <input type="hidden" name="resident_id" id="addResidentId" value="">
             <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
 
@@ -349,7 +272,221 @@ if ($stmt === false) {
     <script>
         $(function() {
             $('body').show();
-            $('#accountsTable').DataTable();
+            
+            let accountsTable = $('#accountsTable').DataTable({
+                ajax: {
+                    url: '/api/v1/admin',
+                    dataSrc: function(json) {
+                        if (json.status === 'success' && json.data) {
+                            return json.data;
+                        }
+                        return [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('Error loading accounts:', error);
+                        $('#accountsTable tbody').html('<tr><td colspan="7" class="p-4 text-center text-muted">Error loading data. Please refresh.</td></tr>');
+                    }
+                },
+                columns: [
+                    { data: 'name' },
+                    { data: 'username' },
+                    {
+                        data: 'role',
+                        render: function(data) {
+                            return data ? data.charAt(0).toUpperCase() + data.slice(1) : '';
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            if (row.officer_id) {
+                                let html = '<span class="text-primary fw-medium">' + escapeHtml(row.officer_position || '') + '</span>';
+                                if (row.resident_full_name) {
+                                    html += '<br><span class="small text-muted">(' + escapeHtml(row.resident_full_name.trim()) + ')</span>';
+                                }
+                                return html;
+                            } else if (row.position) {
+                                return '<span class="text-dark">' + escapeHtml(row.position) + '</span>';
+                            }
+                            return '<span class="text-muted fst-italic">—</span>';
+                        }
+                    },
+                    {
+                        data: 'status',
+                        render: function(data) {
+                            const statusColor = data === 'active' 
+                                ? 'bg-success bg-opacity-10 text-success' 
+                                : 'bg-secondary bg-opacity-10 text-secondary';
+                            return '<span class="badge ' + statusColor + '">' + 
+                                   (data ? data.charAt(0).toUpperCase() + data.slice(1) : '') + '</span>';
+                        }
+                    },
+                    {
+                        data: 'created_at',
+                        render: function(data) {
+                            if (!data) return '';
+                            const date = new Date(data);
+                            return date.toISOString().split('T')[0];
+                        }
+                    },
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            return '<button class="edit-btn btn btn-warning btn-sm" data-id="' + row.id + '">✏️ Edit</button>';
+                        }
+                    }
+                ],
+                order: [[0, 'desc']],
+                pageLength: 25
+            });
+            
+            function escapeHtml(text) {
+                if (!text) return '';
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+            }
+            
+            function showAlert(message, type) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show mb-3" role="alert">' +
+                    escapeHtml(message) +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                    '</div>';
+                // Show in dialog or page
+                if ($('#addAccountModal').dialog('isOpen')) {
+                    $('#addAccountAlertContainer').html(alertHtml);
+                } else if ($('#editAccountDialog').dialog('isOpen')) {
+                    $('#editAccountAlertContainer').html(alertHtml);
+                } else {
+                    // Show at top of page
+                    $('main').prepend(alertHtml);
+                }
+                setTimeout(function() {
+                    $('.alert').fadeOut(function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
+            
+            // Handle add form submission
+            $('#addAccountForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    action: 'create',
+                    name: $('[name="fullname"]').val().trim(),
+                    username: $('[name="username"]').val().trim(),
+                    password: $('[name="password"]').val(),
+                    role: $('[name="role"]').val(),
+                    position: $('#addIsOfficer').is(':checked') ? null : ($('[name="position"]').val() || null),
+                    is_officer: $('#addIsOfficer').is(':checked') ? '1' : '0',
+                    officer_position: $('[name="officer_position"]').val() || null,
+                    term_start: $('[name="term_start"]').val() || null,
+                    term_end: $('[name="term_end"]').val() || null,
+                    officer_status: $('[name="officer_status"]').val() || 'Active',
+                    resident_id: $('#addResidentId').val() || null
+                };
+                
+                if (!formData.name || !formData.username || !formData.password || !formData.role) {
+                    showAlert('Please fill in all required fields.', 'error');
+                    return;
+                }
+                
+                if (formData.is_officer === '1' && (!formData.officer_position || !formData.term_start || !formData.term_end)) {
+                    showAlert('Please fill in all officer fields.', 'error');
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/v1/admin',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Account created successfully!', 'success');
+                            $('#addAccountForm')[0].reset();
+                            $("#addAccountModal").dialog("close");
+                            accountsTable.ajax.reload();
+                        } else {
+                            showAlert(response.message || 'Error creating account', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error creating account';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMsg = Object.values(xhr.responseJSON.errors).join(', ');
+                        }
+                        showAlert(errorMsg, 'error');
+                    }
+                });
+            });
+            
+            // Handle edit form submission
+            $('#editAccountForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    action: 'update',
+                    id: $('#editAccountId').val(),
+                    name: $('[name="fullname"]').val().trim(),
+                    username: $('[name="username"]').val().trim(),
+                    password: $('[name="password"]').val() || null,
+                    role: $('[name="role"]').val(),
+                    status: $('[name="status"]').val(),
+                    position: $('#editIsOfficer').is(':checked') ? null : ($('[name="position"]').val() || null),
+                    is_officer: $('#editIsOfficer').is(':checked') ? '1' : '0',
+                    officer_id: $('#editOfficerId').val() || null,
+                    officer_position: $('[name="officer_position"]').val() || null,
+                    term_start: $('[name="term_start"]').val() || null,
+                    term_end: $('[name="term_end"]').val() || null,
+                    officer_status: $('[name="officer_status"]').val() || 'Active',
+                    resident_id: $('#editResidentId').val() || null
+                };
+                
+                if (!formData.name || !formData.username || !formData.role) {
+                    showAlert('Please fill in all required fields.', 'error');
+                    return;
+                }
+                
+                if (formData.is_officer === '1' && (!formData.officer_position || !formData.term_start || !formData.term_end)) {
+                    showAlert('Please fill in all officer fields.', 'error');
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/v1/admin',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Account updated successfully!', 'success');
+                            $("#editAccountDialog").dialog("close");
+                            accountsTable.ajax.reload();
+                        } else {
+                            showAlert(response.message || 'Error updating account', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error updating account';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMsg = Object.values(xhr.responseJSON.errors).join(', ');
+                        }
+                        showAlert(errorMsg, 'error');
+                    }
+                });
+            });
 
             // Toggle officer fields for add form
             $("#addIsOfficer").on("change", function() {
@@ -561,21 +698,29 @@ if ($stmt === false) {
                 $("#addAccountModal").dialog("open");
             });
 
-            $('.edit-btn').on('click', function() {
-                // Get data from button
+            // Load user data from API when edit button is clicked
+            $(document).on('click', '.edit-btn', function() {
                 const id = $(this).data('id');
-                const name = $(this).data('name');
-                const username = $(this).data('username');
-                const role = $(this).data('role');
-                const status = $(this).data('status');
-                const position = $(this).data('position') || '';
-                const officerId = $(this).data('officer-id') || '';
-                const officerPosition = $(this).data('officer-position') || '';
-                const termStart = $(this).data('term-start') || '';
-                const termEnd = $(this).data('term-end') || '';
-                const officerStatus = $(this).data('officer-status') || 'Active';
-                const residentId = $(this).data('resident-id') || '';
-                const residentName = $(this).data('resident-name') || '';
+                
+                // Fetch user data from API
+                $.ajax({
+                    url: '/api/v1/admin?id=' + id,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success' && response.data) {
+                            const row = response.data;
+                            const name = row.name || '';
+                            const username = row.username || '';
+                            const role = row.role || '';
+                            const status = row.status || 'active';
+                            const position = row.position || '';
+                            const officerId = row.officer_id || '';
+                            const officerPosition = row.officer_position || '';
+                            const termStart = row.term_start || '';
+                            const termEnd = row.term_end || '';
+                            const officerStatus = row.officer_status || 'Active';
+                            const residentId = row.resident_id || '';
+                            const residentName = row.resident_full_name ? row.resident_full_name.trim() : '';
 
                 // Fill form fields
                 $('#editAccountId').val(id);
@@ -613,39 +758,46 @@ if ($stmt === false) {
                     clearEditResidentSelection();
                 }
 
-                // Open dialog
-                $("#editAccountDialog").dialog({
-                    modal: true,
-                    width: 600,
-                    height: 650,
-                    resizable: true,
-                    classes: {
-                        'ui-dialog': 'rounded shadow-lg',
-                        'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-                        'ui-dialog-title': 'fw-semibold',
-                        'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-                    },
-                    buttons: {
-                        "Save Changes": function() {
-                            $('#editAccountForm').submit();
-                            $(this).dialog("close");
-                        },
-                        "Cancel": function() {
-                            $(this).dialog("close");
-                        }
-                    },
+                            // Open dialog
+                            $("#editAccountDialog").dialog({
+                                modal: true,
+                                width: 600,
+                                height: 650,
+                                resizable: true,
+                                classes: {
+                                    'ui-dialog': 'rounded shadow-lg',
+                                    'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
+                                    'ui-dialog-title': 'fw-semibold',
+                                    'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
+                                },
+                                buttons: {
+                                    "Save Changes": function() {
+                                        $('#editAccountForm').submit();
+                                    },
+                                    "Cancel": function() {
+                                        $(this).dialog("close");
+                                    }
+                                },
                     open: function() {
                         $(".ui-dialog-buttonpane button:contains('Save Changes')")
                             .addClass("btn btn-primary me-2");
                         $(".ui-dialog-buttonpane button:contains('Cancel')")
                             .addClass("btn btn-secondary");
                     },
-                    close: function() {
-                        // Clean up on close to prevent duplication
-                        $("#editAccountForm")[0].reset();
-                        $("#editOfficerFields").addClass('d-none');
-                        $("#editPositionField").addClass('d-none');
-                        clearEditResidentSelection();
+                                close: function() {
+                                    // Clean up on close to prevent duplication
+                                    $("#editAccountForm")[0].reset();
+                                    $("#editOfficerFields").addClass('d-none');
+                                    $("#editPositionField").addClass('d-none');
+                                    clearEditResidentSelection();
+                                }
+                            });
+                        } else {
+                            showAlert('Failed to load account data', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        showAlert('Error loading account data', 'error');
                     }
                 });
             });

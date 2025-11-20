@@ -9,28 +9,7 @@ if ($household_id <= 0) {
     exit;
 }
 
-// Fetch household details
-$stmt = $conn->prepare("SELECT * FROM households WHERE id = ?");
-$stmt->bind_param('i', $household_id);
-$stmt->execute();
-$household = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-if (!$household) {
-    header("Location: /household/households");
-    exit;
-}
-
-// Fetch household members
-$stmt = $conn->prepare("
-    SELECT * FROM residents 
-    WHERE household_id = ? 
-    ORDER BY last_name, first_name
-");
-$stmt->bind_param('i', $household_id);
-$stmt->execute();
-$members = $stmt->get_result();
-$stmt->close();
+// Data will be loaded via API
 
 ?>
 <!DOCTYPE html>
@@ -132,45 +111,8 @@ $stmt->close();
             <!-- Household Members Section -->
             <div class="max-w-6xl mx-auto mt-6">
                 <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h2 class="text-lg font-medium mb-4">Household Members (<?= $members->num_rows ?>)</h2>
-                    <?php if ($members->num_rows > 0): ?>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm border border-gray-200 rounded-lg">
-                            <thead class="bg-gray-50 text-gray-700">
-                                <tr>
-                                    <th class="p-2 text-left">Name</th>
-                                    <th class="p-2 text-left">Gender</th>
-                                    <th class="p-2 text-left">Age</th>
-                                    <th class="p-2 text-left">Civil Status</th>
-                                    <th class="p-2 text-left">Occupation</th>
-                                    <th class="p-2 text-left">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($member = $members->fetch_assoc()): ?>
-                                <tr>
-                                    <td class="p-2">
-                                        <a href="/resident/view?id=<?= $member['id']; ?>"
-                                            class="text-blue-600 hover:underline">
-                                            <?= htmlspecialchars($member['first_name'] . ' ' . $member['middle_name'] . ' ' . $member['last_name'] . ' ' . $member['suffix']); ?>
-                                        </a>
-                                    </td>
-                                    <td class="p-2"><?= htmlspecialchars($member['gender']); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars(AutoComputeAge($member['birthdate'])); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($member['civil_status']); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($member['occupation']); ?></td>
-                                    <td class="p-2">
-                                        <a href="/resident/view?id=<?= $member['id']; ?>"
-                                            class="text-blue-600 hover:underline">View</a>
-                                    </td>
-                                </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php else: ?>
-                    <p class="text-gray-500 text-center py-4">No members assigned to this household yet.</p>
-                    <?php endif; ?>
+                    <h2 class="text-lg font-medium mb-4">Household Members (<span id="memberCount">0</span>)</h2>
+                    <div id="membersContainer" class="text-center text-muted py-4">Loading members...</div>
                 </section>
             </div>
             <!-- ✅ End of Household Information Section -->
@@ -193,32 +135,45 @@ $stmt->close();
             updatePreview();
 
             $('#saveBtn').click(() => {
-                const payload = {};
-                $('#householdForm').serializeArray().forEach(f => payload[f.name] = f.value);
-                payload.id = householdId;
+                const formData = {};
+                $('#householdForm').serializeArray().forEach(f => formData[f.name] = f.value);
+                
+                const updateData = {
+                    action: 'update',
+                    id: householdId,
+                    household_no: formData.household_no,
+                    head_name: formData.head_name,
+                    address: formData.address
+                };
 
                 $.ajax({
-                    url: '/household/update_household',
+                    url: '/api/v1/households',
                     type: 'POST',
-                    data: payload,
+                    contentType: 'application/json',
+                    data: JSON.stringify(updateData),
                     dataType: 'json',
-                    success: function(res) {
-                        $('<div>' + res.message + '</div>').dialog({
+                    success: function(response) {
+                        const message = response.message || (response.status === 'success' ? 'Household updated successfully' : 'Failed to update household');
+                        const title = response.status === 'success' ? 'Saved' : 'Error';
+                        
+                        $('<div>' + message + '</div>').dialog({
                             modal: true,
-                            title: res.success ? 'Saved' : 'Error',
+                            title: title,
                             width: 420,
                             buttons: {
                                 Ok: function() {
                                     $(this).dialog('close');
-                                    if (res.success) {
-                                        location.reload();
+                                    if (response.status === 'success') {
+                                        loadHouseholdData();
+                                        loadMembers();
                                     }
                                 }
                             }
                         });
                     },
-                    error: function() {
-                        $('<div>Failed to connect to server.</div>').dialog({
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
+                        $('<div>' + errorMsg + '</div>').dialog({
                             modal: true,
                             title: 'Error',
                             width: 420,
@@ -231,29 +186,120 @@ $stmt->close();
                     }
                 });
             });
+            
+            function loadHouseholdData() {
+                if (!householdId) return;
+                
+                $.ajax({
+                    url: `/api/v1/households?id=${householdId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success' && response.data) {
+                            const res = response.data;
+                            // Fill all form fields
+                            for (const key in res) {
+                                if ($(`[name="${key}"]`).length) {
+                                    $(`[name="${key}"]`).val(res[key]);
+                                }
+                            }
+                            // Trigger preview update
+                            updatePreview();
+                        } else {
+                            alert(response.message || 'Household not found');
+                            window.location.href = '/household/households';
+                        }
+                    },
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to load household data.';
+                        alert(errorMsg);
+                        window.location.href = '/household/households';
+                    }
+                });
+            }
+            
+            function loadMembers() {
+                if (!householdId) return;
+                
+                $.ajax({
+                    url: `/api/v1/households?id=${householdId}&action=members`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success' && response.data) {
+                            const members = response.data;
+                            $('#memberCount').text(members.length);
+                            
+                            if (members.length > 0) {
+                                function calculateAge(birthdate) {
+                                    if (!birthdate) return '';
+                                    const parts = birthdate.split('-');
+                                    if (parts.length !== 3) return '';
+                                    const birth = new Date(parts[0], parts[1] - 1, parts[2]);
+                                    const today = new Date();
+                                    let age = today.getFullYear() - birth.getFullYear();
+                                    const monthDiff = today.getMonth() - birth.getMonth();
+                                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                                        age--;
+                                    }
+                                    return age;
+                                }
+                                
+                                const html = '<div class="overflow-x-auto"><table class="w-full text-sm border border-gray-200 rounded-lg">' +
+                                    '<thead class="bg-gray-50 text-gray-700"><tr>' +
+                                    '<th class="p-2 text-left">Name</th>' +
+                                    '<th class="p-2 text-left">Gender</th>' +
+                                    '<th class="p-2 text-left">Age</th>' +
+                                    '<th class="p-2 text-left">Civil Status</th>' +
+                                    '<th class="p-2 text-left">Occupation</th>' +
+                                    '<th class="p-2 text-left">Actions</th>' +
+                                    '</tr></thead><tbody>' +
+                                    members.map(member => {
+                                        const fullName = [member.first_name, member.middle_name, member.last_name, member.suffix].filter(Boolean).join(' ');
+                                        return '<tr>' +
+                                            '<td class="p-2"><a href="/resident/view?id=' + member.id + '" class="text-blue-600 hover:underline">' + 
+                                            escapeHtml(fullName) + '</a></td>' +
+                                            '<td class="p-2">' + escapeHtml(member.gender || '') + '</td>' +
+                                            '<td class="p-2">' + calculateAge(member.birthdate) + '</td>' +
+                                            '<td class="p-2">' + escapeHtml(member.civil_status || '') + '</td>' +
+                                            '<td class="p-2">' + escapeHtml(member.occupation || '') + '</td>' +
+                                            '<td class="p-2"><a href="/resident/view?id=' + member.id + '" class="text-blue-600 hover:underline">View</a></td>' +
+                                            '</tr>';
+                                    }).join('') +
+                                    '</tbody></table></div>';
+                                $('#membersContainer').html(html);
+                            } else {
+                                $('#membersContainer').html('<p class="text-gray-500 text-center py-4">No members assigned to this household yet.</p>');
+                            }
+                        } else {
+                            $('#membersContainer').html('<p class="text-gray-500 text-center py-4">Failed to load members.</p>');
+                        }
+                    },
+                    error: function() {
+                        $('#membersContainer').html('<p class="text-gray-500 text-center py-4">Error loading members.</p>');
+                    }
+                });
+            }
+            
+            function escapeHtml(text) {
+                if (!text) return '';
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+            }
 
             $('#refreshBtn').click(() => {
                 updatePreview();
             });
         });
-        // ajax to fetch household data and populate the form
-        // --- Load Household Info ---
+        // Load household data and members on page load
         const householdId = new URLSearchParams(window.location.search).get('id');
         if (householdId) {
-            $.getJSON(`get_household.php?id=${householdId}`, function(res) {
-                if (res.error) {
-                    alert(res.error);
-                    return;
-                }
-                // Fill all form fields
-                for (const key in res) {
-                    if ($(`[name=${key}]`).length) {
-                        $(`[name=${key}]`).val(res[key]);
-                    }
-                }
-                // Trigger preview update
-                $('#householdForm').trigger('change');
-            });
+            loadHouseholdData();
+            loadMembers();
         }
     </script>
 </body>

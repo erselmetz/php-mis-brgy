@@ -1,6 +1,11 @@
 <?php
+/**
+ * Household Save - API Proxy
+ * This file uses the API directly for backward compatibility
+ */
+
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireStaff();
 
 header('Content-Type: application/json');
 
@@ -9,64 +14,44 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Use API models directly
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/households/HouseholdModel.php';
+
 try {
-    // Securely collect POST data
-    $fields = [
-        'household_no', 'head_name', 'address'
+    $model = new HouseholdModel();
+    
+    // Collect and sanitize POST data
+    $householdData = [
+        'household_no' => trim($_POST['household_no'] ?? ''),
+        'head_name' => trim($_POST['head_name'] ?? ''),
+        'address' => trim($_POST['address'] ?? ''),
+        'total_members' => 0,
+        'created_at' => date('Y-m-d H:i:s'),
+        'updated_at' => date('Y-m-d H:i:s')
     ];
-
-    $data = [];
-    foreach ($fields as $f) {
-        $data[$f] = isset($_POST[$f]) ? trim($_POST[$f]) : null;
-    }
-
+    
     // Basic validation
-    if (empty($data['household_no']) || empty($data['head_name']) || empty($data['address'])) {
+    if (empty($householdData['household_no']) || empty($householdData['head_name']) || empty($householdData['address'])) {
         echo json_encode(['status' => 'error', 'message' => 'Household number, head name, and address are required.']);
         exit;
     }
-
-    // Check for duplicate household number
-    $check = $conn->prepare("SELECT id FROM households WHERE household_no = ?");
-    $check->bind_param("s", $data['household_no']);
-    $check->execute();
-    $result = $check->get_result();
     
-    if ($result->num_rows > 0) {
+    // Check for duplicate household number
+    if ($model->householdNumberExists($householdData['household_no'])) {
         echo json_encode(['status' => 'error', 'message' => 'Household number already exists.']);
-        $check->close();
         exit;
     }
-    $check->close();
-
-    // Insert new record securely using mysqli prepared statements
-    $stmt = $conn->prepare("
-        INSERT INTO households (
-            household_no, head_name, address, total_members, created_at
-        ) VALUES (
-            ?, ?, ?, 0, NOW()
-        )
-    ");
-
-    // Bind parameters in the correct order
-    $stmt->bind_param(
-        "sss",
-        $data['household_no'],
-        $data['head_name'],
-        $data['address']
-    );
-
-    if ($stmt->execute()) {
+    
+    $householdId = $model->insert($householdData);
+    
+    if ($householdId) {
         echo json_encode(['status' => 'success', 'message' => 'Household saved successfully.']);
     } else {
-        error_log('Household Save Error: ' . $stmt->error);
         echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
     }
     
-    $stmt->close();
-
 } catch (Exception $e) {
-    // Log error internally (not shown to user)
     error_log('Household Save Error: ' . $e->getMessage());
     echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
 }

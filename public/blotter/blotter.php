@@ -1,84 +1,6 @@
 <?php
 require_once '../../includes/app.php';
 requireTanod(); // Only Tanod (and admin) can access
-
-// Handle form submission
-$success = '';
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
-    
-    if ($action === 'add_blotter') {
-        $complainant_name = trim($_POST['complainant_name'] ?? '');
-        $complainant_address = trim($_POST['complainant_address'] ?? '');
-        $complainant_contact = trim($_POST['complainant_contact'] ?? '');
-        $respondent_name = trim($_POST['respondent_name'] ?? '');
-        $respondent_address = trim($_POST['respondent_address'] ?? '');
-        $respondent_contact = trim($_POST['respondent_contact'] ?? '');
-        $incident_date = $_POST['incident_date'] ?? '';
-        $incident_time = $_POST['incident_time'] ?? '';
-        $incident_location = trim($_POST['incident_location'] ?? '');
-        $incident_description = trim($_POST['incident_description'] ?? '');
-        $status = $_POST['status'] ?? 'pending';
-        
-        // Validation
-        if (empty($complainant_name) || empty($respondent_name) || empty($incident_date) || empty($incident_location) || empty($incident_description)) {
-            $error = "Please fill in all required fields.";
-        } else {
-            // Generate case number
-            $year = date('Y');
-            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM blotter WHERE case_number LIKE ?");
-            $pattern = "BLT-$year-%";
-            $stmt->bind_param("s", $pattern);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $row = $result->fetch_assoc();
-            $count = $row['count'] + 1;
-            $case_number = "BLT-$year-" . str_pad($count, 4, '0', STR_PAD_LEFT);
-            
-            // Insert blotter record
-            $stmt = $conn->prepare("
-                INSERT INTO blotter (
-                    case_number, complainant_name, complainant_address, complainant_contact,
-                    respondent_name, respondent_address, respondent_contact,
-                    incident_date, incident_time, incident_location, incident_description,
-                    status, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            
-            $created_by = $_SESSION['user_id'];
-            $stmt->bind_param(
-                "ssssssssssssi",
-                $case_number,
-                $complainant_name,
-                $complainant_address,
-                $complainant_contact,
-                $respondent_name,
-                $respondent_address,
-                $respondent_contact,
-                $incident_date,
-                $incident_time,
-                $incident_location,
-                $incident_description,
-                $status,
-                $created_by
-            );
-            
-            if ($stmt->execute()) {
-                $success = "Blotter case added successfully. Case Number: $case_number";
-            } else {
-                $error = "Error adding blotter: " . $stmt->error;
-            }
-            $stmt->close();
-        }
-    }
-}
-
-// Fetch all blotter records
-$stmt = $conn->prepare("SELECT b.*, u.name as created_by_name FROM blotter b LEFT JOIN users u ON b.created_by = u.id ORDER BY b.created_at DESC");
-$stmt->execute();
-$result = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -95,19 +17,7 @@ $result = $stmt->get_result();
         <main class="p-4 w-100">
             <h2 class="h3 fw-semibold mb-4">Blotter Management</h2>
             
-            <?php if ($success): ?>
-                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                    <?= htmlspecialchars($success) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
-            
-            <?php if ($error): ?>
-                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                    <?= htmlspecialchars($error) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            <?php endif; ?>
+            <div id="alertContainer"></div>
             
             <!-- Add Button -->
             <div class="mb-4">
@@ -131,40 +41,7 @@ $result = $stmt->get_result();
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if ($result !== false): ?>
-                            <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr>
-                                    <td class="p-2">
-                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-primary text-decoration-none fw-semibold">
-                                            <?= htmlspecialchars($row['case_number']) ?>
-                                        </a>
-                                    </td>
-                                    <td class="p-2"><?= htmlspecialchars($row['complainant_name']) ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($row['respondent_name']) ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($row['incident_date']) ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($row['incident_location']) ?></td>
-                                    <td class="p-2">
-                                        <?php
-                                        $statusColors = [
-                                            'pending' => 'bg-warning bg-opacity-10 text-warning',
-                                            'under_investigation' => 'bg-primary bg-opacity-10 text-primary',
-                                            'resolved' => 'bg-success bg-opacity-10 text-success',
-                                            'dismissed' => 'bg-secondary bg-opacity-10 text-secondary'
-                                        ];
-                                        $statusColor = $statusColors[$row['status']] ?? 'bg-secondary bg-opacity-10 text-secondary';
-                                        ?>
-                                        <span class="badge <?= $statusColor ?>">
-                                            <?= ucfirst(str_replace('_', ' ', $row['status'])) ?>
-                                        </span>
-                                    </td>
-                                    <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
-                                </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="7" class="p-4 text-center text-muted">No blotter cases found.</td>
-                            </tr>
-                        <?php endif; ?>
+                        <!-- Data will be loaded via API -->
                     </tbody>
                 </table>
             </div>
@@ -173,8 +50,7 @@ $result = $stmt->get_result();
     
     <!-- Add Blotter Modal -->
     <div id="addBlotterModal" title="Add New Blotter Case">
-        <form method="POST" style="max-height: 70vh; overflow-y: auto;">
-            <input type="hidden" name="action" value="add_blotter">
+        <form id="addBlotterForm" style="max-height: 70vh; overflow-y: auto;">
             
             <div class="row g-3 mb-3">
                 <div class="col-6">
@@ -250,9 +126,128 @@ $result = $stmt->get_result();
     <script>
         $(function() {
             $('body').show();
-            $('#blotterTable').DataTable({
+            
+            let blotterTable = $('#blotterTable').DataTable({
                 order: [[0, 'desc']],
-                pageLength: 25
+                pageLength: 25,
+                ajax: {
+                    url: '/api/v1/blotter',
+                    dataSrc: function(json) {
+                        if (json.status === 'success' && json.data) {
+                            return json.data;
+                        }
+                        return [];
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('Error loading blotter data:', error);
+                        $('#blotterTable tbody').html('<tr><td colspan="7" class="p-4 text-center text-muted">Error loading data. Please refresh the page.</td></tr>');
+                    }
+                },
+                columns: [
+                    {
+                        data: 'case_number',
+                        render: function(data, type, row) {
+                            return '<a href="/blotter/view?id=' + row.id + '" class="text-primary text-decoration-none fw-semibold">' + 
+                                   (data || '') + '</a>';
+                        }
+                    },
+                    { data: 'complainant_name' },
+                    { data: 'respondent_name' },
+                    { data: 'incident_date' },
+                    { data: 'incident_location' },
+                    {
+                        data: 'status',
+                        render: function(data) {
+                            const statusColors = {
+                                'pending': 'bg-warning bg-opacity-10 text-warning',
+                                'under_investigation': 'bg-primary bg-opacity-10 text-primary',
+                                'resolved': 'bg-success bg-opacity-10 text-success',
+                                'dismissed': 'bg-secondary bg-opacity-10 text-secondary'
+                            };
+                            const statusColor = statusColors[data] || 'bg-secondary bg-opacity-10 text-secondary';
+                            const displayName = data ? data.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+                            return '<span class="badge ' + statusColor + '">' + displayName + '</span>';
+                        }
+                    },
+                    { data: 'created_by_name', defaultContent: 'N/A' }
+                ]
+            });
+            
+            // Show alert function
+            function showAlert(message, type) {
+                const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show mb-4" role="alert">' +
+                    htmlspecialchars(message) +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                    '</div>';
+                $('#alertContainer').html(alertHtml);
+                setTimeout(function() {
+                    $('#alertContainer .alert').fadeOut(function() {
+                        $(this).remove();
+                    });
+                }, 5000);
+            }
+            
+            function htmlspecialchars(str) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return str.replace(/[&<>"']/g, function(m) { return map[m]; });
+            }
+            
+            // Handle form submission
+            $('#addBlotterForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    action: 'create',
+                    complainant_name: $('[name="complainant_name"]').val().trim(),
+                    complainant_address: $('[name="complainant_address"]').val().trim(),
+                    complainant_contact: $('[name="complainant_contact"]').val().trim(),
+                    respondent_name: $('[name="respondent_name"]').val().trim(),
+                    respondent_address: $('[name="respondent_address"]').val().trim(),
+                    respondent_contact: $('[name="respondent_contact"]').val().trim(),
+                    incident_date: $('[name="incident_date"]').val(),
+                    incident_time: $('[name="incident_time"]').val() || null,
+                    incident_location: $('[name="incident_location"]').val().trim(),
+                    incident_description: $('[name="incident_description"]').val().trim(),
+                    status: $('[name="status"]').val() || 'pending'
+                };
+                
+                // Validation
+                if (!formData.complainant_name || !formData.respondent_name || !formData.incident_date || 
+                    !formData.incident_location || !formData.incident_description) {
+                    showAlert('Please fill in all required fields.', 'error');
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/api/v1/blotter',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Blotter case added successfully. Case Number: ' + response.data.case_number, 'success');
+                            $('#addBlotterForm')[0].reset();
+                            $("#addBlotterModal").dialog("close");
+                            blotterTable.ajax.reload();
+                        } else {
+                            showAlert(response.message || 'Error adding blotter case', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Error adding blotter case';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
+                        showAlert(errorMsg, 'error');
+                    }
+                });
             });
             
             $("#addBlotterModal").dialog({
@@ -277,6 +272,7 @@ $result = $stmt->get_result();
                 },
                 open: function() {
                     $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+                    $('#addBlotterForm')[0].reset();
                 }
             });
             

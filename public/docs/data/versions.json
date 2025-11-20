@@ -62,6 +62,23 @@
       "Improved PHPDoc documentation throughout codebase",
       "Enhanced error handling in migrations"
     ]
+  },
+  "v1.4.0": {
+    "date": "2025-01-16",
+    "time": "18:00:00",
+    "description": "Complete API Migration & MVC Architecture",
+    "changes": [
+      "Migrated all backend logic to centralized RESTful API",
+      "Implemented MVC architecture (BaseController, BaseModel)",
+      "Created API endpoints for all modules (blotter, residents, households, certificates, admin, auth)",
+      "Converted all DataTables to use AJAX API calls",
+      "Removed direct database queries from view files",
+      "Fixed DataTables pagination and data loading issues",
+      "Fixed API include paths in all entry points",
+      "Improved NULL value handling in database operations",
+      "Standardized API response format",
+      "Enhanced error handling and validation"
+    ]
   }
 }
 

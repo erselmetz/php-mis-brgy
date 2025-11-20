@@ -1,4 +1,9 @@
 <?php
+/**
+ * Get Household - API Proxy
+ * This file uses the API directly for backward compatibility
+ */
+
 require_once '../../includes/app.php';
 requireLogin();
 
@@ -11,17 +16,22 @@ if (!isset($_GET['id'])) {
 
 $id = intval($_GET['id']);
 
-$stmt = $conn->prepare("SELECT * FROM households WHERE id = ?");
-$stmt->bind_param('i', $id);
-$stmt->execute();
-$result = $stmt->get_result();
+// Use API models directly
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/households/HouseholdModel.php';
 
-if ($row = $result->fetch_assoc()) {
-    echo json_encode($row);
-} else {
-    echo json_encode(['error' => 'Household not found']);
+try {
+    $model = new HouseholdModel();
+    $household = $model->find($id);
+    
+    if ($household) {
+        echo json_encode($household);
+    } else {
+        echo json_encode(['error' => 'Household not found']);
+    }
+    
+} catch (Exception $e) {
+    error_log('Get Household Error: ' . $e->getMessage());
+    echo json_encode(['error' => 'Failed to retrieve household']);
 }
-
-$stmt->close();
-$conn->close();
 

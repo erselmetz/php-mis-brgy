@@ -5,10 +5,22 @@ requireLogin();
 if (!isset($_GET['id'])) exit;
 
 $id = intval($_GET['id']);
-$stmt = $conn->prepare("SELECT * FROM residents WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$resident = $stmt->get_result()->fetch_assoc();
+
+// Use models directly
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/residents/ResidentModel.php';
+require_once '../api/v1/certificates/CertificateModel.php';
+
+$residentModel = new ResidentModel();
+$resident = $residentModel->find($id);
+
+if (!$resident) {
+    echo '<div class="text-danger">Resident not found.</div>';
+    exit;
+}
+
+$certificateModel = new CertificateModel();
+$certificates = $certificateModel->getByResident($id);
 ?>
 
 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
@@ -66,31 +78,32 @@ $resident = $stmt->get_result()->fetch_assoc();
                 </tr>
             </thead>
             <tbody>
-                <?php
-                $stmt = $conn->prepare("SELECT cr.*, u.name as issued_by_name FROM certificate_request cr LEFT JOIN users u ON cr.issued_by = u.id WHERE cr.resident_id = ? ORDER BY cr.requested_at DESC");
-                $stmt->bind_param("i", $resident['id']);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($result->num_rows > 0):
-                    while ($row = $result->fetch_assoc()):
+                <?php if (!empty($certificates)): ?>
+                    <?php foreach ($certificates as $row): ?>
+                        <?php
                         $statusColor = [
                             'Pending' => 'bg-yellow-100 text-yellow-800',
+                            'pending' => 'bg-yellow-100 text-yellow-800',
                             'Printed' => 'bg-blue-100 text-blue-800',
                             'Approved' => 'bg-green-100 text-green-800',
-                            'Rejected' => 'bg-red-100 text-red-800'
+                            'approved' => 'bg-green-100 text-green-800',
+                            'Rejected' => 'bg-red-100 text-red-800',
+                            'rejected' => 'bg-red-100 text-red-800'
                         ][$row['status']] ?? 'bg-gray-100 text-gray-800';
-                ?>
+                        $statusDisplay = $row['status'];
+                        $requestedAt = $row['requested_at'] ?? $row['created_at'] ?? '';
+                        ?>
                         <tr>
                             <td class="p-2 text-gray-800"><?= htmlspecialchars($row['certificate_type']) ?></td>
                             <td class="p-2 text-gray-800"><?= htmlspecialchars($row['purpose']) ?></td>
                             <td class="p-2">
                                 <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
-                                    <?= htmlspecialchars($row['status']) ?>
+                                    <?= htmlspecialchars($statusDisplay) ?>
                                 </span>
                             </td>
-                            <td class="p-2 text-gray-800"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($row['requested_at']))) ?></td>
+                            <td class="p-2 text-gray-800"><?= $requestedAt ? htmlspecialchars(date('M d, Y h:i A', strtotime($requestedAt))) : 'N/A' ?></td>
                             <td class="p-2">
-                                <?php if ($row['status'] === 'Pending' || $row['status'] === 'Approved'): ?>
+                                <?php if (in_array($row['status'], ['Pending', 'pending', 'Approved', 'approved'])): ?>
                                     <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
                                         class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium">
                                         🖨️ Print
@@ -103,7 +116,7 @@ $resident = $stmt->get_result()->fetch_assoc();
                                 <?php endif; ?>
                             </td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
                         <td colspan="5" class="p-4 text-center text-gray-500">No certificate requests found.</td>
@@ -118,10 +131,18 @@ $resident = $stmt->get_result()->fetch_assoc();
     $(document).ready(function() {
         $("#certificateRequestForm").on("submit", function(e) {
             e.preventDefault();
+            const formData = {
+                action: 'create',
+                resident_id: $('[name="resident_id"]').val(),
+                certificate_type: $('[name="certificate_type"]').val(),
+                purpose: $('[name="purpose"]').val()
+            };
+            
             $.ajax({
-                url: "/certificate/certificate_request_submit",
+                url: "/api/v1/certificates",
                 method: "POST",
-                data: $(this).serialize(),
+                contentType: "application/json",
+                data: JSON.stringify(formData),
                 dataType: "json",
                 beforeSend: function() {
                     $("#submitBtn").prop("disabled", true).text("Submitting...");
@@ -131,12 +152,13 @@ $resident = $stmt->get_result()->fetch_assoc();
                     if (response.status === "success") {
                         showDialogReload("✅ Success", response.message);
                     } else {
-                        showDialogReload("❌ Error", response.message);
+                        showDialogReload("❌ Error", response.message || "Failed to submit request");
                     }
                 },
                 error: function(xhr, status, error) {
                     $("#submitBtn").prop("disabled", false).text("Submit Request");
-                    alert("AJAX error: " + error);
+                    const errorMsg = xhr.responseJSON?.message || "AJAX error: " + error;
+                    showDialogReload("❌ Error", errorMsg);
                 }
             });
         });
@@ -148,12 +170,14 @@ $resident = $stmt->get_result()->fetch_assoc();
         
         // Update status to "Printed" after printing
         $.ajax({
-            url: '/certificate/update_status',
+            url: '/api/v1/certificates',
             method: 'POST',
-            data: {
+            contentType: 'application/json',
+            data: JSON.stringify({
+                action: 'update_status',
                 id: certId,
                 status: 'Printed'
-            },
+            }),
             success: function(response) {
                 if (response.status === 'success') {
                     // Reload the page to show updated status

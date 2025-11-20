@@ -251,15 +251,47 @@ requireStaff(); // Only Staff and Admin can access
                 $('.saveBtnText').addClass('hidden');
                 $('.saveBtnLoader').removeClass('hidden').text('Loading...');
 
-                $.getJSON(`get_resident.php?id=${residentId}`, function(res) {
-                    // Hide loading indicator
-                    $('#residentForm').css('opacity', '1');
-                    $('#saveBtn').prop('disabled', false);
-                    $('.saveBtnText').removeClass('hidden').text('Save');
-                    $('.saveBtnLoader').addClass('hidden');
+                $.ajax({
+                    url: `/api/v1/residents?id=${residentId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        // Hide loading indicator
+                        $('#residentForm').css('opacity', '1');
+                        $('#saveBtn').prop('disabled', false);
+                        $('.saveBtnText').removeClass('hidden').text('Save');
+                        $('.saveBtnLoader').addClass('hidden');
 
-                    if (res.error) {
-                        $('<div>' + res.error + '</div>').dialog({
+                        if (response.status === 'success' && response.data) {
+                            const res = response.data;
+                            // Fill all form fields
+                            for (const key in res) {
+                                if ($(`[name="${key}"]`).length) {
+                                    $(`[name="${key}"]`).val(res[key]);
+                                }
+                            }
+                            updatePreview();
+                        } else {
+                            $('<div>' + (response.message || 'Resident not found') + '</div>').dialog({
+                                modal: true,
+                                title: 'Error',
+                                width: 420,
+                                buttons: {
+                                    Ok: function() {
+                                        $(this).dialog('close');
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        // Hide loading indicator on error
+                        $('#residentForm').css('opacity', '1');
+                        $('#saveBtn').prop('disabled', false);
+                        $('.saveBtnText').removeClass('hidden').text('Save');
+                        $('.saveBtnLoader').addClass('hidden');
+
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to load resident data. Please try again.';
+                        $('<div>' + errorMsg + '</div>').dialog({
                             modal: true,
                             title: 'Error',
                             width: 420,
@@ -269,32 +301,7 @@ requireStaff(); // Only Staff and Admin can access
                                 }
                             }
                         });
-                        return;
                     }
-                    // Fill all form fields
-                    for (const key in res) {
-                        if ($(`[name="${key}"]`).length) {
-                            $(`[name="${key}"]`).val(res[key]);
-                        }
-                    }
-                    updatePreview();
-                }).fail(function() {
-                    // Hide loading indicator on error
-                    $('#residentForm').css('opacity', '1');
-                    $('#saveBtn').prop('disabled', false);
-                    $('.saveBtnText').removeClass('hidden').text('Save');
-                    $('.saveBtnLoader').addClass('hidden');
-
-                    $('<div>Failed to load resident data. Please try again.</div>').dialog({
-                        modal: true,
-                        title: 'Error',
-                        width: 420,
-                        buttons: {
-                            Ok: function() {
-                                $(this).dialog('close');
-                            }
-                        }
-                    });
                 });
             }
 
@@ -376,24 +383,49 @@ requireStaff(); // Only Staff and Admin can access
                 $('.saveBtnText').addClass('hidden');
                 $('.saveBtnLoader').removeClass('hidden');
 
-                const payload = {};
-                $('#residentForm').serializeArray().forEach(f => payload[f.name] = f.value);
-                payload.id = residentId;
+                const formData = {};
+                $('#residentForm').serializeArray().forEach(f => formData[f.name] = f.value);
+                
+                const updateData = {
+                    action: 'update',
+                    id: residentId,
+                    household_id: formData.household_id || null,
+                    first_name: formData.first_name,
+                    middle_name: formData.middle_name,
+                    last_name: formData.last_name,
+                    suffix: formData.suffix,
+                    gender: formData.gender,
+                    birthdate: formData.birthdate,
+                    birthplace: formData.birthplace,
+                    civil_status: formData.civil_status,
+                    religion: formData.religion,
+                    occupation: formData.occupation,
+                    citizenship: formData.citizenship,
+                    contact_no: formData.contact_no,
+                    address: formData.address,
+                    voter_status: formData.voter_status,
+                    disability_status: formData.disability_status,
+                    remarks: formData.remarks
+                };
 
                 $.ajax({
-                    url: '/resident/update_resident',
+                    url: '/api/v1/residents',
                     type: 'POST',
-                    data: payload,
+                    contentType: 'application/json',
+                    data: JSON.stringify(updateData),
                     dataType: 'json',
-                    success: function(res) {
+                    success: function(response) {
                         // Hide loading state
                         $('#saveBtn').prop('disabled', false);
                         $('.saveBtnText').removeClass('hidden');
                         $('.saveBtnLoader').addClass('hidden');
                         
-                        $('<div>' + res.message + '</div>').dialog({
+                        const message = response.message || (response.status === 'success' ? 'Resident updated successfully' : 'Failed to update resident');
+                        const title = response.status === 'success' ? 'Saved' : 'Error';
+                        
+                        $('<div>' + message + '</div>').dialog({
                             modal: true,
-                            title: res.success ? 'Saved' : 'Error',
+                            title: title,
                             width: 420,
                             buttons: {
                                 Ok: function() {
@@ -402,13 +434,14 @@ requireStaff(); // Only Staff and Admin can access
                             }
                         });
                     },
-                    error: function() {
+                    error: function(xhr) {
                         // Hide loading state
                         $('#saveBtn').prop('disabled', false);
                         $('.saveBtnText').removeClass('hidden');
                         $('.saveBtnLoader').addClass('hidden');
                         
-                        $('<div>Failed to connect to server.</div>').dialog({
+                        const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
+                        $('<div>' + errorMsg + '</div>').dialog({
                             modal: true,
                             title: 'Error',
                             width: 420,

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Resident Update - API Proxy
+ * This file uses the API directly for backward compatibility
+ */
+
 require_once '../../includes/app.php';
 requireLogin();
 
@@ -15,57 +20,44 @@ if ($id <= 0) {
     exit;
 }
 
-$fields = [
-    'household_id', 'first_name', 'middle_name', 'last_name', 'suffix',
-    'gender', 'birthdate', 'birthplace', 'civil_status', 'religion',
-    'occupation', 'citizenship', 'contact_no', 'address', 'voter_status',
-    'disability_status', 'remarks'
-];
+// Use API models directly
+require_once '../api/v1/BaseModel.php';
+require_once '../api/v1/residents/ResidentModel.php';
 
-$data = [];
-foreach ($fields as $field) {
-    $data[$field] = $_POST[$field] ?? null;
+try {
+    $model = new ResidentModel();
+    
+    // Prepare update data
+    $updateData = [
+        'household_id' => !empty($_POST['household_id']) ? intval($_POST['household_id']) : null,
+        'first_name' => trim($_POST['first_name'] ?? ''),
+        'middle_name' => trim($_POST['middle_name'] ?? ''),
+        'last_name' => trim($_POST['last_name'] ?? ''),
+        'suffix' => trim($_POST['suffix'] ?? ''),
+        'gender' => $_POST['gender'] ?? null,
+        'birthdate' => trim($_POST['birthdate'] ?? ''),
+        'birthplace' => trim($_POST['birthplace'] ?? ''),
+        'civil_status' => $_POST['civil_status'] ?? null,
+        'religion' => trim($_POST['religion'] ?? ''),
+        'occupation' => trim($_POST['occupation'] ?? ''),
+        'citizenship' => trim($_POST['citizenship'] ?? ''),
+        'contact_no' => trim($_POST['contact_no'] ?? ''),
+        'address' => trim($_POST['address'] ?? ''),
+        'voter_status' => $_POST['voter_status'] ?? null,
+        'disability_status' => $_POST['disability_status'] ?? null,
+        'remarks' => trim($_POST['remarks'] ?? ''),
+        'updated_at' => date('Y-m-d H:i:s')
+    ];
+    
+    $success = $model->update($id, $updateData);
+    
+    if ($success) {
+        echo json_encode(['success' => true, 'message' => 'Resident updated successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Update failed']);
+    }
+    
+} catch (Exception $e) {
+    error_log('Resident Update Error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
 }
-
-$sql = "UPDATE residents SET
-    household_id = ?, first_name = ?, middle_name = ?, last_name = ?, suffix = ?,
-    gender = ?, birthdate = ?, birthplace = ?, civil_status = ?, religion = ?,
-    occupation = ?, citizenship = ?, contact_no = ?, address = ?, voter_status = ?,
-    disability_status = ?, remarks = ?
-    WHERE id = ?";
-
-if (empty($data['household_id']) || !is_numeric($data['household_id'])) {
-    $data['household_id'] = null;
-}
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param(
-    'issssssssssssssssi',
-    $data['household_id'],
-    $data['first_name'],
-    $data['middle_name'],
-    $data['last_name'],
-    $data['suffix'],
-    $data['gender'],
-    $data['birthdate'],
-    $data['birthplace'],
-    $data['civil_status'],
-    $data['religion'],
-    $data['occupation'],
-    $data['citizenship'],
-    $data['contact_no'],
-    $data['address'],
-    $data['voter_status'],
-    $data['disability_status'],
-    $data['remarks'],
-    $id
-);
-
-if ($stmt->execute()) {
-    echo json_encode(['success' => true, 'message' => 'Resident updated successfully']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Update failed: ' . $conn->error]);
-}
-
-$stmt->close();
-$conn->close();
