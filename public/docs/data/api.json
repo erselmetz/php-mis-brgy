@@ -219,7 +219,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Create officer record\n// Only one active Barangay Captain is allowed\nconst officerData = {\n    user_id: 5,\n    resident_id: 10,\n    position: 'Barangay Captain',\n    term_start: '2024-01-01',\n    term_end: '2028-12-31',\n    status: 'Active'\n};\n\n// When creating an Active Barangay Captain,\n// other active captains are automatically deactivated\n$.post('/admin/add_account', officerData, function(response) {\n    console.log('Officer created:', response);\n});"
+              "code": "// Create officer record\n// Only one active Barangay Captain is allowed\nconst officerData = {\n    user_id: 5,\n    resident_id: 10,\n    position: 'Barangay Captain',\n    term_start: '2025-11-20',\n    term_end: '2028-12-31',\n    status: 'Active'\n};\n\n// When creating an Active Barangay Captain,\n// other active captains are automatically deactivated\n$.post('/admin/add_account', officerData, function(response) {\n    console.log('Officer created:', response);\n});"
             }
           ]
         }
@@ -270,7 +270,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Create blotter case via API\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        complainant_name: 'Juan Dela Cruz',\n        respondent_name: 'Maria Santos',\n        incident_date: '2025-01-15',\n        incident_location: 'Barangay Hall',\n        incident_description: 'Dispute over property boundary'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Case created:', response.data.case_number);\n        }\n    }\n});\n\n// Update case status\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 123,\n        status: 'resolved',\n        resolution: 'Settled amicably',\n        resolved_date: '2025-01-16'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Status updated');\n        }\n    }\n});"
+              "code": "// Create blotter case via API\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        complainant_name: 'Juan Dela Cruz',\n        respondent_name: 'Maria Santos',\n        incident_date: '2025-11-20',\n        incident_location: 'Barangay Hall',\n        incident_description: 'Dispute over property boundary'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Case created:', response.data.case_number);\n        }\n    }\n});\n\n// Update case status\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 123,\n        status: 'resolved',\n        resolution: 'Settled amicably',\n        resolved_date: '2025-11-20'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Status updated');\n        }\n    }\n});"
             }
           ]
         }

@@ -1,6 +1,6 @@
 {
   "v1.0.0": {
-    "date": "2025-11-15",
+    "date": "2025-11-13",
     "time": "12:00:00",
     "description": "Initial Release - System Features Documentation",
     "changes": [
@@ -33,7 +33,7 @@
     ]
   },
   "v1.2.0": {
-    "date": "2024-01-16",
+    "date": "2025-11-17",
     "time": "10:00:00",
     "description": "Staff & Officers Merge Update",
     "changes": [
@@ -47,7 +47,7 @@
     ]
   },
   "v1.3.0": {
-    "date": "2024-01-16",
+    "date": "2025-11-18",
     "time": "16:00:00",
     "description": "Code Quality & Database Optimization Update",
     "changes": [
