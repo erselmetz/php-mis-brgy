@@ -60,7 +60,7 @@ function loadAllStyles(): void
     // Load Bootstrap (CDN) + local custom styles
     echo "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css'>\n";
     loadAssets([
-        'css' => ['input.css', 'style.css', 'tooltips.css'],
+        'css' => ['input.css', 'tooltips.css'],
         'node_css' => [
             'datatables.net-jqui/css/dataTables.jqueryui.css',
             'jquery-ui/dist/themes/flick/jquery-ui.css',
