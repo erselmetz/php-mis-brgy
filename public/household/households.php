@@ -34,32 +34,32 @@ if ($stmt === false) {
   <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-light" style="display:none;">
 
   <?php include_once '../navbar.php'; ?>
 
-  <div class="flex bg-gray-100">
+  <div class="d-flex bg-light">
     <?php include_once '../sidebar.php'; ?>
-    <main class="p-6 w-screen">
-      <h2 class="text-2xl font-semibold mb-4">Household List</h2>
+    <main class="p-4 w-100">
+      <h2 class="h3 fw-semibold mb-4">Household List</h2>
       <!-- ✅ Add Button -->
-      <div class="p-6">
+      <div class="p-4">
         <button id="openHouseholdModalBtn"
-          class="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded shadow">
+          class="btn btn-primary fw-semibold px-4 py-2 shadow">
           ➕ Add Household
         </button>
       </div>
       <!-- Households Table -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
-        <table id="householdsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
-          <thead class="bg-gray-50 text-gray-700">
+      <div class="bg-white rounded-3 shadow-sm border overflow-hidden p-4">
+        <table id="householdsTable" class="display w-100 small border rounded-3">
+          <thead class="bg-light text-dark">
             <tr>
-              <th class="p-2 text-left">Household No.</th>
-              <th class="p-2 text-left">Head Name</th>
-              <th class="p-2 text-left">Address</th>
-              <th class="p-2 text-left">Total Members</th>
-              <th class="p-2 text-left">Created At</th>
-              <th class="p-2 text-left">Actions</th>
+              <th class="p-2 text-start">Household No.</th>
+              <th class="p-2 text-start">Head Name</th>
+              <th class="p-2 text-start">Address</th>
+              <th class="p-2 text-start">Total Members</th>
+              <th class="p-2 text-start">Created At</th>
+              <th class="p-2 text-start">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -67,7 +67,7 @@ if ($stmt === false) {
               <?php while ($row = $result->fetch_assoc()): ?>
               <tr>
                 <td class="p-2">
-                  <a href="/household/view?id=<?= $row['id']; ?>" class="text-blue-600 hover:underline">
+                  <a href="/household/view?id=<?= $row['id']; ?>" class="text-primary text-decoration-none">
                     <?= htmlspecialchars($row['household_no']); ?>
                   </a>
                 </td>
@@ -77,13 +77,13 @@ if ($stmt === false) {
                 <td class="p-2"><?= htmlspecialchars($row['created_at']); ?></td>
                 <td class="p-2">
                   <a href="/household/view?id=<?= $row['id']; ?>" 
-                     class="text-blue-600 hover:underline mr-2">View</a>
+                     class="text-primary text-decoration-none me-2">View</a>
                 </td>
               </tr>
               <?php endwhile; ?>
             <?php else: ?>
               <tr>
-                <td colspan="6" class="p-4 text-center text-gray-500">Error loading households. Please try again later.</td>
+                <td colspan="6" class="p-4 text-center text-muted">Error loading households. Please try again later.</td>
               </tr>
             <?php endif; ?>
           </tbody>
@@ -92,36 +92,36 @@ if ($stmt === false) {
     </main>
   </div>
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
-  <div id="addHouseholdModal" title="Add New Household" class="hidden max-h-[50vh]">
-    <form method="POST" class="space-y-3 overflow-y-scroll">
+  <div id="addHouseholdModal" title="Add New Household">
+    <form method="POST" class="overflow-y-auto" style="max-height: 70vh;">
       <input type="hidden" name="action" value="add_household">
-      <?php if (isset($error)) echo "<p class='text-red-600 font-medium'>$error</p>"; ?>
+      <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
 
       <!-- Household Number -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Household Number</label>
+      <div class="mb-3">
+        <label class="form-label small fw-medium">Household Number</label>
         <input type="text" name="household_no" placeholder="Enter household number (e.g., HH-2024-001)" required
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="form-control">
       </div>
 
       <!-- Head Name -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Head of Household Name</label>
+      <div class="mb-3">
+        <label class="form-label small fw-medium">Head of Household Name</label>
         <input type="text" name="head_name" placeholder="Enter head of household name" required
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="form-control">
       </div>
 
       <!-- Address -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Address</label>
+      <div class="mb-3">
+        <label class="form-label small fw-medium">Address</label>
         <textarea name="address" rows="3" placeholder="Enter complete address" required
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          class="form-control"></textarea>
       </div>
 
       <!-- Submit -->
       <div class="pt-2">
         <button type="submit"
-          class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">
+          class="w-100 btn btn-primary py-2 fw-semibold">
           Add Household
         </button>
       </div>
@@ -140,10 +140,10 @@ if ($stmt === false) {
         height: 400,
         resizable: true,
         classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+          'ui-dialog': 'rounded shadow-lg',
+          'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
+          'ui-dialog-title': 'fw-semibold',
+          'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
         },
         show: {
           effect: "fadeIn",
@@ -154,7 +154,7 @@ if ($stmt === false) {
           duration: 200
         },
         open: function() {
-          $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+          $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
         }
       });
       $("#openHouseholdModalBtn").on("click", function() {

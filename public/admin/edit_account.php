@@ -68,10 +68,25 @@ if ($action === 'edit_account') {
                 // Check if officer record exists
                 if ($officerId) {
                     // Update existing officer record
+                    // If updating to Active Barangay Captain, deactivate other active captains (exclude current)
+                    if (strtolower($officerPosition) === 'barangay captain' && strtolower($officerStatus) === 'active') {
+                        $deactStmt = $conn->prepare("UPDATE officers SET status = 'Inactive' WHERE position LIKE 'Barangay Captain' AND status = 'Active' AND id != ?");
+                        if ($deactStmt) {
+                            $deactStmt->bind_param("i", $officerId);
+                            $deactStmt->execute();
+                            $deactStmt->close();
+                        }
+                    }
+
                     $officerSql = $conn->prepare("UPDATE officers SET resident_id = ?, position = ?, term_start = ?, term_end = ?, status = ? WHERE id = ?");
                     $officerSql->bind_param("issssi", $residentId, $officerPosition, $termStart, $termEnd, $officerStatus, $officerId);
                 } else {
                     // Create new officer record
+                    // If inserting an Active Barangay Captain, deactivate other active captains
+                    if (strtolower($officerPosition) === 'barangay captain' && strtolower($officerStatus) === 'active') {
+                        $conn->query("UPDATE officers SET status = 'Inactive' WHERE position LIKE 'Barangay Captain' AND status = 'Active'");
+                    }
+
                     $officerSql = $conn->prepare("INSERT INTO officers (user_id, resident_id, position, term_start, term_end, status) VALUES (?, ?, ?, ?, ?, ?)");
                     $officerSql->bind_param("iissss", $id, $residentId, $officerPosition, $termStart, $termEnd, $officerStatus);
                 }

@@ -1,48 +1,50 @@
 <!-- Sidebar -->
-<aside class="w-60 bg-white shadow-md min-h-screen border-r border-gray-200">
-    <nav class="p-2 space-y-2">
-        <a href="/dashboard" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+<aside class="bg-white shadow-sm border-end" style="width: 15rem; min-height: 100vh;">
+    <nav class="p-2">
+        <a href="/dashboard" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
             🏠 Dashboard
         </a>
         
         <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff"): ?>
-            <a href="/resident/residents" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+            <a href="/resident/residents" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 👥 Residents
             </a>
-            <a href="/household/households" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+            <a href="/household/households" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 🏘️ Households
             </a>
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "admin"): ?>
-            <a href="/admin/account" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+            <a href="/admin/account" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 🧑‍💼 Staff
             </a>
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff"): ?>
-            <a href="/certificate/certificates" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+            <a href="/certificate/certificates" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 📊 Certificates
             </a>
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "tanod" || $_SESSION['role'] == "admin"): ?>
-            <a href="/blotter/blotter" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+            <a href="/blotter/blotter" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 📝 Blotter
             </a>
         <?php endif; ?>
         
-        <a href="/profile" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+        <a href="/profile" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
             ⚙️ Settings
         </a>
         
-        <hr class="my-2 border-gray-300">
+        <hr class="my-2">
         
-        <a href="/docs" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
+        <!-- <a href="/docs" class="d-block px-3 py-2 rounded text-body text-decoration-none">
             📚 Documentation
-        </a>
-        <div class="px-3 py-1 text-xs text-gray-500">
-            Version: <span class="font-semibold">v1.3.0</span>
+        </a> -->
+        <div class="px-3 py-1 small text-muted">
+            Version: <span class="fw-semibold"><a href="/docs" class="text-decoration-none">
+            v1.3.0
+        </a></span>
         </div>
     </nav>
 </aside>

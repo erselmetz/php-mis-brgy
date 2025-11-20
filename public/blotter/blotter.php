@@ -88,45 +88,46 @@ $result = $stmt->get_result();
     <title>Blotter Management - MIS Barangay</title>
     <?php loadAllAssets(); ?>
 </head>
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-light" style="display:none;">
     <?php include '../navbar.php'; ?>
-    <div class="flex bg-gray-100">
+    <div class="d-flex bg-light">
         <?php include '../sidebar.php'; ?>
-        <main class="p-6 w-screen">
-            <h2 class="text-2xl font-semibold mb-4">Blotter Management</h2>
+        <main class="p-4 w-100">
+            <h2 class="h3 fw-semibold mb-4">Blotter Management</h2>
             
             <?php if ($success): ?>
-                <div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg mb-4">
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                     <?= htmlspecialchars($success) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
             
             <?php if ($error): ?>
-                <div class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-4">
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                     <?= htmlspecialchars($error) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <?php endif; ?>
             
             <!-- Add Button -->
             <div class="mb-4">
-                <button id="openBlotterModalBtn" class="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded shadow">
+                <button id="openBlotterModalBtn" class="btn btn-primary fw-semibold px-4 py-2 shadow">
                     ➕ Add New Blotter Case
                 </button>
             </div>
             
             <!-- Blotter Table -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
-                <table id="blotterTable" class="display w-full text-sm border border-gray-200 rounded-lg">
-                    <thead class="bg-gray-50 text-gray-700">
+            <div class="bg-white rounded-3 shadow-sm border overflow-hidden p-4">
+                <table id="blotterTable" class="display w-100 small border rounded-3">
+                    <thead class="bg-light text-dark">
                         <tr>
-                            <th class="p-2 text-left">Case Number</th>
-                            <th class="p-2 text-left">Complainant</th>
-                            <th class="p-2 text-left">Respondent</th>
-                            <th class="p-2 text-left">Incident Date</th>
-                            <th class="p-2 text-left">Location</th>
-                            <th class="p-2 text-left">Status</th>
-                            <th class="p-2 text-left">Created By</th>
-                            <th class="p-2 text-left">Actions</th>
+                            <th class="p-2 text-start">Case Number</th>
+                            <th class="p-2 text-start">Complainant</th>
+                            <th class="p-2 text-start">Respondent</th>
+                            <th class="p-2 text-start">Incident Date</th>
+                            <th class="p-2 text-start">Location</th>
+                            <th class="p-2 text-start">Status</th>
+                            <th class="p-2 text-start">Created By</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -134,7 +135,7 @@ $result = $stmt->get_result();
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline font-semibold">
+                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-primary text-decoration-none fw-semibold">
                                             <?= htmlspecialchars($row['case_number']) ?>
                                         </a>
                                     </td>
@@ -145,26 +146,23 @@ $result = $stmt->get_result();
                                     <td class="p-2">
                                         <?php
                                         $statusColors = [
-                                            'pending' => 'bg-yellow-100 text-yellow-800',
-                                            'under_investigation' => 'bg-blue-100 text-blue-800',
-                                            'resolved' => 'bg-green-100 text-green-800',
-                                            'dismissed' => 'bg-gray-100 text-gray-800'
+                                            'pending' => 'bg-warning bg-opacity-10 text-warning',
+                                            'under_investigation' => 'bg-primary bg-opacity-10 text-primary',
+                                            'resolved' => 'bg-success bg-opacity-10 text-success',
+                                            'dismissed' => 'bg-secondary bg-opacity-10 text-secondary'
                                         ];
-                                        $statusColor = $statusColors[$row['status']] ?? 'bg-gray-100 text-gray-800';
+                                        $statusColor = $statusColors[$row['status']] ?? 'bg-secondary bg-opacity-10 text-secondary';
                                         ?>
-                                        <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
+                                        <span class="badge <?= $statusColor ?>">
                                             <?= ucfirst(str_replace('_', ' ', $row['status'])) ?>
                                         </span>
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
-                                    <td class="p-2">
-                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline">View</a>
-                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="p-4 text-center text-gray-500">No blotter cases found.</td>
+                                <td colspan="7" class="p-4 text-center text-muted">No blotter cases found.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -174,77 +172,66 @@ $result = $stmt->get_result();
     </div>
     
     <!-- Add Blotter Modal -->
-    <div id="addBlotterModal" title="Add New Blotter Case" class="hidden">
-        <form method="POST" class="space-y-4">
+    <div id="addBlotterModal" title="Add New Blotter Case">
+        <form method="POST" style="max-height: 70vh; overflow-y: auto;">
             <input type="hidden" name="action" value="add_blotter">
             
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Complainant Name *</label>
-                    <input type="text" name="complainant_name" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Complainant Name *</label>
+                    <input type="text" name="complainant_name" required class="form-control">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Complainant Contact</label>
-                    <input type="text" name="complainant_contact"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Complainant Contact</label>
+                    <input type="text" name="complainant_contact" class="form-control">
                 </div>
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Complainant Address</label>
-                <textarea name="complainant_address" rows="2"
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="mb-3">
+                <label class="form-label small fw-medium">Complainant Address</label>
+                <textarea name="complainant_address" rows="2" class="form-control"></textarea>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Respondent Name *</label>
-                    <input type="text" name="respondent_name" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Respondent Name *</label>
+                    <input type="text" name="respondent_name" required class="form-control">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Respondent Contact</label>
-                    <input type="text" name="respondent_contact"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Respondent Contact</label>
+                    <input type="text" name="respondent_contact" class="form-control">
                 </div>
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Respondent Address</label>
-                <textarea name="respondent_address" rows="2"
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="mb-3">
+                <label class="form-label small fw-medium">Respondent Address</label>
+                <textarea name="respondent_address" rows="2" class="form-control"></textarea>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Incident Date *</label>
-                    <input type="date" name="incident_date" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Incident Date *</label>
+                    <input type="date" name="incident_date" required class="form-control">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Incident Time</label>
-                    <input type="time" name="incident_time"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="col-6">
+                    <label class="form-label small fw-medium">Incident Time</label>
+                    <input type="time" name="incident_time" class="form-control">
                 </div>
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Incident Location *</label>
-                <input type="text" name="incident_location" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="mb-3">
+                <label class="form-label small fw-medium">Incident Location *</label>
+                <input type="text" name="incident_location" required class="form-control">
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Incident Description *</label>
-                <textarea name="incident_description" rows="4" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="mb-3">
+                <label class="form-label small fw-medium">Incident Description *</label>
+                <textarea name="incident_description" rows="4" required class="form-control"></textarea>
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select name="status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="mb-3">
+                <label class="form-label small fw-medium">Status</label>
+                <select name="status" class="form-select">
                     <option value="pending">Pending</option>
                     <option value="under_investigation">Under Investigation</option>
                     <option value="resolved">Resolved</option>
@@ -253,7 +240,7 @@ $result = $stmt->get_result();
             </div>
             
             <div class="pt-2">
-                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">
+                <button type="submit" class="w-100 btn btn-primary py-2 fw-semibold">
                     Add Blotter Case
                 </button>
             </div>
@@ -275,10 +262,10 @@ $result = $stmt->get_result();
                 height: 600,
                 resizable: true,
                 classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                    'ui-dialog': 'rounded shadow-lg',
+                    'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
+                    'ui-dialog-title': 'fw-semibold',
+                    'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
                 },
                 show: {
                     effect: "fadeIn",
@@ -289,7 +276,7 @@ $result = $stmt->get_result();
                     duration: 200
                 },
                 open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+                    $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
                 }
             });
             

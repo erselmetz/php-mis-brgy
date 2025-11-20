@@ -1,167 +1,225 @@
-// Documentation System JavaScript
+// Documentation System with Multi-page Support
 class DocumentationSystem {
     constructor() {
-        this.currentVersion = 'v1.3.0';
+        this.currentPage = 'docs'; // docs, api, changelog
+        this.currentVersion = 'latest';
         this.versions = {};
-        this.currentSection = 'overview';
         this.init();
     }
 
     async init() {
         await this.loadVersions();
         this.setupEventListeners();
-        this.loadContent(this.currentVersion);
+        this.loadPage(this.currentPage);
     }
 
     async loadVersions() {
         try {
             const response = await fetch('data/versions.json');
             this.versions = await response.json();
-            this.populateVersionSelector();
         } catch (error) {
             console.error('Error loading versions:', error);
-            // Fallback to default version
-            this.versions = {
-                'v1.0.0': {
-                    date: '2024-01-01',
-                    time: '00:00:00',
-                    description: 'Initial Release'
-                }
-            };
         }
-    }
-
-    populateVersionSelector() {
-        const select = document.getElementById('versionSelect');
-        select.innerHTML = '';
-        
-        Object.keys(this.versions).sort().reverse().forEach(version => {
-            const option = document.createElement('option');
-            option.value = version;
-            option.textContent = `${version} - ${this.versions[version].description}`;
-            if (version === this.currentVersion) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
     }
 
     setupEventListeners() {
+        // Page navigation
+        document.querySelectorAll('.nav-item[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = e.target.getAttribute('data-page');
+                this.setActivePage(page);
+                this.loadPage(page);
+            });
+        });
+
         // Version selector
         document.getElementById('versionSelect').addEventListener('change', (e) => {
             this.currentVersion = e.target.value;
-            this.loadContent(this.currentVersion);
+            this.loadPage(this.currentPage);
         });
 
-        // Navigation links
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const section = link.getAttribute('href').substring(1);
-                this.showSection(section);
-            });
-        });
-
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Sidebar navigation
+        document.addEventListener('click', (e) => {
+            if(e.target.closest('.sidebar-nav a')) {
+                const link = e.target.closest('.sidebar-nav a');
+                const sectionId = link.getAttribute('href')?.substring(1);
+                if(sectionId) {
+                    this.highlightNavLink(sectionId);
+                    setTimeout(() => {
+                        const section = document.getElementById(sectionId);
+                        if(section) {
+                            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 100);
                 }
-            });
-        });
-    }
-
-    async loadContent(version) {
-        try {
-            const response = await fetch(`data/${version}.json`);
-            const data = await response.json();
-            
-            this.updateVersionInfo(data);
-            this.renderContent(data);
-            this.updateNavigation(data.sections);
-        } catch (error) {
-            console.error('Error loading content:', error);
-            document.getElementById('contentArea').innerHTML = 
-                '<div class="error">Error loading documentation. Please try again later.</div>';
-        }
-    }
-
-    updateVersionInfo(data) {
-        document.getElementById('currentVersion').textContent = this.currentVersion;
-        document.getElementById('versionDate').textContent = data.date || this.versions[this.currentVersion]?.date || 'N/A';
-        document.getElementById('lastUpdated').textContent = 
-            `${data.date || 'N/A'} ${data.time || this.versions[this.currentVersion]?.time || '00:00:00'}`;
-        // Update page title
-        document.title = `MIS Barangay - Documentation ${this.currentVersion}`;
-    }
-
-    updateNavigation(sections) {
-        const navMenu = document.getElementById('navMenu');
-        navMenu.innerHTML = '';
-        
-        sections.forEach(section => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = `#${section.id}`;
-            a.className = 'nav-link';
-            a.textContent = section.title;
-            a.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showSection(section.id);
-            });
-            li.appendChild(a);
-            navMenu.appendChild(li);
-        });
-    }
-
-    showSection(sectionId) {
-        // Update active nav link
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${sectionId}`) {
-                link.classList.add('active');
             }
         });
 
-        // Scroll to section
-        const section = document.getElementById(sectionId);
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Footer links
+        document.querySelectorAll('.footer-section a[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = e.target.getAttribute('data-page');
+                this.setActivePage(page);
+                this.loadPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    }
+
+    setActivePage(page) {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+        this.currentPage = page;
+    }
+
+    async loadPage(page) {
+        const contentArea = document.getElementById('contentArea');
+        contentArea.innerHTML = '<div class="loading">Loading...</div>';
+
+        try {
+            let data;
+            if(page === 'docs') {
+                const response = await fetch(`data/${this.currentVersion}.json`);
+                data = await response.json();
+            } else if(page === 'api') {
+                const response = await fetch('data/api.json');
+                data = await response.json();
+            } else if(page === 'changelog') {
+                data = await this.buildChangelogPage();
+            }
+
+            this.renderPage(data);
+            this.updateVersionInfo(data);
+            this.buildSidebar(data);
+
+            // Highlight code blocks
+            document.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+        } catch (error) {
+            console.error('Error loading page:', error);
+            contentArea.innerHTML = '<div class="alert alert-danger">Error loading content. Please try again.</div>';
         }
     }
 
-    renderContent(data) {
+    async buildChangelogPage() {
+        const versions = Object.keys(this.versions).sort().reverse();
+        const sections = [];
+
+        for(const version of versions) {
+            const versionData = this.versions[version];
+            sections.push({
+                id: `changelog-${version}`,
+                title: `${version} - ${versionData.description}`,
+                content: [
+                    {
+                        type: 'paragraph',
+                        text: `<strong>Released:</strong> ${versionData.date} ${versionData.time}`
+                    },
+                    {
+                        type: 'list',
+                        items: versionData.changes || []
+                    }
+                ]
+            });
+        }
+
+        return {
+            title: 'Changelog',
+            description: 'Version history and changes',
+            sections: sections
+        };
+    }
+
+    updateVersionInfo(data) {
+        // Resolve actual version string (map 'latest' to newest available)
+        const available = Object.keys(this.versions || {});
+        const newest = available.length ? available.sort().reverse()[0] : 'v1.3.0';
+        const resolvedVersion = this.currentVersion === 'latest' ? newest : this.currentVersion;
+        document.getElementById('footerVersion').textContent = resolvedVersion;
+
+        // Prefer explicit page data.date, otherwise fall back to versions.json for the resolved version
+        const dateFromPage = data && data.date ? data.date : null;
+        const dateFromVersions = (this.versions && this.versions[resolvedVersion] && this.versions[resolvedVersion].date) ? this.versions[resolvedVersion].date : null;
+        const finalDate = dateFromPage || dateFromVersions || '';
+        if (finalDate) {
+            document.getElementById('footerDate').textContent = finalDate;
+        }
+    }
+
+    buildSidebar(data) {
+        const sidebarNav = document.getElementById('sidebarNav');
+        sidebarNav.innerHTML = '';
+
+        if(data.sections && data.sections.length > 0) {
+            data.sections.forEach(section => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = `#${section.id}`;
+                a.className = 'sidebar-nav-link';
+                a.textContent = section.title;
+                li.appendChild(a);
+                sidebarNav.appendChild(li);
+            });
+        }
+    }
+
+    highlightNavLink(sectionId) {
+        document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        const activeLink = document.querySelector(`.sidebar-nav-link[href="#${sectionId}"]`);
+        if(activeLink) {
+            activeLink.classList.add('active');
+        }
+    }
+
+    renderPage(data) {
         const contentArea = document.getElementById('contentArea');
         let html = '';
 
-        data.sections.forEach(section => {
-            html += this.renderSection(section);
-        });
+        // Add intro section if exists
+        if(data.description && data.title) {
+            html += `
+                <section class="section" style="padding: 2rem; border-bottom: 1px solid #dee2e6; margin-bottom: 0;">
+                    <h2>${this.escapeHtml(data.title)}</h2>
+                    <p>${this.escapeHtml(data.description)}</p>
+                </section>
+            `;
+        }
+
+        // Render all sections
+        if(data.sections) {
+            data.sections.forEach(section => {
+                html += this.renderSection(section);
+            });
+        }
 
         contentArea.innerHTML = html;
     }
 
     renderSection(section) {
-        let html = `<section id="${section.id}" class="section">`;
-        html += `<h2>${this.processText(section.title)}</h2>`;
+        let html = `<section id="${this.escapeHtml(section.id)}" class="section">`;
+        html += `<div style="padding: 0 2rem;"><h2>${this.escapeHtml(section.title)}</h2>`;
         
-        if (section.content) {
+        if(section.content) {
             html += this.renderContentBlocks(section.content);
         }
 
-        if (section.subsections) {
+        if(section.subsections) {
             section.subsections.forEach(subsection => {
-                html += `<h3>${this.processText(subsection.title)}</h3>`;
-                if (subsection.content) {
+                html += `<h3>${this.escapeHtml(subsection.title)}</h3>`;
+                if(subsection.content) {
                     html += this.renderContentBlocks(subsection.content);
                 }
             });
         }
 
-        html += `</section>`;
+        html += `</div></section>`;
         return html;
     }
 
@@ -171,13 +229,14 @@ class DocumentationSystem {
         content.forEach(block => {
             switch (block.type) {
                 case 'paragraph':
-                    html += `<p>${this.processText(block.text)}</p>`;
+                    html += `<p>${block.text}</p>`;
                     break;
                 case 'list':
                     html += this.renderList(block);
                     break;
                 case 'code':
-                    html += `<pre><code>${this.escapeHtml(block.code)}</code></pre>`;
+                    const language = block.language || 'php';
+                    html += `<pre><code class="language-${language}">${this.escapeHtml(block.code)}</code></pre>`;
                     break;
                 case 'card':
                     html += this.renderCard(block);
@@ -186,7 +245,10 @@ class DocumentationSystem {
                     html += this.renderTable(block);
                     break;
                 case 'badge':
-                    html += `<span class="badge badge-${block.variant || 'info'}">${block.text}</span>`;
+                    html += `<span class="badge badge-${block.variant || 'info'}">${this.escapeHtml(block.text)}</span>`;
+                    break;
+                case 'alert':
+                    html += `<div class="alert alert-${block.variant || 'info'}">${block.text}</div>`;
                     break;
             }
         });
@@ -196,39 +258,44 @@ class DocumentationSystem {
 
     renderList(list) {
         const tag = list.ordered ? 'ol' : 'ul';
-        let html = `<${tag} class="custom-list">`;
-        list.items.forEach(item => {
-            html += `<li>${this.processText(item)}</li>`;
+        let html = `<${tag}>`;
+        (list.items || []).forEach(item => {
+            html += `<li>${this.escapeHtml(item)}</li>`;
         });
         html += `</${tag}>`;
         return html;
     }
 
     renderCard(card) {
-        let html = '<div class="card">';
-        if (card.title) {
-            html += `<div class="card-title">${this.processText(card.title)}</div>`;
+        const variant = card.variant ? ` card-${card.variant}` : '';
+        let html = `<div class="card${variant}">`;
+        if(card.title) {
+            html += `<div class="card-title">${this.escapeHtml(card.title)}</div>`;
         }
-        html += `<div class="card-content">${this.processText(card.content)}</div>`;
+        const content = card.content
+            .split('\n')
+            .map(line => line.startsWith('•') ? `<div style="margin-bottom: 0.5rem;">• ${this.escapeHtml(line.substring(1).trim())}</div>` : `<div>${this.escapeHtml(line)}</div>`)
+            .join('');
+        html += `<div class="card-content">${content}</div>`;
         html += '</div>';
         return html;
     }
 
     renderTable(table) {
         let html = '<div class="table-container"><table>';
-        if (table.headers) {
+        if(table.headers) {
             html += '<thead><tr>';
             table.headers.forEach(header => {
-                html += `<th>${this.processText(header)}</th>`;
+                html += `<th>${this.escapeHtml(header)}</th>`;
             });
             html += '</tr></thead>';
         }
-        if (table.rows) {
+        if(table.rows) {
             html += '<tbody>';
             table.rows.forEach(row => {
                 html += '<tr>';
                 row.forEach(cell => {
-                    html += `<td>${this.processText(cell)}</td>`;
+                    html += `<td>${this.escapeHtml(cell)}</td>`;
                 });
                 html += '</tr>';
             });
@@ -236,32 +303,6 @@ class DocumentationSystem {
         }
         html += '</table></div>';
         return html;
-    }
-
-    processText(text) {
-        if (!text) return '';
-        
-        // First escape HTML to prevent XSS, but preserve our markdown patterns
-        let escaped = this.escapeHtml(text);
-        
-        // Convert markdown-style formatting (after escaping to prevent XSS)
-        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        escaped = escaped.replace(/`(.*?)`/g, '<code>$1</code>');
-        
-        // Convert line breaks
-        escaped = escaped.replace(/\n/g, '<br>');
-        
-        // Convert bullet points
-        escaped = escaped.replace(/^• /gm, '<span class="bullet">•</span> ');
-        
-        // Convert emojis to badges
-        escaped = escaped.replace(/✅/g, '<span class="badge badge-success">✓</span>');
-        escaped = escaped.replace(/❌/g, '<span class="badge badge-error">✗</span>');
-        escaped = escaped.replace(/⚠️/g, '<span class="badge badge-warning">⚠</span>');
-        escaped = escaped.replace(/ℹ️/g, '<span class="badge badge-info">ℹ</span>');
-        
-        return escaped;
     }
 
     escapeHtml(text) {
@@ -275,4 +316,5 @@ class DocumentationSystem {
 document.addEventListener('DOMContentLoaded', () => {
     new DocumentationSystem();
 });
+
 

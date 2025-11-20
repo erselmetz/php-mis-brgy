@@ -4,50 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIS Barangay - Documentation</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="header-content">
-                <h1>📚 MIS Barangay Documentation</h1>
-                <div class="version-selector">
-                    <label for="versionSelect">Version:</label>
-                    <select id="versionSelect" class="version-dropdown">
-                        <option value="v1.0.0">v1.0.0 - System Features</option>
-                        <option value="v1.1.0">v1.1.0 - Bug Fixes & Improvements</option>
-                        <option value="v1.3.0" selected>v1.3.0 - Code Quality & Database Optimization</option>
-                        <option value="v1.2.0">v1.2.0 - Staff & Officers Merge</option>
-                    </select>
-                    <span class="version-date" id="versionDate">2024-01-01</span>
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="navbar-content">
+                <div class="navbar-brand">
+                    <h1>📚 MIS Barangay</h1>
+                    <p class="tagline">Comprehensive Barangay Management System</p>
+                </div>
+                <div class="navbar-links">
+                    <a href="#" class="nav-item" data-page="changelog">Changelog</a>
+                    <a href="#" class="nav-item active" data-page="docs">Documentation</a>
+                    <a href="#" class="nav-item" data-page="api">Features & API</a>
+                    <div class="version-selector">
+                        <select id="versionSelect">
+                            <option value="latest">Latest (v1.3.0)</option>
+                            <option value="v1.3.0">v1.3.0</option>
+                            <option value="v1.2.0">v1.2.0</option>
+                            <option value="v1.1.0">v1.1.0</option>
+                            <option value="v1.0.0">v1.0.0</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <nav class="sidebar">
-            <div class="nav-section">
-                <h3>📋 Table of Contents</h3>
-                <ul class="nav-menu" id="navMenu">
-                    <!-- Navigation will be populated dynamically based on version -->
-                </ul>
-            </div>
-        </nav>
+        <div class="main-layout">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-content">
+                    <div class="sidebar-section">
+                        <h3>Quick Navigation</h3>
+                        <nav class="sidebar-nav" id="sidebarNav">
+                            <!-- Generated dynamically -->
+                        </nav>
+                    </div>
+                </div>
+            </aside>
 
-        <main class="content">
-            <div id="contentArea" class="content-area">
-                <!-- Content will be loaded dynamically -->
-            </div>
-        </main>
+            <!-- Main Content -->
+            <main class="content-wrapper">
+                <div class="content">
+                    <div id="contentArea" class="content-area">
+                        <!-- Content loaded dynamically -->
+                    </div>
+                </div>
+            </main>
+        </div>
 
+        <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
-                <p>MIS Barangay Documentation System</p>
-                <p class="footer-version">Current Version: <span id="currentVersion">v1.0.0</span></p>
-                <p class="footer-date">Last Updated: <span id="lastUpdated">2024-01-01 00:00:00</span></p>
+                <div class="footer-section">
+                    <h4>About</h4>
+                    <p>MIS Barangay is a comprehensive Management Information System for barangay administration.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#" data-page="docs">Documentation</a></li>
+                        <li><a href="#" data-page="api">API Reference</a></li>
+                        <li><a href="#" data-page="changelog">Changelog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Version</h4>
+                    <p>Current: <strong id="footerVersion">v1.3.0</strong></p>
+                    <p class="text-muted">Last Updated: <span id="footerDate">2024-01-16</span></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 MIS Barangay. All rights reserved.</p>
             </div>
         </footer>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

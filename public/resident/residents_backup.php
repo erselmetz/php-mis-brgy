@@ -46,17 +46,17 @@ if ($stmt === false) {
         <table id="residentsTable" class="display w-100 small border rounded-3">
           <thead class="bg-light text-dark">
             <tr>
-              <th class="p-2 text-start">Full Name</th>
-              <th class="p-2 text-start">Gender</th>
-              <th class="p-2 text-start">Birthdate</th>
-              <th class="p-2 text-start">Age</th>
-              <th class="p-2 text-start">Civil Status</th>
-              <th class="p-2 text-start">Religion</th>
-              <th class="p-2 text-start">Occupation</th>
-              <th class="p-2 text-start">Citizenship</th>
-              <th class="p-2 text-start">Contact No</th>
-              <th class="p-2 text-start">Address</th>
-              <th class="p-2 text-start">Voter</th>
+              <th class="p-2 text-left">Full Name</th>
+              <th class="p-2 text-left">Gender</th>
+              <th class="p-2 text-left">Birthdate</th>
+              <th class="p-2 text-left">Age</th>
+              <th class="p-2 text-left">Civil Status</th>
+              <th class="p-2 text-left">Religion</th>
+              <th class="p-2 text-left">Occupation</th>
+              <th class="p-2 text-left">Citizenship</th>
+              <th class="p-2 text-left">Contact No</th>
+              <th class="p-2 text-left">Address</th>
+              <th class="p-2 text-left">Voter</th>
             </tr>
           </thead>
           <tbody>
@@ -97,71 +97,74 @@ if ($stmt === false) {
       <div>
         <form id="addResidentForm" method="POST">
           <input type="hidden" name="action" value="add_resident">
-          <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
+          <?php if (isset($error)) echo "<p class='text-red-600 font-medium'>$error</p>"; ?>
 
       <!-- Household -->
-      <div class="mb-3">
-        <label class="form-label small fw-medium">Household ID (optional)</label>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Household ID (optional)</label>
         <input type="number" name="household_id" placeholder="Enter household ID"
-          class="form-control">
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
       </div>
 
       <!-- Name Fields -->
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">First Name</label>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">First Name</label>
           <input type="text" name="first_name" placeholder="First Name" 
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-        <div class="col-6">
-          <label class="form-label small fw-medium">Middle Name</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Middle Name</label>
           <input type="text" name="middle_name" placeholder="Middle Name"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">Last Name</label>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Last Name</label>
           <input type="text" name="last_name" placeholder="Last Name"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-        <div class="col-6">
-          <label class="form-label small fw-medium">Suffix</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Suffix</label>
           <input type="text" name="suffix" placeholder="e.g. Jr., Sr."
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
       <!-- Gender & Birthdate -->
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">Gender</label>
-          <select name="gender" class="form-select">
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Gender</label>
+          <select name="gender"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>
         </div>
 
-        <div class="col-6">
-          <label class="form-label small fw-medium">Birthdate</label>
-          <input type="date" name="birthdate" class="form-control">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Birthdate</label>
+          <input type="date" name="birthdate"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
       <!-- Birthplace -->
-      <div class="mb-3">
-        <label class="form-label small fw-medium">Birthplace</label>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Birthplace</label>
         <input type="text" name="birthplace" placeholder="Enter birthplace"
-          class="form-control">
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
       </div>
 
       <!-- Civil Status & Religion -->
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">Civil Status</label>
-          <select name="civil_status" class="form-select">
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Civil Status</label>
+          <select name="civil_status"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
             <option value="Single">Single</option>
             <option value="Married">Married</option>
             <option value="Widowed">Widowed</option>
@@ -169,72 +172,74 @@ if ($stmt === false) {
           </select>
         </div>
 
-        <div class="col-6">
-          <label class="form-label small fw-medium">Religion</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Religion</label>
           <input type="text" name="religion" placeholder="e.g. Catholic"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
       <!-- Occupation & Citizenship -->
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">Occupation</label>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Occupation</label>
           <input type="text" name="occupation" placeholder="Occupation"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
 
-        <div class="col-6">
-          <label class="form-label small fw-medium">Citizenship</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Citizenship</label>
           <input type="text" name="citizenship" value="Filipino"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
-      <!-- Contact & Address -->
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <label class="form-label small fw-medium">Contact No.</label>
+      <!-- Contact & Purok -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Contact No.</label>
           <input type="text" name="contact_no" placeholder="09XXXXXXXXX"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
 
-        <div class="col-6">
-          <label class="form-label small fw-medium">Address</label>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Address</label>
           <input type="text" name="address" placeholder="Enter address"
-            class="form-control">
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
       <!-- Voter Status -->
-      <div class="mb-3">
-        <label class="form-label small fw-medium">Voter Status</label>
-        <select name="voter_status" class="form-select">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Voter Status</label>
+        <select name="voter_status"
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <option value="No">No</option>
           <option value="Yes">Yes</option>
         </select>
       </div>
 
       <!-- Disability Status -->
-      <div class="mb-3">
-        <label class="form-label small fw-medium">Disability Status</label>
-        <select name="disability_status" class="form-select">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Disability Status</label>
+        <select name="disability_status"
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <option value="No">No</option>
           <option value="Yes">Yes</option>
         </select>
       </div>
 
       <!-- Remarks -->
-      <div class="mb-3">
-        <label class="form-label small fw-medium">Remarks</label>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Remarks</label>
         <textarea name="remarks" rows="2" placeholder="Additional notes..."
-          class="form-control"></textarea>
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"></textarea>
       </div>
 
           <!-- Submit -->
           <div class="pt-2">
             <button type="submit"
-              class="w-100 btn btn-primary py-2 fw-semibold">
+              class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">
               Add Resident
             </button>
           </div>

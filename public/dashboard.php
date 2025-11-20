@@ -81,102 +81,116 @@ if ($role === 'tanod' || $role === 'admin') {
   <title>Dashboard - MIS Barangay</title>
   <?php loadAllStyles(); ?>
 </head>
-<body class="bg-gray-100">
+<body class="bg-light">
   <?php include './navbar.php'; ?>
-  <div class="flex bg-gray-100">
+  <div class="d-flex bg-light">
     <?php include './sidebar.php'; ?>
-    <main class="p-6 w-screen">
-      <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
+    <main class="p-4 w-100">
+      <h2 class="h3 fw-semibold mb-4">Dashboard</h2>
       
       <?php if ($role === 'staff' || $role === 'admin'): ?>
         <!-- Staff/Admin Dashboard -->
         
         <!-- Population Report -->
-        <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Population Report</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-4 shadow-sm rounded-3 mb-4 border">
+          <h3 class="h6 fw-semibold text-dark mb-3">Population Report</h3>
+          <div class="row g-3">
             <!-- Total -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="total">
-              <div class="p-3 bg-blue-100 rounded-full text-blue-600">
-                <i data-lucide="users" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Total</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $totalPopulation ?></h2>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="total">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
+                  <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Total</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $totalPopulation ?></h2>
+                </div>
               </div>
             </div>
             <!-- Male -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="male">
-              <div class="p-3 bg-blue-100 rounded-full text-blue-600">
-                <i data-lucide="user-round" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Male</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $maleCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="male">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
+                  <i data-lucide="user-round" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Male</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $maleCount ?></h2>
+                </div>
               </div>
             </div>
             <!-- Female -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="female">
-              <div class="p-3 bg-blue-100 rounded-full text-blue-600">
-                <i data-lucide="circle-user-round" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Female</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $femaleCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-4">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="female">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
+                  <i data-lucide="circle-user-round" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Female</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $femaleCount ?></h2>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Senior Citizen / PWD -->
-        <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Senior Citizen / PWD</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div class="bg-white p-4 shadow-sm rounded-3 mb-4 border">
+          <h3 class="h6 fw-semibold text-dark mb-3">Senior Citizen / PWD</h3>
+          <div class="row g-3">
             <!-- Seniors -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="seniors">
-              <div class="p-3 bg-purple-100 rounded-full text-purple-600">
-                <i data-lucide="user-round" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Seniors</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $seniorCount ?></h2>
+            <div class="col-12 col-sm-6">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="seniors">
+                <div class="p-3 rounded-circle text-white" style="background-color: #e9d5ff;">
+                  <i data-lucide="user-round" class="w-6 h-6" style="color: #9333ea;"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Seniors</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $seniorCount ?></h2>
+                </div>
               </div>
             </div>
             <!-- PWDs -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="pwd">
-              <div class="p-3 bg-cyan-100 rounded-full text-cyan-600">
-                <i data-lucide="wheelchair" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">PWDs</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $pwdCount ?></h2>
+            <div class="col-12 col-sm-6">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="pwd">
+                <div class="p-3 bg-info bg-opacity-10 rounded-circle text-info">
+                  <i data-lucide="wheelchair" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">PWDs</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $pwdCount ?></h2>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Voter's Report -->
-        <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Voter's Report</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white p-4 shadow-sm rounded-3 mb-4 border">
+          <h3 class="h6 fw-semibold text-dark mb-3">Voter's Report</h3>
+          <div class="row g-3">
             <!-- Registered Voters -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="voter_registered">
-              <div class="p-3 bg-indigo-100 rounded-full text-indigo-600">
-                <i data-lucide="id-card" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Registered Voters</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $voter_registered_count ?></h2>
+            <div class="col-12 col-sm-6">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="voter_registered">
+                <div class="p-3 rounded-circle" style="background-color: #e0e7ff; color: #4f46e5;">
+                  <i data-lucide="id-card" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Registered Voters</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $voter_registered_count ?></h2>
+                </div>
               </div>
             </div>
             <!-- Unregistered Voters -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="voter_unregistered">
-              <div class="p-3 bg-red-100 rounded-full text-red-600">
-                <i data-lucide="x-circle" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Unregistered Voters</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $voter_unregistered_count ?></h2>
+            <div class="col-12 col-sm-6">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="voter_unregistered">
+                <div class="p-3 bg-danger bg-opacity-10 rounded-circle text-danger">
+                  <i data-lucide="x-circle" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Unregistered Voters</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $voter_unregistered_count ?></h2>
+                </div>
               </div>
             </div>
           </div>
@@ -186,57 +200,67 @@ if ($role === 'tanod' || $role === 'admin') {
       
       <?php if ($role === 'tanod' || $role === 'admin'): ?>
         <!-- Tanod Dashboard -->
-        <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Blotter Cases Summary</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 shadow-sm rounded-3 mb-4 border">
+          <h3 class="h6 fw-semibold text-dark mb-3">Blotter Cases Summary</h3>
+          <div class="row g-3">
             <!-- Total Cases -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200">
-              <div class="p-3 bg-blue-100 rounded-full text-blue-600">
-                <i data-lucide="file-text" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Total Cases</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $totalBlotterCases ?></h2>
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
+                  <i data-lucide="file-text" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Total Cases</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $totalBlotterCases ?></h2>
+                </div>
               </div>
             </div>
             <!-- Pending -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="pending">
-              <div class="p-3 bg-yellow-100 rounded-full text-yellow-600">
-                <i data-lucide="clock" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Pending</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $pendingCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="pending">
+                <div class="p-3 bg-warning bg-opacity-10 rounded-circle text-warning">
+                  <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Pending</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $pendingCount ?></h2>
+                </div>
               </div>
             </div>
             <!-- Under Investigation -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="under_investigation">
-              <div class="p-3 bg-blue-100 rounded-full text-blue-600">
-                <i data-lucide="search" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Under Investigation</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $underInvestigationCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="under_investigation">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-circle text-primary">
+                  <i data-lucide="search" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Under Investigation</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $underInvestigationCount ?></h2>
+                </div>
               </div>
             </div>
             <!-- Resolved -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="resolved">
-              <div class="p-3 bg-green-100 rounded-full text-green-600">
-                <i data-lucide="check-circle" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Resolved</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $resolvedCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="resolved">
+                <div class="p-3 bg-success bg-opacity-10 rounded-circle text-success">
+                  <i data-lucide="check-circle" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Resolved</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $resolvedCount ?></h2>
+                </div>
               </div>
             </div>
             <!-- Dismissed -->
-            <div class="flex items-center p-4 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition" data-filter="dismissed">
-              <div class="p-3 bg-gray-100 rounded-full text-gray-600">
-                <i data-lucide="x-circle" class="w-6 h-6"></i>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm text-gray-500">Dismissed</p>
-                <h2 class="text-2xl font-bold text-gray-800"><?= $dismissedCount ?></h2>
+            <div class="col-12 col-sm-6 col-lg-3">
+              <div class="d-flex align-items-center p-3 rounded-3 bg-light border" style="cursor: pointer;" data-filter="dismissed">
+                <div class="p-3 bg-secondary bg-opacity-10 rounded-circle text-secondary">
+                  <i data-lucide="x-circle" class="w-6 h-6"></i>
+                </div>
+                <div class="ms-3">
+                  <p class="small text-muted mb-0">Dismissed</p>
+                  <h2 class="h4 fw-bold text-dark mb-0"><?= $dismissedCount ?></h2>
+                </div>
               </div>
             </div>
           </div>
@@ -262,7 +286,7 @@ if ($role === 'tanod' || $role === 'admin') {
   <?php loadAllScripts(); ?>
   <script>
     $(document).ready(function() {
-      // Initialize DataTable dialog - Modernized
+      // Initialize DataTable dialog
       $("#dataDialog").dialog({
         autoOpen: false,
         modal: true,
@@ -270,12 +294,15 @@ if ($role === 'tanod' || $role === 'admin') {
         height: 650,
         resizable: true,
         classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+          'ui-dialog': 'rounded shadow-lg',
+          'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
+          'ui-dialog-title': 'fw-semibold',
+          'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
         },
-        position: { my: "center", at: "center", of: window }
+        position: { my: "center", at: "center", of: window },
+        open: function() {
+          $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+        }
       });
 
       // Handle card clicks
@@ -283,8 +310,8 @@ if ($role === 'tanod' || $role === 'admin') {
         const filter = $(this).data('filter');
         const role = '<?= $role ?>';
         
-        // Skip non-clickable cards
-        if (!$(this).hasClass('cursor-pointer')) {
+        // Check if card has cursor pointer style
+        if ($(this).css('cursor') !== 'pointer') {
           return;
         }
         
@@ -302,7 +329,6 @@ if ($role === 'tanod' || $role === 'admin') {
           data: { filter: filter },
           dataType: 'json',
           success: function(response) {
-            console.log('API Response:', response);
             if (response && response.status === 'success') {
               if (response.data && response.data.length > 0) {
                 displayData(response.data, filter, role);
@@ -310,16 +336,10 @@ if ($role === 'tanod' || $role === 'admin') {
                 $("#dataTableContainer").html('<div class="text-center p-8 text-gray-500">No data found for this filter.</div>');
               }
             } else {
-              $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">' + (response.message || 'Error loading data. Please try again.') + '</div>');
+              $("#dataTableContainer").html('<div class="text-center p-4 text-danger">' + (response.message || 'Error loading data. Please try again.') + '</div>');
             }
           },
           error: function(xhr, status, error) {
-            console.error('AJAX Error:', {
-              status: xhr.status,
-              statusText: xhr.statusText,
-              error: error,
-              responseText: xhr.responseText
-            });
             let errorMsg = 'Error loading data. Please try again later.';
             if (xhr.responseText) {
               try {
@@ -331,7 +351,7 @@ if ($role === 'tanod' || $role === 'admin') {
                 // Not JSON, use default message
               }
             }
-            $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">' + errorMsg + '</div>');
+            $("#dataTableContainer").html('<div class="text-center p-4 text-danger">' + errorMsg + '</div>');
           }
         });
       }
@@ -360,7 +380,7 @@ if ($role === 'tanod' || $role === 'admin') {
             tableHtml += '<th>Name</th><th>Gender</th><th>Birthdate</th><th>Age</th><th>Address</th><th>Contact</th><th>Voter Status</th>';
           } else {
             console.error('Unknown data type:', data[0]);
-            $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">Unknown data format.</div>');
+            $("#dataTableContainer").html('<div class="text-center p-4 text-danger">Unknown data format.</div>');
             return;
           }
           
@@ -369,15 +389,15 @@ if ($role === 'tanod' || $role === 'admin') {
           data.forEach(function(item) {
             tableHtml += '<tr>';
             if (isBlotterData) {
-              tableHtml += '<td><a href="/blotter/view?id=' + item.id + '" class="text-blue-600 hover:underline">' + escapeHtml(item.case_number || '') + '</a></td>';
+              tableHtml += '<td><a href="/blotter/view?id=' + item.id + '" class="text-primary text-decoration-none">' + escapeHtml(item.case_number || '') + '</a></td>';
               tableHtml += '<td>' + escapeHtml(item.complainant_name || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.respondent_name || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.incident_date || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.incident_location || '') + '</td>';
-              tableHtml += '<td><span class="px-2 py-1 rounded text-xs font-semibold ' + getStatusClass(item.status) + '">' + escapeHtml((item.status || '').replace('_', ' ')) + '</span></td>';
+              tableHtml += '<td><span class="badge ' + getStatusClass(item.status) + '">' + escapeHtml((item.status || '').replace('_', ' ')) + '</span></td>';
             } else if (isResidentData) {
               const fullName = escapeHtml((item.first_name || '') + ' ' + (item.middle_name || '') + ' ' + (item.last_name || '') + ' ' + (item.suffix || '')).trim();
-              tableHtml += '<td><a href="/resident/view?id=' + item.id + '" class="text-blue-600 hover:underline">' + fullName + '</a></td>';
+              tableHtml += '<td><a href="/resident/view?id=' + item.id + '" class="text-primary text-decoration-none">' + fullName + '</a></td>';
               tableHtml += '<td>' + escapeHtml(item.gender || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.birthdate || '') + '</td>';
               tableHtml += '<td>' + calculateAge(item.birthdate) + '</td>';
@@ -400,8 +420,7 @@ if ($role === 'tanod' || $role === 'admin') {
             order: isBlotterData ? [[0, 'desc']] : [[0, 'asc']]
           });
         } catch (error) {
-          console.error('Error displaying data:', error);
-          $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">Error displaying data: ' + error.message + '</div>');
+          $("#dataTableContainer").html('<div class="text-center p-8 text-danger">Error displaying data: ' + error.message + '</div>');
         }
       }
 
@@ -418,12 +437,12 @@ if ($role === 'tanod' || $role === 'admin') {
 
       function getStatusClass(status) {
         const classes = {
-          'pending': 'bg-yellow-100 text-yellow-800',
-          'under_investigation': 'bg-blue-100 text-blue-800',
-          'resolved': 'bg-green-100 text-green-800',
-          'dismissed': 'bg-gray-100 text-gray-800'
+          'pending': 'bg-warning bg-opacity-10 text-warning',
+          'under_investigation': 'bg-primary bg-opacity-10 text-primary',
+          'resolved': 'bg-success bg-opacity-10 text-success',
+          'dismissed': 'bg-secondary bg-opacity-10 text-secondary'
         };
-        return classes[status] || 'bg-gray-100 text-gray-800';
+        return classes[status] || 'bg-secondary bg-opacity-10 text-secondary';
       }
 
       function calculateAge(birthdate) {

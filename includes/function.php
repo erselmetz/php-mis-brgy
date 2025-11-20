@@ -57,11 +57,13 @@ function loadAssets(array $assets): void
  */
 function loadAllStyles(): void
 {
+    // Load Bootstrap (CDN) + local custom styles
+    echo "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css'>\n";
     loadAssets([
-        'css' => ['style.css', 'tooltips.css'],
+        'css' => ['input.css', 'style.css', 'tooltips.css'],
         'node_css' => [
             'datatables.net-jqui/css/dataTables.jqueryui.css',
-            'jquery-ui/dist/themes/base/jquery-ui.css',
+            'jquery-ui/dist/themes/flick/jquery-ui.css',
         ],
     ]);
 }
@@ -72,14 +74,18 @@ function loadAllStyles(): void
  */
 function loadAllScripts(): void
 {
+    // Load core JS libraries (jQuery, jQuery UI, DataTables)
     loadAssets([
         'node_js' => [
             'jquery/dist/jquery.js',
             'jquery-ui/dist/jquery-ui.js',
             'datatables.net/js/dataTables.js',
         ],
-        'js' => ['tailwindcss.js', 'app.js'],
+        'js' => ['app.js'],
     ]);
+
+    // Load Bootstrap bundle (CDN) after local scripts
+    echo "<script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'></script>\n";
 }
 
 /**
@@ -110,7 +116,7 @@ function generateDialog(string $message, string $title, bool $reloadOnClose = fa
     
     return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
                 <div class='p-4'>
-                    <p class='text-gray-700'>$safeMessage</p>
+                    <p class='text-body'>$safeMessage</p>
                 </div>
             </div>
             <script>
@@ -120,10 +126,10 @@ function generateDialog(string $message, string $title, bool $reloadOnClose = fa
                         width: 500,
                         resizable: false,
                         classes: {
-                            'ui-dialog': 'rounded-lg shadow-lg',
-                            'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-                            'ui-dialog-title': 'font-semibold',
-                            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                            'ui-dialog': 'rounded shadow-lg',
+                            'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
+                            'ui-dialog-title': 'fw-semibold',
+                            'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
                         },
                         buttons: {
                             Ok: function() {
@@ -132,7 +138,7 @@ function generateDialog(string $message, string $title, bool $reloadOnClose = fa
                             }
                         },
                         open: function() {
-                            $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+                            $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
                         }
                     });
                 });
@@ -171,9 +177,9 @@ function DialogMessage(string $message, string $title = "Message"): string
  */
 function AutoComputeAge(string $birthdate): int
 {
-  $birthDateObj = new DateTime($birthdate);
-  $today = new DateTime();
-  return $birthDateObj->diff($today)->y;
+    $birthDateObj = new DateTime($birthdate);
+    $today = new DateTime();
+    return $birthDateObj->diff($today)->y;
 }
 
 /**
@@ -183,32 +189,32 @@ function AutoComputeAge(string $birthdate): int
  */
 function showDialogReloadScript(): string
 {
-    return "<script>
+    return '<script>
         function showDialogReload(title, message) {
-            const dialogId = 'dialog_' + Date.now();
-            const dialog = $('<div id=\"' + dialogId + '\" title=\"' + title.replace(/\"/g, '&quot;') + '\" style=\"display:none;\"><div class=\"p-4\"><p class=\"text-gray-700\">' + message.replace(/\"/g, '&quot;') + '</p></div></div>');
-            $('body').append(dialog);
-            $('#' + dialogId).dialog({
+            const dialogId = "dialog_" + Date.now();
+            const dialog = $("<div id=\"" + dialogId + "\" title=\"" + title.replace(/"/g, """) + "\" style=\"display:none;\"><div class=\"p-4\"><p class=\"text-body\">" + message.replace(/"/g, """) + "</p></div></div>");
+            $("body").append(dialog);
+            $("#" + dialogId).dialog({
                 modal: true,
                 width: 500,
                 resizable: false,
                 classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                    "ui-dialog": "rounded shadow-lg",
+                    "ui-dialog-titlebar": "dialog-titlebar-primary rounded-top",
+                    "ui-dialog-title": "fw-semibold",
+                    "ui-dialog-buttonpane": "dialog-buttonpane-light rounded-bottom"
                 },
                 buttons: {
                     Ok: function() {
-                        $(this).dialog('close');
+                        $(this).dialog("close");
                         $(this).remove();
                         location.reload();
                     }
                 },
                 open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+                    $(".ui-dialog-buttonpane button").addClass("btn btn-primary");
                 }
             });
         }
-    </script>";
+    </script>';
 }

@@ -12,34 +12,36 @@ requireStaff(); // Only Staff and Admin can access
     echo showDialogReloadScript(); ?>
 </head>
 
-<body class="bg-gray-100" style="display: none;">
+<body class="bg-light" style="display: none;">
     <?php include '../navbar.php'; ?>
 
-    <div class="flex bg-gray-100">
+    <div class="d-flex bg-light">
         <?php include '../sidebar.php'; ?>
 
-        <main class="p-6 w-screen">
-            <h2 class="text-2xl font-semibold mb-6">Certificate</h2>
+        <main class="p-4 w-100">
+            <h2 class="h3 fw-semibold mb-4">Certificate</h2>
             <?php if (!empty($_SESSION['success'])): ?>
-                <div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg mb-4">
+                <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
                     <?= htmlspecialchars($_SESSION['success']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <?php unset($_SESSION['success']); ?>
             <?php elseif (!empty($_SESSION['error'])): ?>
-                <div class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-4">
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                     <?= htmlspecialchars($_SESSION['error']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 <?php unset($_SESSION['error']); ?>
             <?php endif; ?>
 
             <!-- 🔍 Resident Search -->
-            <div class="relative max-w-xl bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
-                <label for="residentSearch" class="block text-gray-700 font-medium mb-2">Search Resident</label>
+            <div class="position-relative w-100 bg-white p-4 rounded-3 shadow-sm border mb-4">
+                <label for="residentSearch" class="form-label fw-medium">Search Resident</label>
                 <input id="residentSearch" type="text"
                     placeholder="Search by name, ID, or address..."
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300">
+                    class="form-control">
                 <div id="searchResults"
-                    class="absolute z-10 mt-1 w-[30rem] bg-white border border-gray-200 rounded-lg shadow-lg hidden"></div>
+                    class="position-absolute mt-1 start-0 end-0 bg-white border rounded-3 shadow-lg d-none" style="z-index: 1050;"></div>
             </div>
 
             <!-- 🧾 Resident Info + History -->
@@ -68,7 +70,7 @@ requireStaff(); // Only Staff and Admin can access
             $("#residentSearch").on("input", function() {
                 const query = $(this).val().trim();
                 if (query.length < 2) {
-                    $("#searchResults").hide();
+                    $("#searchResults").addClass('d-none');
                     return;
                 }
 
@@ -85,17 +87,17 @@ requireStaff(); // Only Staff and Admin can access
                         } catch {}
 
                         if (data.length === 0) {
-                            $("#searchResults").html('<div class="p-3 text-sm text-gray-600">No results found</div>').show();
+                            $("#searchResults").html('<div class="p-3 small text-muted">No results found</div>').removeClass('d-none');
                             return;
                         }
 
                         const html = data.map(r => `
-              <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer" data-id="${r.id}">
-                <div class="font-medium text-gray-800">${r.first_name} ${r.middle_name ?? ''} ${r.last_name}</div>
-                <div class="text-sm text-gray-600">${r.address}</div>
+              <div class="px-4 py-2 search-result-item" data-id="${r.id}" style="cursor: pointer;">
+                <div class="fw-medium text-dark">${r.first_name} ${r.middle_name ?? ''} ${r.last_name}</div>
+                <div class="small text-muted">${r.address}</div>
               </div>
             `).join('');
-                        $("#searchResults").html(html).show();
+                        $("#searchResults").html(html).removeClass('d-none');
                     }
                 });
             });
@@ -103,8 +105,8 @@ requireStaff(); // Only Staff and Admin can access
             // ✅ Select Resident (AJAX reload content)
             $(document).on("click", "#searchResults div[data-id]", function() {
                 const id = $(this).data("id");
-                $("#searchResults").hide();
-                $("#residentDetails").html('<div class="text-center text-gray-500 py-6">Loading resident data...</div>');
+                $("#searchResults").addClass('d-none');
+                $("#residentDetails").html('<div class="text-center text-muted py-4">Loading resident data...</div>');
                 loadResident(id);
                 history.pushState({}, "", "?id=" + id);
             });
@@ -112,7 +114,14 @@ requireStaff(); // Only Staff and Admin can access
             // ✅ Hide dropdown on outside click
             $(document).click(function(e) {
                 if (!$(e.target).closest("#residentSearch, #searchResults").length)
-                    $("#searchResults").hide();
+                    $("#searchResults").addClass('d-none');
+            });
+            
+            // Add hover effect for search results
+            $(document).on('mouseenter', '.search-result-item', function() {
+                $(this).css('background-color', '#e7f3ff');
+            }).on('mouseleave', '.search-result-item', function() {
+                $(this).css('background-color', '');
             });
 
             // ✅ Load resident info + table
@@ -164,7 +173,7 @@ requireStaff(); // Only Staff and Admin can access
                         }, 100);
                     },
                     error: function() {
-                        $("#residentDetails").html('<div class="text-center text-red-500 py-6">Failed to load resident data.</div>');
+                        $("#residentDetails").html('<div class="text-center text-danger py-4">Failed to load resident data.</div>');
                     }
                 });
             }
