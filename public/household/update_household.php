@@ -21,8 +21,8 @@ if ($id <= 0) {
 }
 
 // Use API models directly
-require_once '../api/v1/BaseModel.php';
-require_once '../api/v1/households/HouseholdModel.php';
+require_once '../api/BaseModel.php';
+require_once '../api/households/HouseholdModel.php';
 
 try {
     $model = new HouseholdModel();

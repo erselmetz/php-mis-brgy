@@ -47,13 +47,13 @@
               "type": "table",
               "headers": ["Endpoint", "Method", "Description"],
               "rows": [
-                ["/api/v1/residents", "GET", "List all residents (returns all data for DataTables)"],
-                ["/api/v1/residents?id=X", "GET", "Get resident by ID"],
-                ["/api/v1/residents", "POST", "Create new resident (action: 'create')"],
-                ["/api/v1/residents", "POST", "Update resident (action: 'update')"],
-                ["/api/v1/residents", "POST", "Delete resident (action: 'delete')"],
-                ["/api/v1/residents?search=term", "GET", "Search residents by name"],
-                ["/api/v1/residents?household_id=X", "GET", "Filter residents by household"]
+                ["/api/residents", "GET", "List all residents (returns all data for DataTables)"],
+                ["/api/residents?id=X", "GET", "Get resident by ID"],
+                ["/api/residents", "POST", "Create new resident (action: 'create')"],
+                ["/api/residents", "POST", "Update resident (action: 'update')"],
+                ["/api/residents", "POST", "Delete resident (action: 'delete')"],
+                ["/api/residents?search=term", "GET", "Search residents by name"],
+                ["/api/residents?household_id=X", "GET", "Filter residents by household"]
               ]
             },
             {
@@ -67,7 +67,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Fetch resident details via API\n$.ajax({\n    url: '/api/v1/residents?id=123',\n    method: 'GET',\n    success: function(response) {\n        if(response.status === 'success') {\n            const data = response.data;\n            $('#firstName').val(data.first_name);\n            $('#lastName').val(data.last_name);\n            $('#birthdate').val(data.birthdate);\n        }\n    }\n});\n\n// Create new resident via API\n$.ajax({\n    url: '/api/v1/residents',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        first_name: 'Juan',\n        last_name: 'Dela Cruz',\n        birthdate: '1990-05-15',\n        gender: 'Male',\n        address: '123 Main St'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            alert('Resident created successfully!');\n        }\n    }\n});\n\n// Update resident via API\n$.ajax({\n    url: '/api/v1/residents',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update',\n        id: 123,\n        first_name: 'Juan',\n        last_name: 'Dela Cruz',\n        birthdate: '1990-05-15'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            alert('Resident updated successfully!');\n        }\n    }\n});"
+              "code": "// Fetch resident details via API\n$.ajax({\n    url: '/api/residents?id=123',\n    method: 'GET',\n    success: function(response) {\n        if(response.status === 'success') {\n            const data = response.data;\n            $('#firstName').val(data.first_name);\n            $('#lastName').val(data.last_name);\n            $('#birthdate').val(data.birthdate);\n        }\n    }\n});\n\n// Create new resident via API\n$.ajax({\n    url: '/api/residents',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        first_name: 'Juan',\n        last_name: 'Dela Cruz',\n        birthdate: '1990-05-15',\n        gender: 'Male',\n        address: '123 Main St'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            alert('Resident created successfully!');\n        }\n    }\n});\n\n// Update resident via API\n$.ajax({\n    url: '/api/residents',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update',\n        id: 123,\n        first_name: 'Juan',\n        last_name: 'Dela Cruz',\n        birthdate: '1990-05-15'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            alert('Resident updated successfully!');\n        }\n    }\n});"
             }
           ]
         }
@@ -104,12 +104,12 @@
               "type": "table",
               "headers": ["Endpoint", "Method", "Description"],
               "rows": [
-                ["/api/v1/households", "GET", "List all households with member count"],
-                ["/api/v1/households?id=X", "GET", "Get household by ID"],
-                ["/api/v1/households?action=members&household_id=X", "GET", "Get household members"],
-                ["/api/v1/households", "POST", "Create household (action: 'create')"],
-                ["/api/v1/households", "POST", "Update household (action: 'update')"],
-                ["/api/v1/households", "POST", "Delete household (action: 'delete')"]
+                ["/api/households", "GET", "List all households with member count"],
+                ["/api/households?id=X", "GET", "Get household by ID"],
+                ["/api/households?action=members&household_id=X", "GET", "Get household members"],
+                ["/api/households", "POST", "Create household (action: 'create')"],
+                ["/api/households", "POST", "Update household (action: 'update')"],
+                ["/api/households", "POST", "Delete household (action: 'delete')"]
               ]
             }
           ]
@@ -119,7 +119,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Create household via API\n$.ajax({\n    url: '/api/v1/households',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        household_no: 'HH-001',\n        head_name: 'Juan Dela Cruz',\n        address: '123 Main St, Barangay San Juan'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Household created:', response.data);\n        }\n    }\n});\n\n// Get household members\n$.ajax({\n    url: '/api/v1/households?action=members&household_id=123',\n    method: 'GET',\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Members:', response.data);\n        }\n    }\n});"
+              "code": "// Create household via API\n$.ajax({\n    url: '/api/households',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        household_no: 'HH-001',\n        head_name: 'Juan Dela Cruz',\n        address: '123 Main St, Barangay San Juan'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Household created:', response.data);\n        }\n    }\n});\n\n// Get household members\n$.ajax({\n    url: '/api/households?action=members&household_id=123',\n    method: 'GET',\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Members:', response.data);\n        }\n    }\n});"
             }
           ]
         }
@@ -156,12 +156,12 @@
               "type": "table",
               "headers": ["Endpoint", "Method", "Description"],
               "rows": [
-                ["/api/v1/certificates", "GET", "List all certificate requests"],
-                ["/api/v1/certificates?id=X", "GET", "Get certificate by ID"],
-                ["/api/v1/certificates?resident_id=X", "GET", "Get certificates by resident"],
-                ["/api/v1/certificates?action=stats", "GET", "Get certificate statistics"],
-                ["/api/v1/certificates", "POST", "Create certificate request (action: 'create')"],
-                ["/api/v1/certificates", "POST", "Update certificate status (action: 'update_status')"]
+                ["/api/certificates", "GET", "List all certificate requests"],
+                ["/api/certificates?id=X", "GET", "Get certificate by ID"],
+                ["/api/certificates?resident_id=X", "GET", "Get certificates by resident"],
+                ["/api/certificates?action=stats", "GET", "Get certificate statistics"],
+                ["/api/certificates", "POST", "Create certificate request (action: 'create')"],
+                ["/api/certificates", "POST", "Update certificate status (action: 'update_status')"]
               ]
             }
           ]
@@ -171,7 +171,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Submit certificate request via API\n$.ajax({\n    url: '/api/v1/certificates',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        resident_id: 123,\n        certificate_type: 'Barangay Clearance',\n        purpose: 'Employment requirement',\n        status: 'Pending'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Certificate requested:', response.data);\n        }\n    }\n});\n\n// Update certificate status via API\n$.ajax({\n    url: '/api/v1/certificates',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 456,\n        status: 'Approved',\n        issued_by: 10\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Certificate updated:', response.data);\n        }\n    }\n});"
+              "code": "// Submit certificate request via API\n$.ajax({\n    url: '/api/certificates',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        resident_id: 123,\n        certificate_type: 'Barangay Clearance',\n        purpose: 'Employment requirement',\n        status: 'Pending'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Certificate requested:', response.data);\n        }\n    }\n});\n\n// Update certificate status via API\n$.ajax({\n    url: '/api/certificates',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 456,\n        status: 'Approved',\n        issued_by: 10\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Certificate updated:', response.data);\n        }\n    }\n});"
             }
           ]
         },
@@ -256,11 +256,11 @@
               "type": "table",
               "headers": ["Endpoint", "Method", "Description"],
               "rows": [
-                ["/api/v1/blotter", "GET", "List all blotter cases"],
-                ["/api/v1/blotter?id=X", "GET", "Get blotter case by ID"],
-                ["/api/v1/blotter?action=stats", "GET", "Get blotter statistics"],
-                ["/api/v1/blotter", "POST", "Create blotter case (action: 'create')"],
-                ["/api/v1/blotter", "POST", "Update case status (action: 'update_status')"]
+                ["/api/blotter", "GET", "List all blotter cases"],
+                ["/api/blotter?id=X", "GET", "Get blotter case by ID"],
+                ["/api/blotter?action=stats", "GET", "Get blotter statistics"],
+                ["/api/blotter", "POST", "Create blotter case (action: 'create')"],
+                ["/api/blotter", "POST", "Update case status (action: 'update_status')"]
               ]
             }
           ]
@@ -270,7 +270,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Create blotter case via API\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        complainant_name: 'Juan Dela Cruz',\n        respondent_name: 'Maria Santos',\n        incident_date: '2025-11-20',\n        incident_location: 'Barangay Hall',\n        incident_description: 'Dispute over property boundary'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Case created:', response.data.case_number);\n        }\n    }\n});\n\n// Update case status\n$.ajax({\n    url: '/api/v1/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 123,\n        status: 'resolved',\n        resolution: 'Settled amicably',\n        resolved_date: '2025-11-20'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Status updated');\n        }\n    }\n});"
+              "code": "// Create blotter case via API\n$.ajax({\n    url: '/api/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        complainant_name: 'Juan Dela Cruz',\n        respondent_name: 'Maria Santos',\n        incident_date: '2025-11-20',\n        incident_location: 'Barangay Hall',\n        incident_description: 'Dispute over property boundary'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Case created:', response.data.case_number);\n        }\n    }\n});\n\n// Update case status\n$.ajax({\n    url: '/api/blotter',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'update_status',\n        id: 123,\n        status: 'resolved',\n        resolution: 'Settled amicably',\n        resolved_date: '2025-11-20'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Status updated');\n        }\n    }\n});"
             }
           ]
         }
@@ -307,12 +307,12 @@
               "type": "table",
               "headers": ["Endpoint", "Method", "Description"],
               "rows": [
-                ["/api/v1/auth", "POST", "User login (returns session data)"],
-                ["/api/v1/admin", "GET", "List all users/officers"],
-                ["/api/v1/admin?id=X", "GET", "Get user/officer by ID"],
-                ["/api/v1/admin", "POST", "Create user/officer (action: 'create')"],
-                ["/api/v1/admin", "POST", "Update user/officer (action: 'update')"],
-                ["/api/v1/admin", "POST", "Delete user/officer (action: 'delete')"]
+                ["/api/auth", "POST", "User login (returns session data)"],
+                ["/api/admin", "GET", "List all users/officers"],
+                ["/api/admin?id=X", "GET", "Get user/officer by ID"],
+                ["/api/admin", "POST", "Create user/officer (action: 'create')"],
+                ["/api/admin", "POST", "Update user/officer (action: 'update')"],
+                ["/api/admin", "POST", "Delete user/officer (action: 'delete')"]
               ]
             }
           ]
@@ -322,7 +322,7 @@
           "content": [
             {
               "type": "code",
-              "code": "// Login via API\n$.ajax({\n    url: '/api/v1/auth',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        username: 'admin',\n        password: 'password123'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Logged in as:', response.data.name);\n            // Session is set server-side\n        }\n    }\n});\n\n// Create user account via API\n$.ajax({\n    url: '/api/v1/admin',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        name: 'John Doe',\n        username: 'johndoe',\n        password: 'securepass',\n        role: 'staff'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('User created:', response.data);\n        }\n    }\n});"
+              "code": "// Login via API\n$.ajax({\n    url: '/api/auth',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        username: 'admin',\n        password: 'password123'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('Logged in as:', response.data.name);\n            // Session is set server-side\n        }\n    }\n});\n\n// Create user account via API\n$.ajax({\n    url: '/api/admin',\n    method: 'POST',\n    contentType: 'application/json',\n    data: JSON.stringify({\n        action: 'create',\n        name: 'John Doe',\n        username: 'johndoe',\n        password: 'securepass',\n        role: 'staff'\n    }),\n    success: function(response) {\n        if(response.status === 'success') {\n            console.log('User created:', response.data);\n        }\n    }\n});"
             }
           ]
         }

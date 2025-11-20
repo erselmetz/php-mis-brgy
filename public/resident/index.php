@@ -54,13 +54,20 @@ requireStaff(); // Only Staff and Admin can access
       </div>
     </main>
   </div>
-  <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
-  <div id="addResidentModal" title="Add New Resident">
-    <div class="row g-4" style="max-height: 70vh; overflow-y: auto;">
-      <!-- Form Section -->
-      <div>
-        <form id="addResidentForm">
-          <div id="residentAlertContainer"></div>
+  <!-- Add Resident Modal -->
+  <div class="modal fade" id="addResidentModal" tabindex="-1" aria-labelledby="addResidentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addResidentModalLabel">Add New Resident</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-4">
+            <!-- Form Section -->
+            <div class="col-12 col-lg-6">
+              <form id="addResidentForm">
+                <div id="residentAlertContainer"></div>
 
       <!-- Household -->
       <div class="mb-3">
@@ -194,18 +201,19 @@ requireStaff(); // Only Staff and Admin can access
           class="form-control"></textarea>
       </div>
 
-          <!-- Submit -->
-          <div class="pt-2">
-            <button type="submit"
-              class="w-100 btn btn-primary py-2 fw-semibold">
-              Add Resident
-            </button>
-          </div>
-        </form>
-      </div>
+                <!-- Submit -->
+                <div class="pt-2">
+                  <button type="submit"
+                    class="w-100 btn btn-primary py-2 fw-semibold">
+                    Add Resident
+                  </button>
+                </div>
+              </form>
+            </div>
 
-      <!-- Live Preview Section -->
-      <div class="bg-light p-4 rounded-3 border">
+            <!-- Live Preview Section -->
+            <div class="col-12 col-lg-6">
+              <div class="bg-light p-4 rounded-3 border">
         <div class="d-flex align-items-start justify-content-between mb-3">
           <h3 class="h6 fw-medium">Live Preview</h3>
           <div id="modalAgeBadge" class="small text-muted"></div>
@@ -241,6 +249,13 @@ requireStaff(); // Only Staff and Admin can access
           </dl>
         </div>
       </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
   <script>
@@ -264,7 +279,7 @@ requireStaff(); // Only Staff and Admin can access
       
       let residentsTable = $("#residentsTable").DataTable({
         ajax: {
-          url: '/api/v1/residents',
+          url: '/api/residents',
           dataSrc: function(json) {
             if (json.status === 'success' && json.data) {
               return json.data;
@@ -363,7 +378,7 @@ requireStaff(); // Only Staff and Admin can access
         }
         
         $.ajax({
-          url: '/api/v1/residents',
+          url: '/api/residents',
           method: 'POST',
           contentType: 'application/json',
           data: JSON.stringify(formData),
@@ -377,7 +392,8 @@ requireStaff(); // Only Staff and Admin can access
               $('[name="voter_status"]').val('No');
               $('[name="disability_status"]').val('No');
               updateModalPreview();
-              $("#addResidentModal").dialog("close");
+              const modal = bootstrap.Modal.getInstance(document.getElementById('addResidentModal'));
+              if (modal) modal.hide();
               residentsTable.ajax.reload();
             } else {
               showAlert(response.message || 'Error adding resident', 'error');
@@ -469,29 +485,10 @@ requireStaff(); // Only Staff and Admin can access
         updateModalPreview();
       });
       
-      // Initialize modal (hidden by default) - Modernized
-      $("#addResidentModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 1000,
-        height: 700,
-        resizable: true,
-        classes: {
-          'ui-dialog': 'rounded shadow-lg',
-          'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-          'ui-dialog-title': 'fw-semibold',
-          'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-        },
-        show: {
-          effect: "fadeIn",
-          duration: 200
-        },
-        hide: {
-          effect: "fadeOut",
-          duration: 200
-        },
-        open: function() {
-          $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+      // Initialize modal event handlers
+      const addResidentModal = document.getElementById('addResidentModal');
+      if (addResidentModal) {
+        addResidentModal.addEventListener('show.bs.modal', function() {
           // Reset form when modal opens
           const form = $('#addResidentForm');
           if (form.length) {
@@ -513,10 +510,13 @@ requireStaff(); // Only Staff and Admin can access
               updateModalPreview();
             }, 500);
           }
-        }
-      });
+          $('#residentAlertContainer').empty();
+        });
+      }
+      
       $("#openResidentModalBtn").on("click", function() {
-        $("#addResidentModal").dialog("open");
+        const modal = new bootstrap.Modal(document.getElementById('addResidentModal'));
+        modal.show();
       });
     })
   </script>

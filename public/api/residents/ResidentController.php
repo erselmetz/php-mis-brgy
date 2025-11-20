@@ -161,9 +161,9 @@ class ResidentController extends BaseController {
             // Require staff or admin role
             $this->requireRole(['staff', 'admin']);
 
-            // Validate required fields
+            // Validate required fields (household_id is optional)
             $this->validateRequired($data, [
-                'first_name', 'last_name', 'birthdate', 'gender', 'civil_status', 'household_id'
+                'first_name', 'last_name', 'birthdate', 'gender', 'civil_status'
             ]);
 
             // Check for duplicate resident
@@ -196,7 +196,7 @@ class ResidentController extends BaseController {
                 'address' => $this->sanitize($data['address'] ?? ''),
                 'voter_status' => $data['voter_status'] ?? 'No',
                 'disability_status' => $data['disability_status'] ?? 'No',
-                'household_id' => $data['household_id'],
+                'household_id' => !empty($data['household_id']) ? intval($data['household_id']) : null,
                 'remarks' => $this->sanitize($data['remarks'] ?? ''),
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -210,8 +210,10 @@ class ResidentController extends BaseController {
             $residentId = $this->model->insert($residentData);
 
             if ($residentId) {
-                // Update household member count
-                $this->updateHouseholdMemberCount($data['household_id']);
+                // Update household member count if household_id is provided
+                if (!empty($data['household_id'])) {
+                    $this->updateHouseholdMemberCount($data['household_id']);
+                }
 
                 ApiResponse::success([
                     'id' => $residentId,

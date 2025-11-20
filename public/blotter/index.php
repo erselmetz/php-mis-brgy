@@ -49,8 +49,15 @@ requireTanod(); // Only Tanod (and admin) can access
     </div>
     
     <!-- Add Blotter Modal -->
-    <div id="addBlotterModal" title="Add New Blotter Case">
-        <form id="addBlotterForm" style="max-height: 70vh; overflow-y: auto;">
+    <div class="modal fade" id="addBlotterModal" tabindex="-1" aria-labelledby="addBlotterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addBlotterModalLabel">Add New Blotter Case</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addBlotterForm">
             
             <div class="row g-3 mb-3">
                 <div class="col-6">
@@ -115,12 +122,18 @@ requireTanod(); // Only Tanod (and admin) can access
                 </select>
             </div>
             
-            <div class="pt-2">
-                <button type="submit" class="w-100 btn btn-primary py-2 fw-semibold">
-                    Add Blotter Case
-                </button>
+                        <div class="pt-2">
+                            <button type="submit" class="w-100 btn btn-primary py-2 fw-semibold">
+                                Add Blotter Case
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
     
     <script>
@@ -131,7 +144,7 @@ requireTanod(); // Only Tanod (and admin) can access
                 order: [[0, 'desc']],
                 pageLength: 25,
                 ajax: {
-                    url: '/api/v1/blotter',
+                    url: '/api/blotter',
                     dataSrc: function(json) {
                         if (json.status === 'success' && json.data) {
                             return json.data;
@@ -226,7 +239,7 @@ requireTanod(); // Only Tanod (and admin) can access
                 }
                 
                 $.ajax({
-                    url: '/api/v1/blotter',
+                    url: '/api/blotter',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
@@ -234,7 +247,8 @@ requireTanod(); // Only Tanod (and admin) can access
                         if (response.status === 'success') {
                             showAlert('Blotter case added successfully. Case Number: ' + response.data.case_number, 'success');
                             $('#addBlotterForm')[0].reset();
-                            $("#addBlotterModal").dialog("close");
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addBlotterModal'));
+                            if (modal) modal.hide();
                             blotterTable.ajax.reload();
                         } else {
                             showAlert(response.message || 'Error adding blotter case', 'error');
@@ -250,34 +264,17 @@ requireTanod(); // Only Tanod (and admin) can access
                 });
             });
             
-            $("#addBlotterModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 700,
-                height: 600,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded shadow-lg',
-                    'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-                    'ui-dialog-title': 'fw-semibold',
-                    'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+            // Initialize modal event handlers
+            const addBlotterModal = document.getElementById('addBlotterModal');
+            if (addBlotterModal) {
+                addBlotterModal.addEventListener('show.bs.modal', function() {
                     $('#addBlotterForm')[0].reset();
-                }
-            });
+                });
+            }
             
             $("#openBlotterModalBtn").on("click", function() {
-                $("#addBlotterModal").dialog("open");
+                const modal = new bootstrap.Modal(document.getElementById('addBlotterModal'));
+                modal.show();
             });
         });
     </script>

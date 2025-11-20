@@ -91,7 +91,14 @@ abstract class BaseController {
     protected function validateRequired($data, $requiredFields) {
         $missing = [];
         foreach ($requiredFields as $field) {
-            if (!isset($data[$field]) || empty(trim($data[$field]))) {
+            // Check if field is not set, is null, or is empty string after trimming
+            if (!isset($data[$field])) {
+                $missing[] = $field;
+            } elseif ($data[$field] === null) {
+                $missing[] = $field;
+            } elseif (is_string($data[$field]) && trim($data[$field]) === '') {
+                $missing[] = $field;
+            } elseif (is_array($data[$field]) && empty($data[$field])) {
                 $missing[] = $field;
             }
         }

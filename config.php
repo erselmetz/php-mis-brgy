@@ -6,6 +6,9 @@
  * This file contains the main configuration settings for the application.
  */
 
+// Version
+define('VERSION', '1.4.0');
+
 // Database Configuration
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'admin');

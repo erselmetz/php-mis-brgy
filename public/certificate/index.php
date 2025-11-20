@@ -47,11 +47,6 @@ requireStaff(); // Only Staff and Admin can access
             <!-- 🧾 Resident Info + History -->
             <div id="residentDetails"></div>
 
-            <!-- Dialog -->
-            <!-- Dialog Template -->
-            <div id="dialog-message" title="" style="display:none;">
-                <p id="dialog-text"></p>
-            </div>
 
         </main>
     </div>
@@ -83,7 +78,7 @@ requireStaff(); // Only Staff and Admin can access
                     success: function(res) {
                         let data = [];
                         try {
-                            data = JSON.parse(res);
+                            data = res;
                         } catch {}
 
                         if (data.length === 0) {

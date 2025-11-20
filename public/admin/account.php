@@ -54,17 +54,24 @@ requireAdmin();
         </main>
     </div>
 
-    <!-- Edit Account Dialog -->
-    <div id="editAccountDialog" title="Edit Account">
-        <div id="editAccountAlertContainer"></div>
-        <form id="editAccountForm">
+    <!-- Edit Account Modal -->
+    <div class="modal fade" id="editAccountModal" tabindex="-1" aria-labelledby="editAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAccountModalLabel">Edit Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editAccountAlertContainer"></div>
+                    <form id="editAccountForm">
             <input type="hidden" name="id" id="editAccountId">
             <input type="hidden" name="officer_id" id="editOfficerId">
             <input type="hidden" name="resident_id" id="editResidentId">
 
             <div class="mb-3">
                 <label class="form-label fw-medium">Full Name</label>
-                <input type="text" name="fullname" id="editFullname" required class="form-control">
+                <input type="text" name="name" id="editName" required class="form-control">
             </div>
 
             <div class="mb-3">
@@ -157,20 +164,33 @@ requireAdmin();
                 <input type="text" name="position" id="editPosition"
                     placeholder="e.g., Clerk, Secretary, etc." class="form-control">
             </div>
-        </form>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="$('#editAccountForm').submit();">Save Changes</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-
-    <!-- add account thru modal -->
-    <div id="addAccountModal" title="Add New Account / Officer">
-        <form id="addAccountForm" style="max-height: 70vh; overflow-y: auto;">
+    <!-- Add Account Modal -->
+    <div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAccountModalLabel">Add New Account / Officer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addAccountForm">
             <div id="addAccountAlertContainer"></div>
             <input type="hidden" name="resident_id" id="addResidentId" value="">
             <?php if (isset($error)) echo "<p class='text-danger fw-medium'>$error</p>"; ?>
 
             <div class="mb-3">
                 <label class="form-label small fw-medium">Full Name</label>
-                <input type="text" name="fullname" placeholder="Full Name" required class="form-control">
+                <input type="text" name="name" placeholder="Full Name" required class="form-control">
             </div>
 
             <div class="mb-3">
@@ -190,7 +210,7 @@ requireAdmin();
                     Role <?= helpTooltip("Admin: Full access. Staff: Resident & certificate management. Tanod: Blotter only.") ?>
                 </label>
                 <select name="role" required class="form-select">
-                    <option value="staff">Staff</option>
+                    <option value="staff" selected>Staff</option>
                     <option value="tanod">Tanod</option>
                     <option value="admin">Admin</option>
                 </select>
@@ -262,12 +282,14 @@ requireAdmin();
                     placeholder="e.g., Clerk, Secretary, etc." class="form-control">
             </div>
 
-            <div class="pt-2">
-                <button type="submit" class="w-100 btn btn-primary py-2 fw-semibold">
-                    Add Account
-                </button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="addAccountForm" class="btn btn-primary">Add Account</button>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
     <script>
         $(function() {
@@ -275,7 +297,7 @@ requireAdmin();
             
             let accountsTable = $('#accountsTable').DataTable({
                 ajax: {
-                    url: '/api/v1/admin',
+                    url: '/api/admin',
                     dataSrc: function(json) {
                         if (json.status === 'success' && json.data) {
                             return json.data;
@@ -358,10 +380,12 @@ requireAdmin();
                     escapeHtml(message) +
                     '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
                     '</div>';
-                // Show in dialog or page
-                if ($('#addAccountModal').dialog('isOpen')) {
+                // Show in modal or page
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addAccountModal'));
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editAccountModal'));
+                if (addModal && addModal._isShown) {
                     $('#addAccountAlertContainer').html(alertHtml);
-                } else if ($('#editAccountDialog').dialog('isOpen')) {
+                } else if (editModal && editModal._isShown) {
                     $('#editAccountAlertContainer').html(alertHtml);
                 } else {
                     // Show at top of page
@@ -378,33 +402,57 @@ requireAdmin();
             $('#addAccountForm').on('submit', function(e) {
                 e.preventDefault();
                 
+                // Get form values directly from the form
+                const name = $('#addAccountForm [name="name"]').val() || '';
+                const username = $('#addAccountForm [name="username"]').val() || '';
+                const password = $('#addAccountForm [name="password"]').val() || '';
+                const role = $('#addAccountForm [name="role"]').val() || '';
+                
+                // Validate required fields with specific checks
+                const missingFields = [];
+                if (!name || name.trim().length === 0) {
+                    missingFields.push('Name');
+                }
+                if (!username || username.trim().length === 0) {
+                    missingFields.push('Username');
+                }
+                if (!password || password.length === 0) {
+                    missingFields.push('Password');
+                }
+                if (!role || role.length === 0) {
+                    missingFields.push('Role');
+                }
+                
+                if (missingFields.length > 0) {
+                    showAlert('Please fill in all required fields: ' + missingFields.join(', '), 'error');
+                    return;
+                }
+                
                 const formData = {
                     action: 'create',
-                    name: $('[name="fullname"]').val().trim(),
-                    username: $('[name="username"]').val().trim(),
-                    password: $('[name="password"]').val(),
-                    role: $('[name="role"]').val(),
-                    position: $('#addIsOfficer').is(':checked') ? null : ($('[name="position"]').val() || null),
+                    name: name.trim(),
+                    username: username.trim(),
+                    password: password,
+                    role: role,
+                    position: $('#addIsOfficer').is(':checked') ? null : ($('#addAccountForm [name="position"]').val() || null),
                     is_officer: $('#addIsOfficer').is(':checked') ? '1' : '0',
-                    officer_position: $('[name="officer_position"]').val() || null,
-                    term_start: $('[name="term_start"]').val() || null,
-                    term_end: $('[name="term_end"]').val() || null,
-                    officer_status: $('[name="officer_status"]').val() || 'Active',
+                    officer_position: $('#addIsOfficer').is(':checked') ? ($('#addAccountForm [name="officer_position"]').val() || null) : null,
+                    term_start: $('#addIsOfficer').is(':checked') ? ($('#addAccountForm [name="term_start"]').val() || null) : null,
+                    term_end: $('#addIsOfficer').is(':checked') ? ($('#addAccountForm [name="term_end"]').val() || null) : null,
+                    officer_status: $('#addIsOfficer').is(':checked') ? ($('#addAccountForm [name="officer_status"]').val() || 'Active') : null,
                     resident_id: $('#addResidentId').val() || null
                 };
                 
-                if (!formData.name || !formData.username || !formData.password || !formData.role) {
-                    showAlert('Please fill in all required fields.', 'error');
-                    return;
-                }
-                
-                if (formData.is_officer === '1' && (!formData.officer_position || !formData.term_start || !formData.term_end)) {
-                    showAlert('Please fill in all officer fields.', 'error');
-                    return;
+                // Validate officer fields only if is_officer is checked
+                if (formData.is_officer === '1') {
+                    if (!formData.officer_position || !formData.term_start || !formData.term_end) {
+                        showAlert('Please fill in all officer fields (Position, Term Start, Term End).', 'error');
+                        return;
+                    }
                 }
                 
                 $.ajax({
-                    url: '/api/v1/admin',
+                    url: '/api/admin',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
@@ -412,7 +460,8 @@ requireAdmin();
                         if (response.status === 'success') {
                             showAlert('Account created successfully!', 'success');
                             $('#addAccountForm')[0].reset();
-                            $("#addAccountModal").dialog("close");
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addAccountModal'));
+                            if (modal) modal.hide();
                             accountsTable.ajax.reload();
                         } else {
                             showAlert(response.message || 'Error creating account', 'error');
@@ -437,7 +486,7 @@ requireAdmin();
                 const formData = {
                     action: 'update',
                     id: $('#editAccountId').val(),
-                    name: $('[name="fullname"]').val().trim(),
+                    name: $('[name="name"]').val().trim(),
                     username: $('[name="username"]').val().trim(),
                     password: $('[name="password"]').val() || null,
                     role: $('[name="role"]').val(),
@@ -463,14 +512,15 @@ requireAdmin();
                 }
                 
                 $.ajax({
-                    url: '/api/v1/admin',
+                    url: '/api/admin',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(formData),
                     success: function(response) {
                         if (response.status === 'success') {
                             showAlert('Account updated successfully!', 'success');
-                            $("#editAccountDialog").dialog("close");
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('editAccountModal'));
+                            if (modal) modal.hide();
                             accountsTable.ajax.reload();
                         } else {
                             showAlert(response.message || 'Error updating account', 'error');
@@ -654,48 +704,33 @@ requireAdmin();
                 $("#editSelectedResident").addClass('d-none');
             }
 
-            // Initialize modal (hidden by default)
-            $("#addAccountModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 600,
-                height: 650,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded shadow-lg',
-                    'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-                    'ui-dialog-title': 'fw-semibold',
-                    'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                open: function() {
+            // Initialize modal event handlers
+            const addAccountModal = document.getElementById('addAccountModal');
+            if (addAccountModal) {
+                addAccountModal.addEventListener('show.bs.modal', function() {
                     // Reset form
                     $("#addAccountForm")[0].reset();
                     $("#addIsOfficer").prop("checked", false);
                     $("#addOfficerFields").addClass('d-none');
-                    $("#addPositionField").addClass('d-none');
+                    $("#addPositionField").removeClass('d-none'); // Show position field by default (checkbox is unchecked)
                     $("#addIsOfficerHidden").val("0");
                     clearAddResidentSelection();
-                },
-                close: function() {
-                    // Clean up on close to prevent duplication
+                    $('#addAccountAlertContainer').empty();
+                });
+                addAccountModal.addEventListener('hidden.bs.modal', function() {
+                    // Clean up on close
                     $("#addAccountForm")[0].reset();
                     $("#addOfficerFields").addClass('d-none');
                     $("#addPositionField").addClass('d-none');
                     clearAddResidentSelection();
-                }
-            });
+                    $('#addAccountAlertContainer').empty();
+                });
+            }
 
             // Open modal when button clicked
             $("#openModalBtn").on("click", function() {
-                $("#addAccountModal").dialog("open");
+                const modal = new bootstrap.Modal(document.getElementById('addAccountModal'));
+                modal.show();
             });
 
             // Load user data from API when edit button is clicked
@@ -704,7 +739,7 @@ requireAdmin();
                 
                 // Fetch user data from API
                 $.ajax({
-                    url: '/api/v1/admin?id=' + id,
+                    url: '/api/admin?id=' + id,
                     method: 'GET',
                     success: function(response) {
                         if (response.status === 'success' && response.data) {
@@ -724,7 +759,7 @@ requireAdmin();
 
                 // Fill form fields
                 $('#editAccountId').val(id);
-                $('#editFullname').val(name);
+                $('#editName').val(name);
                 $('#editUsername').val(username);
                 $('#editRole').val(role);
                 $('#editStatus').val(status);
@@ -758,40 +793,21 @@ requireAdmin();
                     clearEditResidentSelection();
                 }
 
-                            // Open dialog
-                            $("#editAccountDialog").dialog({
-                                modal: true,
-                                width: 600,
-                                height: 650,
-                                resizable: true,
-                                classes: {
-                                    'ui-dialog': 'rounded shadow-lg',
-                                    'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-                                    'ui-dialog-title': 'fw-semibold',
-                                    'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-                                },
-                                buttons: {
-                                    "Save Changes": function() {
-                                        $('#editAccountForm').submit();
-                                    },
-                                    "Cancel": function() {
-                                        $(this).dialog("close");
-                                    }
-                                },
-                    open: function() {
-                        $(".ui-dialog-buttonpane button:contains('Save Changes')")
-                            .addClass("btn btn-primary me-2");
-                        $(".ui-dialog-buttonpane button:contains('Cancel')")
-                            .addClass("btn btn-secondary");
-                    },
-                                close: function() {
-                                    // Clean up on close to prevent duplication
-                                    $("#editAccountForm")[0].reset();
-                                    $("#editOfficerFields").addClass('d-none');
-                                    $("#editPositionField").addClass('d-none');
-                                    clearEditResidentSelection();
-                                }
-                            });
+                            // Open modal
+                            const editModal = new bootstrap.Modal(document.getElementById('editAccountModal'));
+                            editModal.show();
+                            
+                            // Set up modal event handlers
+                            const editAccountModalEl = document.getElementById('editAccountModal');
+                            const handleEditModalClose = function() {
+                                $("#editAccountForm")[0].reset();
+                                $("#editOfficerFields").addClass('d-none');
+                                $("#editPositionField").addClass('d-none');
+                                clearEditResidentSelection();
+                                $('#editAccountAlertContainer').empty();
+                                editAccountModalEl.removeEventListener('hidden.bs.modal', handleEditModalClose);
+                            };
+                            editAccountModalEl.addEventListener('hidden.bs.modal', handleEditModalClose);
                         } else {
                             showAlert('Failed to load account data', 'error');
                         }

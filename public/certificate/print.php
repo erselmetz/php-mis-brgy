@@ -5,7 +5,7 @@ requireStaff(); // Only Staff and Admin can access
 $id = intval($_GET['id'] ?? 0);
 
 if ($id === 0) {
-    header("Location: /certificate/certificates");
+    header("Location: /certificate");
     exit;
 }
 
@@ -22,7 +22,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: /certificate/certificates");
+    header("Location: /certificate");
     exit;
 }
 

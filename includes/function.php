@@ -58,12 +58,12 @@ function loadAssets(array $assets): void
 function loadAllStyles(): void
 {
     // Load Bootstrap (CDN) + local custom styles
-    echo "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css'>\n";
     loadAssets([
         'css' => ['input.css', 'tooltips.css'],
         'node_css' => [
             'datatables.net-jqui/css/dataTables.jqueryui.css',
             'jquery-ui/dist/themes/flick/jquery-ui.css',
+            'bootstrap/dist/css/bootstrap.min.css',
         ],
     ]);
 }
@@ -80,12 +80,10 @@ function loadAllScripts(): void
             'jquery/dist/jquery.js',
             'jquery-ui/dist/jquery-ui.js',
             'datatables.net/js/dataTables.js',
+            'bootstrap/dist/js/bootstrap.bundle.min.js'
         ],
         'js' => ['app.js'],
     ]);
-
-    // Load Bootstrap bundle (CDN) after local scripts
-    echo "<script src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'></script>\n";
 }
 
 /**
@@ -100,57 +98,54 @@ function loadAllAssets(): void
 
 
 /**
- * Generate jQuery UI dialog HTML and JavaScript
+ * Generate Bootstrap modal HTML and JavaScript
  * 
- * @param string $message Dialog message to display
- * @param string $title Dialog title
+ * @param string $message Modal message to display
+ * @param string $title Modal title
  * @param bool $reloadOnClose Whether to reload page on close
- * @return string HTML and JavaScript for the dialog
+ * @return string HTML and JavaScript for the modal
  */
 function generateDialog(string $message, string $title, bool $reloadOnClose = false): string
 {
     $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-    $dialogId = 'dialog_' . uniqid();
-    $reloadScript = $reloadOnClose ? "\n                                location.reload();" : '';
+    $modalId = 'modal_' . uniqid();
+    $reloadScript = $reloadOnClose ? "location.reload();" : '';
     
-    return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
-                <div class='p-4'>
-                    <p class='text-body'>$safeMessage</p>
+    return "<div class='modal fade' id='$modalId' tabindex='-1' aria-labelledby='{$modalId}Label' aria-hidden='true'>
+                <div class='modal-dialog modal-dialog-centered'>
+                    <div class='modal-content'>
+                        <div class='modal-header'>
+                            <h5 class='modal-title' id='{$modalId}Label'>$safeTitle</h5>
+                            <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
+                        </div>
+                        <div class='modal-body'>
+                            <p class='mb-0'>$safeMessage</p>
+                        </div>
+                        <div class='modal-footer'>
+                            <button type='button' class='btn btn-primary' data-bs-dismiss='modal'>Ok</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <script>
                 $(function() {
-                    $('#$dialogId').dialog({
-                        modal: true,
-                        width: 500,
-                        resizable: false,
-                        classes: {
-                            'ui-dialog': 'rounded shadow-lg',
-                            'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-                            'ui-dialog-title': 'fw-semibold',
-                            'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-                        },
-                        buttons: {
-                            Ok: function() {
-                                $(this).dialog('close');
-                                $(this).remove();$reloadScript
-                            }
-                        },
-                        open: function() {
-                            $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
-                        }
+                    const modal = new bootstrap.Modal(document.getElementById('$modalId'));
+                    modal.show();
+                    $('#$modalId').on('hidden.bs.modal', function() {
+                        $(this).remove();
+                        $reloadScript
                     });
                 });
             </script>";
 }
 
 /**
- * Display an alert message using jQuery UI dialog
+ * Display an alert message using Bootstrap modal
  * 
  * @param string $message Alert message to display
- * @param string $title Dialog title (default: "Alert")
- * @return string HTML and JavaScript for the alert dialog
+ * @param string $title Modal title (default: "Alert")
+ * @return string HTML and JavaScript for the alert modal
  */
 function AlertMessage(string $message, string $title = "Alert"): string
 {
@@ -158,11 +153,11 @@ function AlertMessage(string $message, string $title = "Alert"): string
 }
 
 /**
- * Display a dialog message using jQuery UI dialog
+ * Display a modal message using Bootstrap modal
  * 
- * @param string $message Dialog message to display
- * @param string $title Dialog title (default: "Message")
- * @return string HTML and JavaScript for the dialog
+ * @param string $message Modal message to display
+ * @param string $title Modal title (default: "Message")
+ * @return string HTML and JavaScript for the modal
  */
 function DialogMessage(string $message, string $title = "Message"): string
 {
@@ -183,37 +178,42 @@ function AutoComputeAge(string $birthdate): int
 }
 
 /**
- * Generate JavaScript function for dialog with page reload
+ * Generate JavaScript function for Bootstrap modal with page reload
  * 
- * @return string JavaScript code for dialog with reload functionality
+ * @return string JavaScript code for modal with reload functionality
  */
 function showDialogReloadScript(): string
 {
     return '<script>
         function showDialogReload(title, message) {
-            const dialogId = "dialog_" + Date.now();
-            const dialog = $("<div id=\"" + dialogId + "\" title=\"" + title.replace(/"/g, """) + "\" style=\"display:none;\"><div class=\"p-4\"><p class=\"text-body\">" + message.replace(/"/g, """) + "</p></div></div>");
-            $("body").append(dialog);
-            $("#" + dialogId).dialog({
-                modal: true,
-                width: 500,
-                resizable: false,
-                classes: {
-                    "ui-dialog": "rounded shadow-lg",
-                    "ui-dialog-titlebar": "dialog-titlebar-primary rounded-top",
-                    "ui-dialog-title": "fw-semibold",
-                    "ui-dialog-buttonpane": "dialog-buttonpane-light rounded-bottom"
-                },
-                buttons: {
-                    Ok: function() {
-                        $(this).dialog("close");
-                        $(this).remove();
-                        location.reload();
-                    }
-                },
-                open: function() {
-                    $(".ui-dialog-buttonpane button").addClass("btn btn-primary");
-                }
+            const modalId = "modal_" + Date.now();
+            const safeTitle = title.replace(/"/g, "&quot;").replace(/\'/g, "&#039;");
+            const safeMessage = message.replace(/"/g, "&quot;").replace(/\'/g, "&#039;");
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">${safeTitle}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-0">${safeMessage}</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $("body").append(modalHtml);
+            const modalElement = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            $(modalElement).on("hidden.bs.modal", function() {
+                $(this).remove();
+                location.reload();
             });
         }
     </script>';

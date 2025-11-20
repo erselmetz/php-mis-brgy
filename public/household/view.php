@@ -5,7 +5,7 @@ requireStaff(); // Only Staff and Admin can access
 $household_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($household_id <= 0) {
-    header("Location: /household/households");
+    header("Location: /household");
     exit;
 }
 
@@ -72,7 +72,7 @@ if ($household_id <= 0) {
                         <div class="mt-4 flex items-center gap-2">
                             <button id="saveBtn" type="button"
                                 class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm">Save</button>
-                            <a href="/household/households" class="px-4 py-2 border rounded-lg">Back to List</a>
+                            <a href="/household" class="px-4 py-2 border rounded-lg">Back to List</a>
                         </div>
                     </form>
                 </section>
@@ -120,6 +120,39 @@ if ($household_id <= 0) {
     </div>
 
     <script>
+        // Helper function to show Bootstrap modal
+        function showBootstrapModal(title, message, onClose) {
+            const modalId = 'dynamicModal_' + Date.now();
+            const safeTitle = $('<div>').text(title).html();
+            const safeMessage = $('<div>').html(message).html();
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">${safeTitle}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-0">${safeMessage}</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('body').append(modalHtml);
+            const modalElement = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            $(modalElement).on('hidden.bs.modal', function() {
+                if (onClose) onClose();
+                $(this).remove();
+            });
+        }
+        
         $(function() {
             function updatePreview() {
                 const data = {};
@@ -147,7 +180,7 @@ if ($household_id <= 0) {
                 };
 
                 $.ajax({
-                    url: '/api/v1/households',
+                    url: '/api/households',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(updateData),
@@ -156,33 +189,16 @@ if ($household_id <= 0) {
                         const message = response.message || (response.status === 'success' ? 'Household updated successfully' : 'Failed to update household');
                         const title = response.status === 'success' ? 'Saved' : 'Error';
                         
-                        $('<div>' + message + '</div>').dialog({
-                            modal: true,
-                            title: title,
-                            width: 420,
-                            buttons: {
-                                Ok: function() {
-                                    $(this).dialog('close');
-                                    if (response.status === 'success') {
-                                        loadHouseholdData();
-                                        loadMembers();
-                                    }
-                                }
+                        showBootstrapModal(title, message, function() {
+                            if (response.status === 'success') {
+                                loadHouseholdData();
+                                loadMembers();
                             }
                         });
                     },
                     error: function(xhr) {
                         const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
-                        $('<div>' + errorMsg + '</div>').dialog({
-                            modal: true,
-                            title: 'Error',
-                            width: 420,
-                            buttons: {
-                                Ok: function() {
-                                    $(this).dialog('close');
-                                }
-                            }
-                        });
+                        showBootstrapModal('Error', errorMsg);
                     }
                 });
             });
@@ -191,7 +207,7 @@ if ($household_id <= 0) {
                 if (!householdId) return;
                 
                 $.ajax({
-                    url: `/api/v1/households?id=${householdId}`,
+                    url: `/api/households?id=${householdId}`,
                     method: 'GET',
                     success: function(response) {
                         if (response.status === 'success' && response.data) {
@@ -206,13 +222,13 @@ if ($household_id <= 0) {
                             updatePreview();
                         } else {
                             alert(response.message || 'Household not found');
-                            window.location.href = '/household/households';
+                            window.location.href = '/household';
                         }
                     },
                     error: function(xhr) {
                         const errorMsg = xhr.responseJSON?.message || 'Failed to load household data.';
                         alert(errorMsg);
-                        window.location.href = '/household/households';
+                        window.location.href = '/household';
                     }
                 });
             }
@@ -221,7 +237,7 @@ if ($household_id <= 0) {
                 if (!householdId) return;
                 
                 $.ajax({
-                    url: `/api/v1/households?id=${householdId}&action=members`,
+                    url: `/api/households?id=${householdId}&action=members`,
                     method: 'GET',
                     success: function(response) {
                         if (response.status === 'success' && response.data) {

@@ -269,16 +269,27 @@ if ($role === 'tanod' || $role === 'admin') {
     </main>
   </div>
 
-  <!-- Data Dialog -->
-  <div id="dataDialog" title="Data Details" style="display:none;">
-    <div class="p-4">
-      <div id="dataTableContainer">
-        <table id="dataTable" class="display w-full text-sm">
-          <thead>
-            <tr id="tableHeaders"></tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
+  <!-- Data Modal -->
+  <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="dataModalLabel">Data Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="dataTableContainer">
+            <table id="dataTable" class="display w-full text-sm">
+              <thead>
+                <tr id="tableHeaders"></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -286,24 +297,7 @@ if ($role === 'tanod' || $role === 'admin') {
   <?php loadAllScripts(); ?>
   <script>
     $(document).ready(function() {
-      // Initialize DataTable dialog
-      $("#dataDialog").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 1000,
-        height: 650,
-        resizable: true,
-        classes: {
-          'ui-dialog': 'rounded shadow-lg',
-          'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-          'ui-dialog-title': 'fw-semibold',
-          'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-        },
-        position: { my: "center", at: "center", of: window },
-        open: function() {
-          $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
-        }
-      });
+      // Modal will be initialized when opened
 
       // Handle card clicks
       $('[data-filter]').on('click', function() {
@@ -320,7 +314,8 @@ if ($role === 'tanod' || $role === 'admin') {
 
       function loadFilteredData(filter, role) {
         // Show loading
-        $("#dataDialog").dialog("open");
+        const modal = new bootstrap.Modal(document.getElementById('dataModal'));
+        modal.show();
         $("#dataTableContainer").html('<div class="text-center p-8">Loading data...</div>');
         
         $.ajax({

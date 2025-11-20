@@ -7,9 +7,9 @@ if (!isset($_GET['id'])) exit;
 $id = intval($_GET['id']);
 
 // Use models directly
-require_once '../api/v1/BaseModel.php';
-require_once '../api/v1/residents/ResidentModel.php';
-require_once '../api/v1/certificates/CertificateModel.php';
+require_once '../api/BaseModel.php';
+require_once '../api/residents/ResidentModel.php';
+require_once '../api/certificates/CertificateModel.php';
 
 $residentModel = new ResidentModel();
 $resident = $residentModel->find($id);
@@ -21,9 +21,22 @@ if (!$resident) {
 
 $certificateModel = new CertificateModel();
 $certificates = $certificateModel->getByResident($id);
+
+// Debug: Check if certificates are found (enable for debugging)
+if (empty($certificates)) {
+    // Try a direct query to see if any certificates exist for this resident
+    global $conn;
+    $debugStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM certificate_request WHERE resident_id = ?");
+    $debugStmt->bind_param('i', $id);
+    $debugStmt->execute();
+    $debugResult = $debugStmt->get_result();
+    $debugRow = $debugResult->fetch_assoc();
+    $debugStmt->close();
+    // error_log("Direct query count for resident {$id}: " . ($debugRow['cnt'] ?? 0));
+}
 ?>
 
-<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-8">
     <h3 class="text-xl font-semibold mb-4 text-gray-800">Resident Information</h3>
     <div class="grid grid-cols-2 gap-4">
         <p><span class="font-medium text-gray-700">Full Name:</span> <?= htmlspecialchars($resident['first_name'] . ' ' . $resident['middle_name'] . ' ' . $resident['last_name']) ?></p>
@@ -56,14 +69,14 @@ $certificates = $certificateModel->getByResident($id);
             </div>
 
             <button id="submitBtn" type="submit"
-                class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+                class="btn btn-primary px-5 py-2 rounded-lg transition font-medium">
                 Submit Request
             </button>
         </form>
     </div>
 </div>
 
-<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+<div class="bg-white mt-4 p-4 rounded-xl shadow-sm border border-gray-200">
     <h4 class="text-lg font-medium mb-4 text-gray-800">Certificate Request History</h4>
 
     <div class="overflow-x-auto">
@@ -82,14 +95,14 @@ $certificates = $certificateModel->getByResident($id);
                     <?php foreach ($certificates as $row): ?>
                         <?php
                         $statusColor = [
-                            'Pending' => 'bg-yellow-100 text-yellow-800',
-                            'pending' => 'bg-yellow-100 text-yellow-800',
-                            'Printed' => 'bg-blue-100 text-blue-800',
-                            'Approved' => 'bg-green-100 text-green-800',
-                            'approved' => 'bg-green-100 text-green-800',
-                            'Rejected' => 'bg-red-100 text-red-800',
-                            'rejected' => 'bg-red-100 text-red-800'
-                        ][$row['status']] ?? 'bg-gray-100 text-gray-800';
+                            'Pending' => 'badge bg-warning',
+                            'pending' => 'badge bg-warning',
+                            'Printed' => 'badge bg-primary',
+                            'Approved' => 'badge bg-success',
+                            'approved' => 'badge bg-success',
+                            'Rejected' => 'badge bg-danger',
+                            'rejected' => 'badge bg-danger'
+                        ][$row['status']] ?? 'badge bg-secondary';
                         $statusDisplay = $row['status'];
                         $requestedAt = $row['requested_at'] ?? $row['created_at'] ?? '';
                         ?>
@@ -105,12 +118,12 @@ $certificates = $certificateModel->getByResident($id);
                             <td class="p-2">
                                 <?php if (in_array($row['status'], ['Pending', 'pending', 'Approved', 'approved'])): ?>
                                     <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
-                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-medium">
+                                        class="btn btn-primary px-3 py-1 rounded text-xs font-medium">
                                         🖨️ Print
                                     </button>
                                 <?php elseif ($row['status'] === 'Printed'): ?>
                                     <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
-                                        class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs font-medium">
+                                        class="btn btn-secondary px-3 py-1 rounded text-xs font-medium">
                                         🖨️ Re-print
                                     </button>
                                 <?php endif; ?>
@@ -135,11 +148,17 @@ $certificates = $certificateModel->getByResident($id);
                 action: 'create',
                 resident_id: $('[name="resident_id"]').val(),
                 certificate_type: $('[name="certificate_type"]').val(),
-                purpose: $('[name="purpose"]').val()
+                purpose: $('[name="purpose"]').val().trim()
             };
             
+            // Validation
+            if (!formData.resident_id || !formData.certificate_type || !formData.purpose) {
+                showDialogReload("❌ Error", "Please fill in all required fields (Certificate Type and Purpose).");
+                return;
+            }
+            
             $.ajax({
-                url: "/api/v1/certificates",
+                url: "/api/certificates",
                 method: "POST",
                 contentType: "application/json",
                 data: JSON.stringify(formData),
@@ -150,7 +169,63 @@ $certificates = $certificateModel->getByResident($id);
                 success: function(response) {
                     $("#submitBtn").prop("disabled", false).text("Submit Request");
                     if (response.status === "success") {
+                        // Show success message
                         showDialogReload("✅ Success", response.message);
+                        // Reset form but preserve resident_id
+                        const residentId = $('[name="resident_id"]').val();
+                        $("#certificateRequestForm")[0].reset();
+                        // Restore resident_id after reset
+                        $('[name="resident_id"]').val(residentId);
+                        
+                        if (residentId) {
+                            // Reload the resident details section after delay to ensure DB commit
+                            setTimeout(function() {
+                                $.ajax({
+                                    url: "/certificate/load_resident_details",
+                                    method: "GET",
+                                    data: { id: residentId },
+                                    success: function(html) {
+                                        $("#residentDetails").html(html);
+                                        // Re-initialize DataTable if needed
+                                        setTimeout(function() {
+                                            const $table = $('#historyTable');
+                                            if ($table.length) {
+                                                // Destroy existing DataTable if it exists
+                                                if ($.fn.DataTable.isDataTable('#historyTable')) {
+                                                    $('#historyTable').DataTable().destroy();
+                                                }
+                                                // Check if table has data rows (not just "no data" row)
+                                                const $rows = $table.find('tbody tr');
+                                                const hasData = $rows.length > 0 && !$rows.first().find('td[colspan]').length;
+                                                if (hasData) {
+                                                    $table.DataTable({
+                                                        pageLength: 10,
+                                                        order: [[3, 'desc']],
+                                                        columnDefs: [
+                                                            { orderable: false, targets: 4 }
+                                                        ]
+                                                    });
+                                                }
+                                            }
+                                        }, 100);
+                                    },
+                                    error: function(xhr, status, error) {
+                                        console.error('Failed to reload resident details:', error);
+                                        // Try reloading again after another delay
+                                        setTimeout(function() {
+                                            $.ajax({
+                                                url: "/certificate/load_resident_details",
+                                                method: "GET",
+                                                data: { id: residentId },
+                                                success: function(html) {
+                                                    $("#residentDetails").html(html);
+                                                }
+                                            });
+                                        }, 1000);
+                                    }
+                                });
+                            }, 1500); // Increased delay to ensure database commit completes
+                        }
                     } else {
                         showDialogReload("❌ Error", response.message || "Failed to submit request");
                     }
@@ -170,13 +245,13 @@ $certificates = $certificateModel->getByResident($id);
         
         // Update status to "Printed" after printing
         $.ajax({
-            url: '/api/v1/certificates',
+            url: '/api/certificates',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
                 action: 'update_status',
                 id: certId,
-                status: 'Printed'
+                status: 'printed'
             }),
             success: function(response) {
                 if (response.status === 'success') {

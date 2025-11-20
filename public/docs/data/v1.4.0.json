@@ -25,12 +25,12 @@
         {
           "type": "card",
           "title": "Centralized API Structure",
-          "content": "**RESTful API Architecture**\n\n• Created `/api/v1/` directory with standardized API endpoints\n• Implemented BaseController for common request handling\n• Implemented BaseModel for database operations\n• Created ApiResponse helper for standardized JSON responses\n• Added AuthMiddleware for authentication and authorization\n• All modules now use consistent API structure"
+          "content": "**RESTful API Architecture**\n\n• Created `/api/` directory with standardized API endpoints\n• Implemented BaseController for common request handling\n• Implemented BaseModel for database operations\n• Created ApiResponse helper for standardized JSON responses\n• Added AuthMiddleware for authentication and authorization\n• All modules now use consistent API structure"
         },
         {
           "type": "card",
           "title": "Module API Endpoints",
-          "content": "**Complete API Coverage**\n\n• **Blotter API** (`/api/v1/blotter`) - Case management, status updates, statistics\n• **Residents API** (`/api/v1/residents`) - CRUD operations, search, filtering\n• **Households API** (`/api/v1/households`) - Household management, member tracking\n• **Certificates API** (`/api/v1/certificates`) - Certificate requests, status management\n• **Admin API** (`/api/v1/admin`) - User and officer management\n• **Auth API** (`/api/v1/auth`) - Login and authentication"
+          "content": "**Complete API Coverage**\n\n• **Blotter API** (`/api/blotter`) - Case management, status updates, statistics\n• **Residents API** (`/api/residents`) - CRUD operations, search, filtering\n• **Households API** (`/api/households`) - Household management, member tracking\n• **Certificates API** (`/api/certificates`) - Certificate requests, status management\n• **Admin API** (`/api/admin`) - User and officer management\n• **Auth API** (`/api/auth`) - Login and authentication"
         },
         {
           "type": "card",
@@ -109,7 +109,7 @@
         {
           "type": "card",
           "title": "API Endpoint Structure",
-          "content": "**RESTful Design**\n\n• GET `/api/v1/{module}` - List all records\n• GET `/api/v1/{module}?id=X` - Get single record\n• POST `/api/v1/{module}` with `action: 'create'` - Create record\n• POST `/api/v1/{module}` with `action: 'update'` - Update record\n• POST `/api/v1/{module}` with `action: 'delete'` - Delete record\n• Module-specific actions via query parameters"
+          "content": "**RESTful Design**\n\n• GET `/api/{module}` - List all records\n• GET `/api/{module}?id=X` - Get single record\n• POST `/api/{module}` with `action: 'create'` - Create record\n• POST `/api/{module}` with `action: 'update'` - Update record\n• POST `/api/{module}` with `action: 'delete'` - Delete record\n• Module-specific actions via query parameters"
         },
         {
           "type": "card",
@@ -131,12 +131,12 @@
           "type": "table",
           "headers": ["Module", "Files Migrated", "API Endpoints", "Status"],
           "rows": [
-            ["Blotter", "blotter.php, view.php", "/api/v1/blotter", "✅ Complete"],
-            ["Residents", "residents.php, view.php, save.php, update_resident.php, get_resident.php, add.php", "/api/v1/residents", "✅ Complete"],
-            ["Households", "households.php, view.php, save.php, update_household.php, get_household.php, add.php", "/api/v1/households", "✅ Complete"],
-            ["Certificates", "certificates.php, certificate_request_submit.php, update_status.php, search_residents.php, load_resident_details.php", "/api/v1/certificates", "✅ Complete"],
-            ["Admin", "account.php", "/api/v1/admin", "✅ Complete"],
-            ["Auth", "login.php (partial)", "/api/v1/auth", "✅ Complete"]
+            ["Blotter", "blotter.php, view.php", "/api/blotter", "✅ Complete"],
+            ["Residents", "residents.php, view.php, save.php, update_resident.php, get_resident.php, add.php", "/api/residents", "✅ Complete"],
+            ["Households", "households.php, view.php, save.php, update_household.php, get_household.php, add.php", "/api/households", "✅ Complete"],
+            ["Certificates", "certificates.php, certificate_request_submit.php, update_status.php, search_residents.php, load_resident_details.php", "/api/certificates", "✅ Complete"],
+            ["Admin", "account.php", "/api/admin", "✅ Complete"],
+            ["Auth", "login.php (partial)", "/api/auth", "✅ Complete"]
           ]
         }
       ]

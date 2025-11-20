@@ -4,7 +4,7 @@
  * Handles authentication operations
  */
 
-require_once '../../../../includes/app.php';
+require_once '../../../includes/app.php';
 require_once '../BaseController.php';
 require_once '../ApiResponse.php';
 

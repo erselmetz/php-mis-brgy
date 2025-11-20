@@ -56,7 +56,7 @@ requireStaff(); // Only Staff and Admin can access
 
         <main class="p-4 w-100">
             <div class="mb-4">
-                <a href="/resident/residents" class="d-inline-flex align-items-center text-primary mb-3 text-decoration-none">
+                <a href="/resident" class="d-inline-flex align-items-center text-primary mb-3 text-decoration-none">
                     <svg class="me-1" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
@@ -192,6 +192,38 @@ requireStaff(); // Only Staff and Admin can access
     </div>
 
     <script>
+        // Helper function to show Bootstrap modal
+        function showBootstrapModal(title, message) {
+            const modalId = 'dynamicModal_' + Date.now();
+            const safeTitle = $('<div>').text(title).html();
+            const safeMessage = $('<div>').html(message).html();
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="${modalId}Label">${safeTitle}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-0">${safeMessage}</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('body').append(modalHtml);
+            const modalElement = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            $(modalElement).on('hidden.bs.modal', function() {
+                $(this).remove();
+            });
+        }
+        
         $(function() {
             $("#birthdate").datepicker({
                 dateFormat: 'yy-mm-dd',
@@ -252,7 +284,7 @@ requireStaff(); // Only Staff and Admin can access
                 $('.saveBtnLoader').removeClass('hidden').text('Loading...');
 
                 $.ajax({
-                    url: `/api/v1/residents?id=${residentId}`,
+                    url: `/api/residents?id=${residentId}`,
                     method: 'GET',
                     success: function(response) {
                         // Hide loading indicator
@@ -271,16 +303,7 @@ requireStaff(); // Only Staff and Admin can access
                             }
                             updatePreview();
                         } else {
-                            $('<div>' + (response.message || 'Resident not found') + '</div>').dialog({
-                                modal: true,
-                                title: 'Error',
-                                width: 420,
-                                buttons: {
-                                    Ok: function() {
-                                        $(this).dialog('close');
-                                    }
-                                }
-                            });
+                            showBootstrapModal('Error', response.message || 'Resident not found');
                         }
                     },
                     error: function(xhr) {
@@ -291,16 +314,7 @@ requireStaff(); // Only Staff and Admin can access
                         $('.saveBtnLoader').addClass('hidden');
 
                         const errorMsg = xhr.responseJSON?.message || 'Failed to load resident data. Please try again.';
-                        $('<div>' + errorMsg + '</div>').dialog({
-                            modal: true,
-                            title: 'Error',
-                            width: 420,
-                            buttons: {
-                                Ok: function() {
-                                    $(this).dialog('close');
-                                }
-                            }
-                        });
+                        showBootstrapModal('Error', errorMsg);
                     }
                 });
             }
@@ -365,16 +379,7 @@ requireStaff(); // Only Staff and Admin can access
                 }
                 
                 if (errors.length > 0) {
-                    $('<div><ul class="list-unstyled">' + errors.map(e => '<li>• ' + e + '</li>').join('') + '</ul></div>').dialog({
-                        modal: true,
-                        title: 'Validation Error',
-                        width: 420,
-                        buttons: {
-                            Ok: function() {
-                                $(this).dialog('close');
-                            }
-                        }
-                    });
+                    showBootstrapModal('Validation Error', '<ul class="list-unstyled mb-0">' + errors.map(e => '<li>• ' + e + '</li>').join('') + '</ul>');
                     return;
                 }
 
@@ -409,7 +414,7 @@ requireStaff(); // Only Staff and Admin can access
                 };
 
                 $.ajax({
-                    url: '/api/v1/residents',
+                    url: '/api/residents',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(updateData),
@@ -423,16 +428,7 @@ requireStaff(); // Only Staff and Admin can access
                         const message = response.message || (response.status === 'success' ? 'Resident updated successfully' : 'Failed to update resident');
                         const title = response.status === 'success' ? 'Saved' : 'Error';
                         
-                        $('<div>' + message + '</div>').dialog({
-                            modal: true,
-                            title: title,
-                            width: 420,
-                            buttons: {
-                                Ok: function() {
-                                    $(this).dialog('close');
-                                }
-                            }
-                        });
+                        showBootstrapModal(title, message);
                     },
                     error: function(xhr) {
                         // Hide loading state
@@ -441,16 +437,7 @@ requireStaff(); // Only Staff and Admin can access
                         $('.saveBtnLoader').addClass('hidden');
                         
                         const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
-                        $('<div>' + errorMsg + '</div>').dialog({
-                            modal: true,
-                            title: 'Error',
-                            width: 420,
-                            buttons: {
-                                Ok: function() {
-                                    $(this).dialog('close');
-                                }
-                            }
-                        });
+                        showBootstrapModal('Error', errorMsg);
                     }
                 });
             });

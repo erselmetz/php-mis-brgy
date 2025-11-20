@@ -241,9 +241,9 @@ class CertificateController extends BaseController {
 
             // Prepare data for insertion
             $certificateData = [
-                'resident_id' => $data['resident_id'],
+                'resident_id' => intval($data['resident_id']),
                 'certificate_type' => $data['certificate_type'],
-                'purpose' => $this->sanitize($data['purpose']),
+                'purpose' => $this->sanitize(trim($data['purpose'])),
                 'status' => 'pending',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -252,11 +252,18 @@ class CertificateController extends BaseController {
             $certificateId = $this->model->insert($certificateData);
 
             if ($certificateId) {
+                // Verify the certificate was actually inserted
+                $insertedCert = $this->model->find($certificateId);
+                if (!$insertedCert) {
+                    error_log("Certificate inserted but not found: ID {$certificateId}");
+                }
+                
                 ApiResponse::success([
                     'id' => $certificateId,
                     'message' => 'Certificate request submitted successfully'
                 ], 'Certificate request submitted successfully', 201);
             } else {
+                error_log("Failed to insert certificate: " . json_encode($certificateData));
                 ApiResponse::error('Failed to submit certificate request', 500);
             }
 

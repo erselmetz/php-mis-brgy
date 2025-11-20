@@ -6,10 +6,10 @@
         </a>
         
         <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff"): ?>
-            <a href="/resident/residents" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
+            <a href="/resident" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 👥 Residents
             </a>
-            <a href="/household/households" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
+            <a href="/household" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 🏘️ Households
             </a>
         <?php endif; ?>
@@ -21,13 +21,13 @@
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff"): ?>
-            <a href="/certificate/certificates" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
+            <a href="/certificate" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 📊 Certificates
             </a>
         <?php endif; ?>
         
         <?php if ($_SESSION['role'] == "tanod" || $_SESSION['role'] == "admin"): ?>
-            <a href="/blotter/blotter" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
+            <a href="/blotter" class="d-block px-3 py-2 rounded text-body text-decoration-none" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
                 📝 Blotter
             </a>
         <?php endif; ?>
@@ -43,7 +43,7 @@
         </a> -->
         <div class="px-3 py-1 small text-muted">
             Version: <span class="fw-semibold"><a href="/docs" class="text-decoration-none">
-            v1.3.0
+            <?= VERSION ?>
         </a></span>
         </div>
     </nav>

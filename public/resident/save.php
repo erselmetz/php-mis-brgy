@@ -15,8 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Use API models directly
-require_once '../api/v1/BaseModel.php';
-require_once '../api/v1/residents/ResidentModel.php';
+require_once '../api/BaseModel.php';
+require_once '../api/residents/ResidentModel.php';
 
 try {
     $model = new ResidentModel();

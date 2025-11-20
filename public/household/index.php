@@ -49,10 +49,17 @@ requireStaff(); // Only Staff and Admin can access
       </div>
     </main>
   </div>
-  <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
-  <div id="addHouseholdModal" title="Add New Household">
-    <form id="addHouseholdForm" class="overflow-y-auto" style="max-height: 70vh;">
-      <div id="householdAlertContainer"></div>
+  <!-- Add Household Modal -->
+  <div class="modal fade" id="addHouseholdModal" tabindex="-1" aria-labelledby="addHouseholdModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addHouseholdModalLabel">Add New Household</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addHouseholdForm">
+            <div id="householdAlertContainer"></div>
 
       <!-- Household Number -->
       <div class="mb-3">
@@ -75,15 +82,20 @@ requireStaff(); // Only Staff and Admin can access
           class="form-control"></textarea>
       </div>
 
-      <!-- Submit -->
-      <div class="pt-2">
-        <button type="submit"
-          class="w-100 btn btn-primary py-2 fw-semibold">
-          Add Household
-        </button>
+            <!-- Submit -->
+            <div class="pt-2">
+              <button type="submit"
+                class="w-100 btn btn-primary py-2 fw-semibold">
+                Add Household
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
       </div>
-    </form>
-
+    </div>
   </div>
   <script>
     $(function() {
@@ -91,7 +103,7 @@ requireStaff(); // Only Staff and Admin can access
       
       let householdsTable = $("#householdsTable").DataTable({
         ajax: {
-          url: '/api/v1/households',
+          url: '/api/households',
           dataSrc: function(json) {
             if (json.status === 'success' && json.data) {
               return json.data;
@@ -168,7 +180,7 @@ requireStaff(); // Only Staff and Admin can access
         }
         
         $.ajax({
-          url: '/api/v1/households',
+          url: '/api/households',
           method: 'POST',
           contentType: 'application/json',
           data: JSON.stringify(formData),
@@ -176,7 +188,8 @@ requireStaff(); // Only Staff and Admin can access
             if (response.status === 'success') {
               showAlert('Household added successfully!', 'success');
               $('#addHouseholdForm')[0].reset();
-              $("#addHouseholdModal").dialog("close");
+              const modal = bootstrap.Modal.getInstance(document.getElementById('addHouseholdModal'));
+              if (modal) modal.hide();
               householdsTable.ajax.reload();
             } else {
               showAlert(response.message || 'Error adding household', 'error');
@@ -192,36 +205,18 @@ requireStaff(); // Only Staff and Admin can access
         });
       });
       
-      // Initialize modal
-      $("#addHouseholdModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 600,
-        height: 400,
-        resizable: true,
-        classes: {
-          'ui-dialog': 'rounded shadow-lg',
-          'ui-dialog-titlebar': 'dialog-titlebar-primary rounded-top',
-          'ui-dialog-title': 'fw-semibold',
-          'ui-dialog-buttonpane': 'dialog-buttonpane-light rounded-bottom'
-        },
-        show: {
-          effect: "fadeIn",
-          duration: 200
-        },
-        hide: {
-          effect: "fadeOut",
-          duration: 200
-        },
-        open: function() {
-          $('.ui-dialog-buttonpane button').addClass('btn btn-primary');
+      // Initialize modal event handlers
+      const addHouseholdModal = document.getElementById('addHouseholdModal');
+      if (addHouseholdModal) {
+        addHouseholdModal.addEventListener('show.bs.modal', function() {
           $('#addHouseholdForm')[0].reset();
           $('#householdAlertContainer').empty();
-        }
-      });
+        });
+      }
       
       $("#openHouseholdModalBtn").on("click", function() {
-        $("#addHouseholdModal").dialog("open");
+        const modal = new bootstrap.Modal(document.getElementById('addHouseholdModal'));
+        modal.show();
       });
     })
   </script>
