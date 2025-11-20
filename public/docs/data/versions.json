@@ -64,7 +64,7 @@
     ]
   },
   "v1.4.0": {
-    "date": "2025-01-16",
+    "date": "2025-11-20",
     "time": "18:00:00",
     "description": "Complete API Migration & MVC Architecture",
     "changes": [
