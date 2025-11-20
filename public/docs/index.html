@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIS Barangay - Documentation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <link rel="stylesheet" href="./css/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- Top Navigation Bar -->
@@ -17,19 +20,8 @@
                     <p class="tagline">Comprehensive Barangay Management System</p>
                 </div>
                 <div class="navbar-links">
-                    <a href="#" class="nav-item" data-page="changelog">Changelog</a>
-                    <a href="#" class="nav-item active" data-page="docs">Documentation</a>
-                    <a href="#" class="nav-item" data-page="api">Features & API</a>
-                    <div class="version-selector">
-                        <select id="versionSelect">
-                            <option value="latest">Latest (v1.4.0)</option>
-                            <option value="v1.4.0">v1.4.0</option>
-                            <option value="v1.3.0">v1.3.0</option>
-                            <option value="v1.2.0">v1.2.0</option>
-                            <option value="v1.1.0">v1.1.0</option>
-                            <option value="v1.0.0">v1.0.0</option>
-                        </select>
-                    </div>
+                    <a href="#" id="changelog" class="nav-item active" data-page="changelog">Changelog</a>
+                    <a href="#" class="nav-item" id="apiPage" data-page="api">Features & API</a>
                 </div>
             </div>
         </header>
@@ -67,7 +59,6 @@
                 <div class="footer-section">
                     <h4>Quick Links</h4>
                     <ul>
-                        <li><a href="#" data-page="docs">Documentation</a></li>
                         <li><a href="#" data-page="api">API Reference</a></li>
                         <li><a href="#" data-page="changelog">Changelog</a></li>
                     </ul>
@@ -84,8 +75,93 @@
         </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="js/app.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script id="docVersions" type="application/json">
+{
+    "v1.0.0": {
+        "date": "2025-11-13",
+        "time": "12:00:00",
+        "description": "Initial Release - System Features Documentation",
+        "changes": [
+            "Complete system features documentation",
+            "User roles and access control",
+            "Resident management",
+            "Certificate management",
+            "Blotter system",
+            "Officers management",
+            "Dashboard system",
+            "User management",
+            "Profile settings",
+            "Technical specifications"
+        ]
+    },
+    "v1.1.0": {
+        "date": "2025-11-15",
+        "time": "14:30:00",
+        "description": "Bug Fixes & Improvements Update",
+        "changes": [
+            "Security fixes (SQL injection, XSS protection)",
+            "Bug fixes (database path, PDO/mysqli mismatch, error handling)",
+            "URL routing fixes (.htaccess compatibility)",
+            "UI modernization (jQuery dialogs, table styling)",
+            "Dashboard enhancements (role-based, clickable cards)",
+            "Performance optimizations (query optimization, bundle size)",
+            "Certificate improvements (print functionality, status management)",
+            "Profile enhancements (picture upload)",
+            "New feature: Officers management"
+        ]
+    },
+    "v1.2.0": {
+        "date": "2025-11-17",
+        "time": "10:00:00",
+        "description": "Staff & Officers Merge Update",
+        "changes": [
+            "Merged Staff and Officers management into unified system",
+            "Every officer must have an account (user_id foreign key)",
+            "Improved migration system (CLI and browser modes)",
+            "Documentation moved to public/docs",
+            "Version display in navigation",
+            "Organized migration categories",
+            "Removed separate officers page"
+        ]
+    },
+    "v1.3.0": {
+        "date": "2025-11-18",
+        "time": "16:00:00",
+        "description": "Code Quality & Database Optimization Update",
+        "changes": [
+            "Refactored duplicate code (dialog functions, redirect logic)",
+            "Added type hints to all core functions",
+            "Created comprehensive coding style guide",
+            "Added database performance indexes",
+            "Implemented migration versioning system",
+            "Fixed migration script issues",
+            "Removed testing infrastructure",
+            "Removed monitoring/alerting systems",
+            "Improved PHPDoc documentation throughout codebase",
+            "Enhanced error handling in migrations"
+        ]
+    },
+    "v1.4.0": {
+        "date": "2025-11-20",
+        "time": "18:00:00",
+        "description": "Complete API Migration & MVC Architecture",
+        "changes": [
+            "Migrated all backend logic to centralized RESTful API",
+            "Implemented MVC architecture (BaseController, BaseModel)",
+            "Created API endpoints for all modules (blotter, residents, households, certificates, admin, auth)",
+            "Converted all DataTables to use AJAX API calls",
+            "Removed direct database queries from view files",
+            "Fixed DataTables pagination and data loading issues",
+            "Fixed API include paths in all entry points",
+            "Improved NULL value handling in database operations",
+            "Standardized API response format",
+            "Enhanced error handling and validation"
+        ]
+    }
+}
+        </script>
+        <script src="./js/app.js"></script>
 </body>
-</html>
 
+</html>
