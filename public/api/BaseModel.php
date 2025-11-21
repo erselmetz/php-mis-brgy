@@ -101,29 +101,26 @@ class BaseModel {
      * Insert new record
      */
     public function insert($data) {
-        // Filter out NULL values and handle them separately
-        $fields = [];
-        $placeholders = [];
+        $fields = array_keys($data);
+        $placeholders = array_fill(0, count($fields), '?');
         $values = [];
         $types = '';
+        $refs = []; // For pass-by-reference binding
         
         foreach ($data as $field => $value) {
-            $fields[] = $field;
+            $refs[] = &$data[$field]; // Create reference for binding
             if ($value === null) {
-                $placeholders[] = 'NULL';
+                $types .= 's'; // Bind NULL as string (mysqli handles this)
+            } elseif (is_int($value)) {
+                $types .= 'i';
+            } elseif (is_float($value)) {
+                $types .= 'd';
             } else {
-                $placeholders[] = '?';
-                $values[] = $value;
-                if (is_int($value)) {
-                    $types .= 'i';
-                } elseif (is_float($value)) {
-                    $types .= 'd';
-                } else {
-                    $types .= 's';
-                }
+                $types .= 's';
             }
         }
         
+        $values = array_values($data);
         $sql = "INSERT INTO {$this->table} (" . implode(', ', $fields) . ") VALUES (" . implode(', ', $placeholders) . ")";
         
         $stmt = $this->conn->prepare($sql);
@@ -133,7 +130,9 @@ class BaseModel {
         }
         
         if (!empty($values)) {
-            $stmt->bind_param($types, ...$values);
+            // Use array unpacking with proper reference handling
+            $bindParams = array_merge([$types], $values);
+            call_user_func_array([$stmt, 'bind_param'], $bindParams);
         }
         $success = $stmt->execute();
         
@@ -152,24 +151,21 @@ class BaseModel {
      * Update record
      */
     public function update($id, $data) {
-        // Handle NULL values separately
         $setParts = [];
         $values = [];
         $types = '';
         
         foreach ($data as $field => $value) {
+            $setParts[] = "{$field} = ?";
+            $values[] = $value;
             if ($value === null) {
-                $setParts[] = "{$field} = NULL";
+                $types .= 's'; // NULL is bound as string
+            } elseif (is_int($value)) {
+                $types .= 'i';
+            } elseif (is_float($value)) {
+                $types .= 'd';
             } else {
-                $setParts[] = "{$field} = ?";
-                $values[] = $value;
-                if (is_int($value)) {
-                    $types .= 'i';
-                } elseif (is_float($value)) {
-                    $types .= 'd';
-                } else {
-                    $types .= 's';
-                }
+                $types .= 's';
             }
         }
         
@@ -186,7 +182,8 @@ class BaseModel {
         }
         
         if (!empty($values)) {
-            $stmt->bind_param($types, ...$values);
+            $bindParams = array_merge([$types], $values);
+            call_user_func_array([$stmt, 'bind_param'], $bindParams);
         }
         $success = $stmt->execute();
         $stmt->close();
@@ -206,4 +203,3 @@ class BaseModel {
         return $success;
     }
 }
-

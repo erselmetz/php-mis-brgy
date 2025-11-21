@@ -182,8 +182,8 @@ class CertificateModel extends BaseModel {
     public function getByResident($residentId) {
         $conditions = ['cr.resident_id = ?'];
         $params = [intval($residentId)]; // Ensure it's an integer
-        
-        return $this->getWithResidentInfo($conditions, $params, 'cr.created_at DESC');
+
+        return $this->getWithResidentInfo($conditions, $params, 'cr.requested_at DESC');
     }
 
     /**
@@ -214,10 +214,9 @@ class CertificateModel extends BaseModel {
      */
     public function updateStatus($id, $status, $userId = null) {
         $data = [
-            'status' => $status,
-            'updated_at' => date('Y-m-d H:i:s')
+            'status' => $status
         ];
-        
+
         // Map legacy status values
         if ($status === 'pending') {
             $data['status'] = 'Pending';
@@ -226,7 +225,7 @@ class CertificateModel extends BaseModel {
         } elseif ($status === 'rejected') {
             $data['status'] = 'Rejected';
         }
-        
+
         return $this->update($id, $data);
     }
 }

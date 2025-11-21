@@ -105,7 +105,7 @@ class CertificateController extends BaseController {
             $total = $this->model->count($conditions, $params);
 
             // Get certificates
-            $orderBy = $queryParams['order_by'] ?? 'cr.created_at DESC';
+            $orderBy = $queryParams['order_by'] ?? 'cr.requested_at DESC';
             $certificates = $this->model->getWithResidentInfo($conditions, $params, $orderBy, $perPage, $offset);
 
             // Add display names
@@ -244,20 +244,13 @@ class CertificateController extends BaseController {
                 'resident_id' => intval($data['resident_id']),
                 'certificate_type' => $data['certificate_type'],
                 'purpose' => $this->sanitize(trim($data['purpose'])),
-                'status' => 'pending',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'issued_by' => $this->userId,
+                'status' => 'pending'
             ];
 
             $certificateId = $this->model->insert($certificateData);
 
             if ($certificateId) {
-                // Verify the certificate was actually inserted
-                $insertedCert = $this->model->find($certificateId);
-                if (!$insertedCert) {
-                    error_log("Certificate inserted but not found: ID {$certificateId}");
-                }
-                
                 ApiResponse::success([
                     'id' => $certificateId,
                     'message' => 'Certificate request submitted successfully'

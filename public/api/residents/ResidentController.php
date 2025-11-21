@@ -237,9 +237,9 @@ class ResidentController extends BaseController {
             // Require staff or admin role
             $this->requireRole(['staff', 'admin']);
 
-            // Validate required fields
+            // Validate required fields (household_id is optional)
             $this->validateRequired($data, [
-                'id', 'first_name', 'last_name', 'birthdate', 'gender', 'civil_status', 'household_id'
+                'id', 'first_name', 'last_name', 'birthdate', 'gender', 'civil_status'
             ]);
 
             // Check if resident exists
@@ -267,7 +267,7 @@ class ResidentController extends BaseController {
                 'address' => $this->sanitize($data['address'] ?? ''),
                 'voter_status' => $data['voter_status'] ?? 'No',
                 'disability_status' => $data['disability_status'] ?? 'No',
-                'household_id' => $data['household_id'],
+                'household_id' => !empty($data['household_id']) ? intval($data['household_id']) : null,
                 'remarks' => $this->sanitize($data['remarks'] ?? ''),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -281,9 +281,12 @@ class ResidentController extends BaseController {
 
             if ($success) {
                 // Update household member counts if household changed
-                if ($existing['household_id'] != $data['household_id']) {
-                    $this->updateHouseholdMemberCount($existing['household_id']);
-                    $this->updateHouseholdMemberCount($data['household_id']);
+                $oldHouseholdId = $existing['household_id'];
+                $newHouseholdId = !empty($data['household_id']) ? intval($data['household_id']) : null;
+                
+                if ($oldHouseholdId != $newHouseholdId) {
+                    $this->updateHouseholdMemberCount($oldHouseholdId);
+                    $this->updateHouseholdMemberCount($newHouseholdId);
                 }
 
                 ApiResponse::success([
@@ -296,7 +299,7 @@ class ResidentController extends BaseController {
 
         } catch (Exception $e) {
             error_log('Resident update error: ' . $e->getMessage());
-            ApiResponse::error('Failed to update resident', 500);
+            ApiResponse::error('Failed to update resident: ' . $e->getMessage(), 500);
         }
     }
 

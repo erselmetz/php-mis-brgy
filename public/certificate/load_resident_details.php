@@ -22,23 +22,11 @@ if (!$resident) {
 $certificateModel = new CertificateModel();
 $certificates = $certificateModel->getByResident($id);
 
-// Debug: Check if certificates are found (enable for debugging)
-if (empty($certificates)) {
-    // Try a direct query to see if any certificates exist for this resident
-    global $conn;
-    $debugStmt = $conn->prepare("SELECT COUNT(*) as cnt FROM certificate_request WHERE resident_id = ?");
-    $debugStmt->bind_param('i', $id);
-    $debugStmt->execute();
-    $debugResult = $debugStmt->get_result();
-    $debugRow = $debugResult->fetch_assoc();
-    $debugStmt->close();
-    // error_log("Direct query count for resident {$id}: " . ($debugRow['cnt'] ?? 0));
-}
 ?>
 
-<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-8">
+<div class="bg-white p-4 rounded-3 shadow-sm border mb-4">
     <h3 class="text-xl font-semibold mb-4 text-gray-800">Resident Information</h3>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="row row-cols-1 row-cols-md-2 g-4">
         <p><span class="font-medium text-gray-700">Full Name:</span> <?= htmlspecialchars($resident['first_name'] . ' ' . $resident['middle_name'] . ' ' . $resident['last_name']) ?></p>
         <p><span class="font-medium text-gray-700">Birthdate:</span> <?= htmlspecialchars($resident['birthdate']) ?></p>
         <p><span class="font-medium text-gray-700">Gender:</span> <?= htmlspecialchars($resident['gender']) ?></p>
@@ -53,9 +41,8 @@ if (empty($certificates)) {
             <input type="hidden" name="resident_id" value="<?= $resident['id'] ?>">
 
             <div>
-                <label class="block text-gray-700 mb-1 font-medium">Certificate Type</label>
-                <select name="certificate_type" required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300">
+                <label class="form-label small fw-medium">Certificate Type</label>
+                <select name="certificate_type" required class="form-select">
                     <option value="Barangay Clearance">Barangay Clearance</option>
                     <option value="Indigency Certificate">Indigency Certificate</option>
                     <option value="Residency Certificate">Residency Certificate</option>
@@ -63,13 +50,11 @@ if (empty($certificates)) {
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1 font-medium">Purpose</label>
-                <input type="text" name="purpose" placeholder="Enter purpose of certificate" required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300">
+                <label class="form-label small fw-medium">Purpose</label>
+                <input type="text" name="purpose" placeholder="Enter purpose of certificate" required class="form-control">
             </div>
 
-            <button id="submitBtn" type="submit"
-                class="btn btn-primary px-5 py-2 rounded-lg transition font-medium">
+            <button id="submitBtn" type="submit" class="btn btn-primary px-4 py-2 fw-medium">
                 Submit Request
             </button>
         </form>
@@ -80,7 +65,7 @@ if (empty($certificates)) {
     <h4 class="text-lg font-medium mb-4 text-gray-800">Certificate Request History</h4>
 
     <div class="overflow-x-auto">
-        <table id="historyTable" class="display w-full text-sm border border-gray-200 rounded-lg">
+        <table id="historyTable" class="display w-100 text-sm border border-gray-200 rounded-3">
             <thead class="bg-gray-50 text-gray-700">
                 <tr>
                     <th class="p-2 text-left">Certificate Type</th>
@@ -146,9 +131,9 @@ if (empty($certificates)) {
             e.preventDefault();
             const formData = {
                 action: 'create',
-                resident_id: $('[name="resident_id"]').val(),
-                certificate_type: $('[name="certificate_type"]').val(),
-                purpose: $('[name="purpose"]').val().trim()
+                resident_id: $('input[name="resident_id"]').val(),
+                certificate_type: $('select[name="certificate_type"]').val(),
+                purpose: $('input[name="purpose"]').val().trim()
             };
             
             // Validation
@@ -169,65 +154,32 @@ if (empty($certificates)) {
                 success: function(response) {
                     $("#submitBtn").prop("disabled", false).text("Submit Request");
                     if (response.status === "success") {
-                        // Show success message
-                        showDialogReload("✅ Success", response.message);
-                        // Reset form but preserve resident_id
-                        const residentId = $('[name="resident_id"]').val();
-                        $("#certificateRequestForm")[0].reset();
-                        // Restore resident_id after reset
-                        $('[name="resident_id"]').val(residentId);
-                        
-                        if (residentId) {
-                            // Reload the resident details section after delay to ensure DB commit
-                            setTimeout(function() {
-                                $.ajax({
-                                    url: "/certificate/load_resident_details",
-                                    method: "GET",
-                                    data: { id: residentId },
-                                    success: function(html) {
-                                        $("#residentDetails").html(html);
-                                        // Re-initialize DataTable if needed
-                                        setTimeout(function() {
-                                            const $table = $('#historyTable');
-                                            if ($table.length) {
-                                                // Destroy existing DataTable if it exists
-                                                if ($.fn.DataTable.isDataTable('#historyTable')) {
-                                                    $('#historyTable').DataTable().destroy();
-                                                }
-                                                // Check if table has data rows (not just "no data" row)
-                                                const $rows = $table.find('tbody tr');
-                                                const hasData = $rows.length > 0 && !$rows.first().find('td[colspan]').length;
-                                                if (hasData) {
-                                                    $table.DataTable({
-                                                        pageLength: 10,
-                                                        order: [[3, 'desc']],
-                                                        columnDefs: [
-                                                            { orderable: false, targets: 4 }
-                                                        ]
-                                                    });
-                                                }
-                                            }
-                                        }, 100);
-                                    },
-                                    error: function(xhr, status, error) {
-                                        console.error('Failed to reload resident details:', error);
-                                        // Try reloading again after another delay
-                                        setTimeout(function() {
-                                            $.ajax({
-                                                url: "/certificate/load_resident_details",
-                                                method: "GET",
-                                                data: { id: residentId },
-                                                success: function(html) {
-                                                    $("#residentDetails").html(html);
-                                                }
-                                            });
-                                        }, 1000);
-                                    }
+                        // Use a non-reloading dialog for a better UX
+                        const successDialog = generateDialog("✅ Success", response.message || "Certificate request submitted successfully.");
+                        $('body').append(successDialog.html);
+                        const modal = new bootstrap.Modal(document.getElementById(successDialog.id));
+                        modal.show();
+
+                        // When the success dialog is closed, reload the resident details to show the new certificate
+                        $('#' + successDialog.id).on('hidden.bs.modal', function() {
+                            const residentId = $('input[name="resident_id"]').val();
+                            if (residentId) {
+                                // Reload the content of the resident details section
+                                $.get("/certificate/load_resident_details", { id: residentId }, function(html) {
+                                    $("#residentDetails").html(html);
+                                    initializeDataTable(); // Re-initialize DataTable on the new content
                                 });
-                            }, 1500); // Increased delay to ensure database commit completes
-                        }
+                            }
+                            $(this).remove(); // Clean up the modal from the DOM
+                        });
+
+                        // Reset the form
+                        $("#certificateRequestForm")[0].reset();
+
                     } else {
-                        showDialogReload("❌ Error", response.message || "Failed to submit request");
+                        const errorDialog = generateDialog("❌ Error", response.message || "Failed to submit request.");
+                        $('body').append(errorDialog.html);
+                        new bootstrap.Modal(document.getElementById(errorDialog.id)).show();
                     }
                 },
                 error: function(xhr, status, error) {
@@ -238,6 +190,62 @@ if (empty($certificates)) {
             });
         });
     });
+
+    // Helper function to generate Bootstrap modal HTML and a unique ID
+    function generateDialog(title, message) {
+        const modalId = 'dialog_' + Date.now();
+        const safeTitle = $('<div/>').text(title).html();
+        const safeMessage = $('<div/>').text(message).html();
+        const html = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="${modalId}Label">${safeTitle}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>${safeMessage}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        return { id: modalId, html: html };
+    }
+
+    // Helper function to initialize the DataTable
+    function initializeDataTable() {
+        setTimeout(function() {
+            const $table = $('#historyTable');
+            if ($table.length) {
+                if ($.fn.DataTable.isDataTable('#historyTable')) {
+                    $('#historyTable').DataTable().destroy();
+                }
+                const $rows = $table.find('tbody tr');
+                const hasData = $rows.length > 0 && !$rows.first().find('td[colspan]').length;
+                if (hasData) {
+                    let allRowsValid = true;
+                    $rows.each(function() {
+                        if ($(this).find('td').not('[colspan]').length !== 5) {
+                            allRowsValid = false;
+                            return false;
+                        }
+                    });
+                    if (allRowsValid) {
+                        $table.DataTable({
+                            pageLength: 10,
+                            order: [[3, 'desc']],
+                            columnDefs: [{ orderable: false, targets: 4 }]
+                        });
+                    }
+                }
+            }
+        }, 100);
+    }
 
     function printCertificate(certId, certType) {
         // Open print window

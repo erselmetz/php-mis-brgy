@@ -82,7 +82,7 @@ function loadAllScripts(): void
             'datatables.net/js/dataTables.js',
             'bootstrap/dist/js/bootstrap.bundle.min.js'
         ],
-        'js' => ['app.js'],
+        'js' => ['api-shim.js','app.js'],
     ]);
 }
 

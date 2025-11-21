@@ -21,9 +21,7 @@ requireStaff(); // Only Staff and Admin can access
             margin-right: 0.25rem;
             margin-bottom: 0.25rem;
         }
-        .hidden {
-            display: none;
-        }
+        /* Using Bootstrap's `d-none` instead of a custom `.hidden` class */
         /* Mobile responsiveness improvements */
         @media (max-width: 576px) {
             .row {
@@ -135,7 +133,7 @@ requireStaff(); // Only Staff and Admin can access
                         <div class="mt-3 d-flex align-items-center gap-2">
                             <button id="saveBtn" type="button" class="btn btn-primary">
                                 <span class="saveBtnText">Save</span>
-                                <span class="saveBtnLoader hidden">Saving...</span>
+                                <span class="saveBtnLoader d-none">Saving...</span>
                             </button>
                         </div>
                     </form>
@@ -280,8 +278,8 @@ requireStaff(); // Only Staff and Admin can access
                 // Show loading indicator
                 $('#residentForm').css('opacity', '0.6');
                 $('#saveBtn').prop('disabled', true);
-                $('.saveBtnText').addClass('hidden');
-                $('.saveBtnLoader').removeClass('hidden').text('Loading...');
+                $('.saveBtnText').addClass('d-none');
+                $('.saveBtnLoader').removeClass('d-none').text('Loading...');
 
                 $.ajax({
                     url: `/api/residents?id=${residentId}`,
@@ -290,8 +288,8 @@ requireStaff(); // Only Staff and Admin can access
                         // Hide loading indicator
                         $('#residentForm').css('opacity', '1');
                         $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('hidden').text('Save');
-                        $('.saveBtnLoader').addClass('hidden');
+                        $('.saveBtnText').removeClass('d-none').text('Save');
+                        $('.saveBtnLoader').addClass('d-none');
 
                         if (response.status === 'success' && response.data) {
                             const res = response.data;
@@ -310,8 +308,8 @@ requireStaff(); // Only Staff and Admin can access
                         // Hide loading indicator on error
                         $('#residentForm').css('opacity', '1');
                         $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('hidden').text('Save');
-                        $('.saveBtnLoader').addClass('hidden');
+                        $('.saveBtnText').removeClass('d-none').text('Save');
+                        $('.saveBtnLoader').addClass('d-none');
 
                         const errorMsg = xhr.responseJSON?.message || 'Failed to load resident data. Please try again.';
                         showBootstrapModal('Error', errorMsg);
@@ -385,8 +383,8 @@ requireStaff(); // Only Staff and Admin can access
 
                 // Show loading state
                 $('#saveBtn').prop('disabled', true);
-                $('.saveBtnText').addClass('hidden');
-                $('.saveBtnLoader').removeClass('hidden');
+                $('.saveBtnText').addClass('d-none');
+                $('.saveBtnLoader').removeClass('d-none');
 
                 const formData = {};
                 $('#residentForm').serializeArray().forEach(f => formData[f.name] = f.value);
@@ -422,8 +420,8 @@ requireStaff(); // Only Staff and Admin can access
                     success: function(response) {
                         // Hide loading state
                         $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('hidden');
-                        $('.saveBtnLoader').addClass('hidden');
+                        $('.saveBtnText').removeClass('d-none');
+                        $('.saveBtnLoader').addClass('d-none');
                         
                         const message = response.message || (response.status === 'success' ? 'Resident updated successfully' : 'Failed to update resident');
                         const title = response.status === 'success' ? 'Saved' : 'Error';
@@ -433,8 +431,8 @@ requireStaff(); // Only Staff and Admin can access
                     error: function(xhr) {
                         // Hide loading state
                         $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('hidden');
-                        $('.saveBtnLoader').addClass('hidden');
+                        $('.saveBtnText').removeClass('d-none');
+                        $('.saveBtnLoader').addClass('d-none');
                         
                         const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
                         showBootstrapModal('Error', errorMsg);

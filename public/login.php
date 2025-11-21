@@ -49,51 +49,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="bg-light widget">
 
-  <section class="v-100 d-flex flex-column flex-lg-row">
-    <!-- Left: Landing info -->
-    <div class="col-lg-8 bg-primary text-white p-5 d-flex flex-column justify-content-center">
-      <h1 class="display-5 fw-bold mb-4">MIS Barangay</h1>
-      <p class="lead" style="max-width: 32rem; margin-bottom: 2rem;">
-        A simple and efficient barangay management information system for handling residents, households,
-        certificates, and more.
-      </p>
-      <img src="assets/images/barangay.jpg" alt="Barangay" class="rounded shadow-lg" style="max-width: 75%; height: auto;">
-    </div>
-
-    <!-- Right: Login -->
-    <div class="col-lg-4 d-flex align-items-center justify-content-center p-4 bg-white shadow-lg">
-      <form method="POST" style="width: 100%; max-width: 28rem;">
-        <h2 class="h3 fw-bold mb-4 text-center text-primary">System Login</h2>
-
-        <?php if (!empty($error)): ?>
-          <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
-            <?= htmlspecialchars($error) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-          <?= AlertMessage($error, "Error"); ?>
-        <?php endif; ?>
-
-        <div class="mb-3">
-          <label class="form-label">Username</label>
-          <input type="text" name="username" required class="form-control">
+  <section class="container-fluid">
+    <div class="row g-0 min-vh-100">
+      <!-- Left: Landing info (hidden on small screens) -->
+      <div class="col-lg-7 d-none d-lg-flex bg-primary text-white align-items-center" style="background-image: url('assets/images/barangay.jpg'); background-size: cover; background-position: center;">
+        <div class="p-5" style="background: rgba(0,0,0,0.35); width:100%;">
+          <h1 class="display-5 fw-bold mb-4">MIS Barangay</h1>
+          <p class="lead" style="max-width: 32rem; margin-bottom: 2rem;">
+            A simple and efficient barangay management information system for handling residents, households,
+            certificates, and more.
+          </p>
         </div>
+      </div>
 
-        <div class="mb-4">
-          <label class="form-label">Password</label>
-          <input type="password" name="password" required class="form-control">
+      <!-- Right: Login -->
+      <div class="col-12 col-lg-5 d-flex align-items-center justify-content-center bg-white">
+        <div class="p-4 w-100" style="max-width: 420px;">
+          <form method="POST">
+            <h2 class="h3 fw-bold mb-4 text-center text-primary">System Login</h2>
+
+            <?php if (!empty($error)): ?>
+              <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                <?= htmlspecialchars($error) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+              <?= AlertMessage($error, "Error"); ?>
+            <?php endif; ?>
+
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" name="username" required class="form-control">
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Password</label>
+              <input type="password" name="password" required class="form-control">
+            </div>
+
+            <button type="submit" class="w-100 btn btn-primary py-2">
+              Login
+            </button>
+
+            <hr class="my-4">
+
+            <?php if (isset($_GET['error'])): ?>
+              <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+                <span>❌ Error : <?php echo htmlspecialchars($_GET['error']) ?></span>
+              </div>
+            <?php endif; ?>
+          </form>
         </div>
-
-        <button type="submit" class="w-100 btn btn-primary py-2">
-          Login
-        </button>
-        <hr class="my-4">
-        <!-- show error message -->
-        <?php if (isset($_GET['error'])): ?>
-          <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-            <span>❌ Error : <?php echo htmlspecialchars($_GET['error']) ?></span>
-          </div>
-        <?php endif; ?>
-      </form>
+      </div>
     </div>
   </section>
 </body>

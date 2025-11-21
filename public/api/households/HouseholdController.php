@@ -235,7 +235,7 @@ class HouseholdController extends BaseController {
 
         } catch (Exception $e) {
             error_log('Household update error: ' . $e->getMessage());
-            ApiResponse::error('Failed to update household', 500);
+            ApiResponse::error('Failed to update household: ' . $e->getMessage(), 500);
         }
     }
 
@@ -277,7 +277,7 @@ class HouseholdController extends BaseController {
 
         } catch (Exception $e) {
             error_log('Household delete error: ' . $e->getMessage());
-            ApiResponse::error('Failed to delete household', 500);
+            ApiResponse::error('Failed to delete household: ' . $e->getMessage(), 500);
         }
     }
 }

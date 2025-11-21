@@ -351,7 +351,7 @@ requireStaff(); // Only Staff and Admin can access
         e.preventDefault();
         
         const formData = {
-          action: 'create',
+          action: 'create', // This was missing in the provided context but is crucial
           household_id: $('[name="household_id"]').val() || null,
           first_name: $('[name="first_name"]').val().trim(),
           middle_name: $('[name="middle_name"]').val().trim(),

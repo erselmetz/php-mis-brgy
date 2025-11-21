@@ -101,44 +101,44 @@ if ($stmt === false) {
 
       <!-- Household -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Household ID (optional)</label>
+        <label class="form-label small fw-medium">Household ID (optional)</label>
         <input type="number" name="household_id" placeholder="Enter household ID"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          class="w-100 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-primary">
       </div>
 
       <!-- Name Fields -->
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">First Name</label>
+          <label class="form-label small fw-medium">First Name</label>
           <input type="text" name="first_name" placeholder="First Name" 
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Middle Name</label>
+          <label class="form-label small fw-medium">Middle Name</label>
           <input type="text" name="middle_name" placeholder="Middle Name"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Last Name</label>
+          <label class="form-label small fw-medium">Last Name</label>
           <input type="text" name="last_name" placeholder="Last Name"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Suffix</label>
+          <label class="form-label small fw-medium">Suffix</label>
           <input type="text" name="suffix" placeholder="e.g. Jr., Sr."
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
       <!-- Gender & Birthdate -->
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Gender</label>
+          <label class="form-label small fw-medium">Gender</label>
           <select name="gender"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-select">
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -146,25 +146,25 @@ if ($stmt === false) {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Birthdate</label>
-          <input type="date" name="birthdate"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+          <label class="form-label small fw-medium">Birthdate</label>
+            <input type="date" name="birthdate"
+              class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
       <!-- Birthplace -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Birthplace</label>
+        <label class="form-label small fw-medium">Birthplace</label>
         <input type="text" name="birthplace" placeholder="Enter birthplace"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+          class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
       </div>
 
       <!-- Civil Status & Religion -->
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Civil Status</label>
+          <label class="form-label small fw-medium">Civil Status</label>
           <select name="civil_status"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-select">
             <option value="Single">Single</option>
             <option value="Married">Married</option>
             <option value="Widowed">Widowed</option>
@@ -173,47 +173,46 @@ if ($stmt === false) {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Religion</label>
+          <label class="form-label small fw-medium">Religion</label>
           <input type="text" name="religion" placeholder="e.g. Catholic"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
       <!-- Occupation & Citizenship -->
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Occupation</label>
+          <label class="form-label small fw-medium">Occupation</label>
           <input type="text" name="occupation" placeholder="Occupation"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Citizenship</label>
+          <label class="form-label small fw-medium">Citizenship</label>
           <input type="text" name="citizenship" value="Filipino"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
       <!-- Contact & Purok -->
-      <div class="grid grid-cols-2 gap-2">
+      <div class="row row-cols-1 row-cols-md-2 g-2">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Contact No.</label>
+          <label class="form-label small fw-medium">Contact No.</label>
           <input type="text" name="contact_no" placeholder="09XXXXXXXXX"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Address</label>
+          <label class="form-label small fw-medium">Address</label>
           <input type="text" name="address" placeholder="Enter address"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+            class="w-100 px-3 py-2 border border-gray-300 rounded form-control">
         </div>
       </div>
 
       <!-- Voter Status -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Voter Status</label>
-        <select name="voter_status"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+        <label class="form-label small fw-medium">Voter Status</label>
+        <select name="voter_status" class="form-select">
           <option value="No">No</option>
           <option value="Yes">Yes</option>
         </select>
@@ -221,9 +220,8 @@ if ($stmt === false) {
 
       <!-- Disability Status -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Disability Status</label>
-        <select name="disability_status"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+        <label class="form-label small fw-medium">Disability Status</label>
+        <select name="disability_status" class="form-select">
           <option value="No">No</option>
           <option value="Yes">Yes</option>
         </select>
@@ -231,17 +229,13 @@ if ($stmt === false) {
 
       <!-- Remarks -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Remarks</label>
-        <textarea name="remarks" rows="2" placeholder="Additional notes..."
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"></textarea>
+        <label class="form-label small fw-medium">Remarks</label>
+        <textarea name="remarks" rows="2" placeholder="Additional notes..." class="form-control"></textarea>
       </div>
 
           <!-- Submit -->
           <div class="pt-2">
-            <button type="submit"
-              class="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded font-semibold">
-              Add Resident
-            </button>
+            <button type="submit" class="w-100 btn btn-primary py-2 fw-semibold">Add Resident</button>
           </div>
         </form>
       </div>

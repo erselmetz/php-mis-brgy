@@ -42,37 +42,32 @@ if ($household_id <= 0) {
             <h1 class="text-2xl font-semibold mb-6">View Household</h1>
 
             <!-- ✅ Start of Household Information Section -->
-            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="container-lg mx-auto row row-cols-1 row-cols-lg-2 g-3">
                 <!-- Form Section -->
-                <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <section class="bg-white p-6 rounded-3 shadow-sm border">
                     <h2 class="text-lg font-medium mb-4">Edit Household</h2>
                     <form id="householdForm" autocomplete="off">
-                        <div class="grid grid-cols-1 sm:grid-cols-1 gap-4">
+                        <div class="row g-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Household Number</label>
-                                <input name="household_no" id="household_no" type="text"
-                                    class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" required />
+                                <label class="form-label small fw-medium">Household Number</label>
+                                <input name="household_no" id="household_no" type="text" class="form-control" required />
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Head of Household Name</label>
-                                <input name="head_name" id="head_name" type="text"
-                                    class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" required />
+                                <label class="form-label small fw-medium">Head of Household Name</label>
+                                <input name="head_name" id="head_name" type="text" class="form-control" required />
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Address</label>
-                                <textarea name="address" id="address" rows="3"
-                                    class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" required></textarea>
+                                <label class="form-label small fw-medium">Address</label>
+                                <textarea name="address" id="address" rows="3" class="form-control" required></textarea>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Total Members</label>
-                                <input name="total_members" id="total_members" type="number" readonly
-                                    class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm bg-gray-100" />
+                                <label class="form-label small fw-medium">Total Members</label>
+                                <input name="total_members" id="total_members" type="number" readonly class="form-control bg-light" />
                             </div>
                         </div>
-                        <div class="mt-4 flex items-center gap-2">
-                            <button id="saveBtn" type="button"
-                                class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm">Save</button>
-                            <a href="/household" class="px-4 py-2 border rounded-lg">Back to List</a>
+                        <div class="mt-4 d-flex align-items-center gap-2">
+                            <button id="saveBtn" type="button" class="btn btn-primary">Save</button>
+                            <a href="/household" class="btn btn-outline-secondary">Back to List</a>
                         </div>
                     </form>
                 </section>
@@ -83,8 +78,8 @@ if ($household_id <= 0) {
                         <h2 class="text-lg font-medium">Household Details</h2>
                     </div>
 
-                    <div id="previewCard" class="mt-4 border rounded-lg p-4">
-                        <div class="flex items-center justify-between">
+                    <div id="previewCard" class="mt-4 border rounded-3 p-4">
+                        <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <h3 id="previewHouseholdNo" class="text-xl font-semibold text-gray-800">—</h3>
                                 <div id="previewHead" class="text-sm text-gray-600 mt-1">—</div>
@@ -95,15 +90,15 @@ if ($household_id <= 0) {
                             </div>
                         </div>
 
-                        <dl class="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-700">
+                        <dl class="mt-4 text-sm text-body">
                             <div><span class="font-medium">Address:</span>
-                                <div id="previewAddress" class="mt-1 text-sm text-gray-600">—</div>
+                                <div id="previewAddress" class="mt-1 small text-muted">—</div>
                             </div>
                         </dl>
                     </div>
 
                     <div class="mt-4">
-                        <button id="refreshBtn" class="px-3 py-1 border rounded-lg text-sm">Refresh</button>
+                        <button id="refreshBtn" class="btn btn-outline-secondary btn-sm">Refresh</button>
                     </div>
                 </aside>
             </div>
@@ -259,7 +254,7 @@ if ($household_id <= 0) {
                                     return age;
                                 }
                                 
-                                const html = '<div class="overflow-x-auto"><table class="w-full text-sm border border-gray-200 rounded-lg">' +
+                                const html = '<div class="overflow-x-auto"><table class="w-100 text-sm border border-gray-200 rounded-3">' +
                                     '<thead class="bg-gray-50 text-gray-700"><tr>' +
                                     '<th class="p-2 text-left">Name</th>' +
                                     '<th class="p-2 text-left">Gender</th>' +
