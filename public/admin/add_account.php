@@ -42,11 +42,6 @@ if ($action === 'add_account') {
             
             // Step 3: If user is an officer, create officer record
             if ($isOfficer && !empty($officerPosition) && !empty($termStart) && !empty($termEnd)) {
-                // If adding an Active Barangay Captain, ensure only one active captain exists
-                if (strtolower($officerPosition) === 'barangay captain' && strtolower($officerStatus) === 'active') {
-                    $deactSql = "UPDATE officers SET status = 'Inactive' WHERE position LIKE 'Barangay Captain' AND status = 'Active'";
-                    $conn->query($deactSql);
-                }
                 $officerSql = "INSERT INTO officers (user_id, resident_id, position, term_start, term_end, status)
                               VALUES (?, ?, ?, ?, ?, ?)";
                 $officerStmt = $conn->prepare($officerSql);

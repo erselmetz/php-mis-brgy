@@ -39,4 +39,5 @@ if ($conn->query($sql) === TRUE) {
     echo "❌ Error creating table 'residents': " . $conn->error;
 }
 
+$conn->close();
 ?>

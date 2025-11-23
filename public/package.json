@@ -1,11 +1,12 @@
 {
   "dependencies": {
-    "bootstrap": "^5.2.3",
+    "@tailwindcss/cli": "^4.1.14",
     "datatables.net": "^2.3.4",
     "datatables.net-dt": "^2.3.4",
     "datatables.net-jqui": "^2.3.4",
     "jquery": "^3.7.1",
-    "jquery-ui": "^1.14.1"
+    "jquery-ui": "^1.14.1",
+    "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
     "esbuild": "^0.25.11"

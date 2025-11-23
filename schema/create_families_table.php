@@ -24,4 +24,5 @@ if ($conn->query($sql) === TRUE) {
     echo "❌ Error creating table 'families': " . $conn->error;
 }
 
+$conn->close();
 ?>

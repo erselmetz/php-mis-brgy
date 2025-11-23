@@ -22,4 +22,5 @@ if ($conn->query($sql) === TRUE) {
     echo "❌ Error creating table 'households': " . $conn->error;
 }
 
+$conn->close();
 ?>

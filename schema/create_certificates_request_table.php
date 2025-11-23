@@ -1,9 +1,4 @@
 <?php
-/**
- * Create certificate_request table
- * MIS Barangay - Certificate Request System
- */
-
 include '../includes/db.php';
 
 $sql = "
@@ -16,14 +11,16 @@ CREATE TABLE IF NOT EXISTS certificate_request (
   status VARCHAR(50) DEFAULT 'Pending',
   requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);
+
 ";
 
 if ($conn->query($sql) === TRUE) {
-    echo "✅ Table 'certificate_request' created successfully.\n";
+    echo "✅ Table 'certificates_requests' created successfully.";
 } else {
-    echo "❌ Error creating table 'certificate_request': " . $conn->error . "\n";
+    echo "❌ Error creating table 'certificates_requests': " . $conn->error;
 }
 
+$conn->close();
 ?>
 

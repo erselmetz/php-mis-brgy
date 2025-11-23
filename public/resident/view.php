@@ -16,212 +16,122 @@ requireStaff(); // Only Staff and Admin can access
         .chip {
             display: inline-block;
             padding: 0.25rem 0.5rem;
-            border-radius: 50rem;
+            border-radius: 9999px;
             background: rgba(0, 0, 0, 0.05);
             margin-right: 0.25rem;
             margin-bottom: 0.25rem;
         }
-        /* Using Bootstrap's `d-none` instead of a custom `.hidden` class */
-        /* Mobile responsiveness improvements */
-        @media (max-width: 576px) {
-            .row {
-                --bs-gutter-x: 0.5rem;
-            }
-            main {
-                padding: 1rem !important;
-            }
-        }
-        /* Form validation styles - Bootstrap compatible */
-        input.border-danger {
-            border-color: #dc3545 !important;
-        }
-        input.border-success {
-            border-color: #198754 !important;
-        }
-        input:invalid:not(:placeholder-shown) {
-            border-color: #dc3545;
-        }
-        input:valid:not(:placeholder-shown) {
-            border-color: #198754;
-        }
     </style>
 </head>
 
-<body class="bg-light">
-    <?php include_once '../navbar.php'; ?>
-    <div class="d-flex bg-light">
-        <?php include_once '../sidebar.php'; ?>
+<body class="bg-gray-100">
+    <?php include_once '../layout/navbar.php'; ?>
+    <div class="flex bg-gray-100">
+        <?php include_once '../layout/sidebar.php'; ?>
 
-        <main class="p-4 w-100">
-            <div class="mb-4">
-                <a href="/resident" class="d-inline-flex align-items-center text-primary mb-3 text-decoration-none">
-                    <svg class="me-1" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                    Back to Residents List
-                </a>
-            </div>
-            <h1 class="h3 mb-4">View Resident</h1>
+        <main class="p-6 w-screen">
+            <h1 class="text-2xl font-semibold mb-6">View Resident</h1>
 
             <!-- ✅ Start of Resident Information Section -->
-            <div class="container-lg mx-auto">
-                <div class="row g-4">
-                    <div class="col-12 col-lg-6">
-                <section class="bg-white p-4 rounded-3 shadow-sm border">
-                    <h2 class="h6 mb-3">Edit Resident</h2>
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6"> <!-- Form Section -->
+                <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <h2 class="text-lg font-medium mb-4">Edit Resident</h2>
                     <form id="residentForm" autocomplete="off">
-                        <div class="row gx-3 gy-3">
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">
-                                    Household ID
-                                    <span class="text-muted small ms-1" title="Optional: Link this resident to a household">(?)</span>
-                                </label> 
-                                <input name="household_id" id="household_id" type="number" class="form-control" /> 
-                            </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">Birthdate <span class="text-danger">*</span></label>
-                                <input name="birthdate" id="birthdate" type="text" class="form-control" placeholder="YYYY-MM-DD" required /> 
-                                <div class="form-text">Format: YYYY-MM-DD</div>
-                            </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">First name <span class="text-danger">*</span></label>
-                                <input name="first_name" id="first_name" type="text" class="form-control" required /> 
-                            </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">Middle name</label> 
-                                <input name="middle_name" id="middle_name" type="text" class="form-control" /> 
-                            </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">Last name <span class="text-danger">*</span></label>
-                                <input name="last_name" id="last_name" type="text" class="form-control" required /> 
-                            </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">Suffix</label> 
-                                <input name="suffix" id="suffix" type="text" class="form-control" placeholder="Jr., Sr., III, etc." /> 
-                            </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Gender</label> <select name="gender" id="gender" class="form-select">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div> <label class="block text-sm font-medium text-gray-700">Household ID</label> <input name="household_id" id="household_id" type="number" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Birthdate</label> <input name="birthdate" id="birthdate" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" placeholder="YYYY-MM-DD" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">First name</label> <input name="first_name" id="first_name" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" required /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Middle name</label> <input name="middle_name" id="middle_name" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Last name</label> <input name="last_name" id="last_name" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" required /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Suffix</label> <input name="suffix" id="suffix" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Gender</label> <select name="gender" id="gender" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm">
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
                                 </select> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Birthplace</label> <input name="birthplace" id="birthplace" type="text" class="form-control" /> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Civil status</label> <select name="civil_status" id="civil_status" class="form-select">
+                            <div> <label class="block text-sm font-medium text-gray-700">Birthplace</label> <input name="birthplace" id="birthplace" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Civil status</label> <select name="civil_status" id="civil_status" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm">
                                     <option>Single</option>
                                     <option>Married</option>
                                     <option>Separated</option>
                                     <option>Widowed</option>
                                 </select> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Religion</label> <input name="religion" id="religion" type="text" class="form-control" /> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Occupation</label> <input name="occupation" id="occupation" type="text" class="form-control" /> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Citizenship</label> <input name="citizenship" id="citizenship" type="text" class="form-control" value="Filipino" /> </div>
-                            <div class="col-12 col-sm-6"> 
-                                <label class="form-label">Contact No.</label> 
-                                <input name="contact_no" id="contact_no" type="text" class="form-control" placeholder="09123456789" pattern="^09\d{9}$" /> 
-                                <div class="form-text">Format: 09XXXXXXXXX (11 digits)</div>
-                            </div>
-                            <div class="col-12"> <label class="form-label">Address</label> <input name="address" id="address" type="text" class="form-control" /> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Voter status</label> <select name="voter_status" id="voter_status" class="form-select">
+                            <div> <label class="block text-sm font-medium text-gray-700">Religion</label> <input name="religion" id="religion" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Occupation</label> <input name="occupation" id="occupation" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Citizenship</label> <input name="citizenship" id="citizenship" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" value="Filipino" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Contact No.</label> <input name="contact_no" id="contact_no" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" placeholder="09xx-xxx-xxxx" /> </div>
+                            <div class="sm:col-span-2"> <label class="block text-sm font-medium text-gray-700">Address</label> <input name="address" id="address" type="text" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm" /> </div>
+                            <div> <label class="block text-sm font-medium text-gray-700">Voter status</label> <select name="voter_status" id="voter_status" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm">
                                     <option>No</option>
                                     <option>Yes</option>
                                 </select> </div>
-                            <div class="col-12 col-sm-6"> <label class="form-label">Disability status</label> <select name="disability_status" id="disability_status" class="form-select">
+                            <div> <label class="block text-sm font-medium text-gray-700">Disability status</label> <select name="disability_status" id="disability_status" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm">
                                     <option>No</option>
                                     <option>Yes</option>
                                 </select> </div>
-                            <div class="col-12"> <label class="form-label">Remarks</label> <textarea name="remarks" id="remarks" rows="3" class="form-control"></textarea> </div>
+                            <div class="sm:col-span-2"> <label class="block text-sm font-medium text-gray-700">Remarks</label> <textarea name="remarks" id="remarks" rows="3" class="mt-1 block w-full rounded-lg border-gray-200 shadow-sm"></textarea> </div>
                         </div>
-                        <div class="mt-3 d-flex align-items-center gap-2">
-                            <button id="saveBtn" type="button" class="btn btn-primary">
-                                <span class="saveBtnText">Save</span>
-                                <span class="saveBtnLoader d-none">Saving...</span>
-                            </button>
-                        </div>
+                        <div class="mt-4 flex items-center gap-2"> <button id="saveBtn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm">Save</button> <button id="exportJson" type="button" class="ml-auto px-4 py-2 border rounded-lg">Export JSON</button> </div>
                     </form>
                 </section>
-                    </div>
-                    <div class="col-12 col-lg-6">
+
                 <!-- Preview Section -->
-                <aside class="bg-white p-4 rounded-3 shadow-sm border">
-                    <div class="d-flex align-items-start justify-content-between">
-                        <h2 class="h5">Live Preview</h2>
-                        <div id="ageBadge" class="small text-muted"></div>
+                <aside class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div class="flex items-start justify-between">
+                        <h2 class="text-lg font-medium">Live Preview</h2>
+                        <div id="ageBadge" class="text-sm text-gray-600"></div>
                     </div>
 
-                    <div id="previewCard" class="mt-3 border rounded p-3">
-                        <div class="d-flex align-items-center justify-content-between">
+                    <div id="previewCard" class="mt-4 border rounded-lg p-4">
+                        <div class="flex items-center justify-between">
                             <div>
-                                <h3 id="previewName" class="h5 text-dark">—</h3>
-                                <div id="previewQuick" class="small text-muted mt-1">—</div>
+                                <h3 id="previewName" class="text-xl font-semibold text-gray-800">—</h3>
+                                <div id="previewQuick" class="text-sm text-gray-600 mt-1">—</div>
                             </div>
-                            <div class="text-end">
-                                <div class="small text-muted">Household ID</div>
-                                <div id="previewHH" class="fw-semibold">—</div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Household ID</div>
+                                <div id="previewHH" class="font-medium">—</div>
                             </div>
                         </div>
 
-                        <dl class="mt-3 small text-body">
-                            <div><span class="fw-semibold">Gender:</span> <span id="previewGender">—</span></div>
-                            <div><span class="fw-semibold">Birthdate:</span> <span id="previewBirthdate">—</span></div>
-                            <div><span class="fw-semibold">Birthplace:</span> <span id="previewBirthplace">—</span></div>
-                            <div><span class="fw-semibold">Civil status:</span> <span id="previewCivil">—</span></div>
-                            <div><span class="fw-semibold">Religion:</span> <span id="previewReligion">—</span></div>
-                            <div><span class="fw-semibold">Occupation:</span> <span id="previewOccupation">—</span></div>
-                            <div><span class="fw-semibold">Citizenship:</span> <span id="previewCitizenship">—</span></div>
-                            <div><span class="fw-semibold">Contact no.:</span> <span id="previewContact">—</span></div>
-                            <div><span class="fw-semibold">Address:</span> <span id="previewAddress">—</span></div>
-                            <div><span class="fw-semibold">Voter status:</span> <span id="previewVoter">—</span></div>
+                        <dl class="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-700">
+                            <div><span class="font-medium">Gender:</span> <span id="previewGender">—</span></div>
+                            <div><span class="font-medium">Birthdate:</span> <span id="previewBirthdate">—</span></div>
+                            <div><span class="font-medium">Birthplace:</span> <span id="previewBirthplace">—</span></div>
+                            <div><span class="font-medium">Civil status:</span> <span id="previewCivil">—</span></div>
+                            <div><span class="font-medium">Religion:</span> <span id="previewReligion">—</span></div>
+                            <div><span class="font-medium">Occupation:</span> <span id="previewOccupation">—</span></div>
+                            <div><span class="font-medium">Citizenship:</span> <span id="previewCitizenship">—</span></div>
+                            <div><span class="font-medium">Contact no.:</span> <span id="previewContact">—</span></div>
+                            <div><span class="font-medium">Address:</span> <span id="previewAddress">—</span></div>
+                            <div><span class="font-medium">Voter status:</span> <span id="previewVoter">—</span></div>
 
                             <!-- ✅ New Disability Preview -->
-                            <div><span class="fw-semibold">Disability status:</span> <span id="previewDisability">—</span></div>
+                            <div><span class="font-medium">Disability status:</span> <span id="previewDisability">—</span></div>
 
-                            <div><span class="fw-semibold">Remarks:</span>
-                                <div id="previewRemarks" class="mt-1 small text-muted fst-italic">—</div>
+                            <div><span class="font-medium">Remarks:</span>
+                                <div id="previewRemarks" class="mt-1 text-sm text-gray-600 italic">—</div>
                             </div>
                         </dl>
                     </div>
 
-                </aside>
+                    <div class="mt-4">
+                        <button id="showRaw" class="px-3 py-1 border rounded-lg text-sm">Show raw data</button>
+                        <button id="refreshBtn" class="px-3 py-1 border rounded-lg text-sm">Refresh</button>
                     </div>
-                </div>
+                </aside>
             </div>
 
+            <!-- jQuery UI dialog -->
+            <div id="dialog" title="Raw data" style="display:none;">
+                <pre id="rawPre"
+                    style="white-space:pre-wrap; word-break:break-word; max-height:400px; overflow:auto;"></pre>
+            </div>
             <!-- ✅ End of Resident Information Section -->
         </main>
     </div>
 
     <script>
-        // Helper function to show Bootstrap modal
-        function showBootstrapModal(title, message) {
-            const modalId = 'dynamicModal_' + Date.now();
-            const safeTitle = $('<div>').text(title).html();
-            const safeMessage = $('<div>').html(message).html();
-            const modalHtml = `
-                <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="${modalId}Label">${safeTitle}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p class="mb-0">${safeMessage}</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            $('body').append(modalHtml);
-            const modalElement = document.getElementById(modalId);
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            $(modalElement).on('hidden.bs.modal', function() {
-                $(this).remove();
-            });
-        }
-        
         $(function() {
             $("#birthdate").datepicker({
                 dateFormat: 'yy-mm-dd',
@@ -264,184 +174,100 @@ requireStaff(); // Only Staff and Admin can access
                 $('#ageBadge').text(age !== null ? age + ' years old' : '');
             }
 
-            // Auto-update preview on any form change (real-time - no refresh button needed)
-            $('#residentForm').on('input change keyup paste', 'input,textarea,select', function() {
+            $('#residentForm').on('input change', 'input,textarea,select', updatePreview);
+            updatePreview();
+
+            $('#saveBtn').click(() => {
+                const payload = {};
+                $('#residentForm').serializeArray().forEach(f => payload[f.name] = f.value);
+                payload.id = residentId;
+
+                $.ajax({
+                    url: '/resident/update_resident.php',
+                    type: 'POST',
+                    data: payload,
+                    dataType: 'json',
+                    success: function(res) {
+                        $('<div>' + res.message + '</div>').dialog({
+                            modal: true,
+                            title: res.success ? 'Saved' : 'Error',
+                            width: 420,
+                            buttons: {
+                                Ok: function() {
+                                    $(this).dialog('close');
+                                }
+                            }
+                        });
+                    },
+                    error: function() {
+                        $('<div>Failed to connect to server.</div>').dialog({
+                            modal: true,
+                            title: 'Error',
+                            width: 420,
+                            buttons: {
+                                Ok: function() {
+                                    $(this).dialog('close');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+
+            $('#refreshBtn').click(() => {
                 updatePreview();
             });
 
-            // Initial preview update
-            updatePreview();
+            $('#exportJson').click(() => {
+                const payload = {};
+                $('#residentForm').serializeArray().forEach(f => payload[f.name] = f.value);
+                const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                    type: 'application/json'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'resident.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            });
 
-            // --- Load Resident Info (moved inside ready so updatePreview() is available) ---
-            const residentId = new URLSearchParams(window.location.search).get('id');
-            if (residentId) {
-                // Show loading indicator
-                $('#residentForm').css('opacity', '0.6');
-                $('#saveBtn').prop('disabled', true);
-                $('.saveBtnText').addClass('d-none');
-                $('.saveBtnLoader').removeClass('d-none').text('Loading...');
-
-                $.ajax({
-                    url: `/api/residents?id=${residentId}`,
-                    method: 'GET',
-                    success: function(response) {
-                        // Hide loading indicator
-                        $('#residentForm').css('opacity', '1');
-                        $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('d-none').text('Save');
-                        $('.saveBtnLoader').addClass('d-none');
-
-                        if (response.status === 'success' && response.data) {
-                            const res = response.data;
-                            // Fill all form fields
-                            for (const key in res) {
-                                if ($(`[name="${key}"]`).length) {
-                                    $(`[name="${key}"]`).val(res[key]);
-                                }
-                            }
-                            updatePreview();
-                        } else {
-                            showBootstrapModal('Error', response.message || 'Resident not found');
+            $('#showRaw').click(() => {
+                const payload = {};
+                $('#residentForm').serializeArray().forEach(f => payload[f.name] = f.value);
+                $('#rawPre').text(JSON.stringify(payload, null, 2));
+                $('#dialog').dialog({
+                    width: 600,
+                    modal: true,
+                    buttons: {
+                        Close: function() {
+                            $(this).dialog('close');
                         }
-                    },
-                    error: function(xhr) {
-                        // Hide loading indicator on error
-                        $('#residentForm').css('opacity', '1');
-                        $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('d-none').text('Save');
-                        $('.saveBtnLoader').addClass('d-none');
-
-                        const errorMsg = xhr.responseJSON?.message || 'Failed to load resident data. Please try again.';
-                        showBootstrapModal('Error', errorMsg);
                     }
                 });
-            }
-
-            // Real-time validation feedback
-            $('#first_name, #last_name').on('blur', function() {
-                const $input = $(this);
-                if ($input.val().trim() === '') {
-                    $input.addClass('border-danger').removeClass('border-success');
-                } else {
-                    $input.addClass('border-success').removeClass('border-danger');
-                }
             });
-
-            $('#contact_no').on('blur', function() {
-                const $input = $(this);
-                const value = $input.val().trim();
-                if (value && !/^09\d{9}$/.test(value)) {
-                    $input.addClass('border-danger').removeClass('border-success');
-                } else if (value) {
-                    $input.addClass('border-success').removeClass('border-danger');
-                }
-            });
-
-            $('#birthdate').on('blur', function() {
-                const $input = $(this);
-                const value = $input.val().trim();
-                if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                    $input.addClass('border-danger').removeClass('border-success');
-                } else if (value) {
-                    $input.addClass('border-success').removeClass('border-danger');
-                }
-            });
-
-            $('#saveBtn').click(() => {
-                // Validate required fields
-                const firstName = $('#first_name').val().trim();
-                const lastName = $('#last_name').val().trim();
-                const birthdate = $('#birthdate').val().trim();
-                const contactNo = $('#contact_no').val().trim();
-                
-                let errors = [];
-                
-                if (!firstName) {
-                    errors.push('First Name is required');
-                    $('#first_name').addClass('border-danger');
-                }
-                if (!lastName) {
-                    errors.push('Last Name is required');
-                    $('#last_name').addClass('border-danger');
-                }
-                if (!birthdate) {
-                    errors.push('Birthdate is required');
-                    $('#birthdate').addClass('border-danger');
-                } else if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
-                    errors.push('Birthdate must be in YYYY-MM-DD format');
-                    $('#birthdate').addClass('border-danger');
-                }
-                if (contactNo && !/^09\d{9}$/.test(contactNo)) {
-                    errors.push('Contact number must be in format 09XXXXXXXXX');
-                    $('#contact_no').addClass('border-danger');
-                }
-                
-                if (errors.length > 0) {
-                    showBootstrapModal('Validation Error', '<ul class="list-unstyled mb-0">' + errors.map(e => '<li>• ' + e + '</li>').join('') + '</ul>');
+        });
+        // ajax to fetch resident data and populate the form
+        // --- Load Resident Info ---
+        const residentId = new URLSearchParams(window.location.search).get('id');
+        if (residentId) {
+            $.getJSON(`get_resident.php?id=${residentId}`, function(res) {
+                if (res.error) {
+                    alert(res.error);
                     return;
                 }
-
-                // Show loading state
-                $('#saveBtn').prop('disabled', true);
-                $('.saveBtnText').addClass('d-none');
-                $('.saveBtnLoader').removeClass('d-none');
-
-                const formData = {};
-                $('#residentForm').serializeArray().forEach(f => formData[f.name] = f.value);
-                
-                const updateData = {
-                    action: 'update',
-                    id: residentId,
-                    household_id: formData.household_id || null,
-                    first_name: formData.first_name,
-                    middle_name: formData.middle_name,
-                    last_name: formData.last_name,
-                    suffix: formData.suffix,
-                    gender: formData.gender,
-                    birthdate: formData.birthdate,
-                    birthplace: formData.birthplace,
-                    civil_status: formData.civil_status,
-                    religion: formData.religion,
-                    occupation: formData.occupation,
-                    citizenship: formData.citizenship,
-                    contact_no: formData.contact_no,
-                    address: formData.address,
-                    voter_status: formData.voter_status,
-                    disability_status: formData.disability_status,
-                    remarks: formData.remarks
-                };
-
-                $.ajax({
-                    url: '/api/residents',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(updateData),
-                    dataType: 'json',
-                    success: function(response) {
-                        // Hide loading state
-                        $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('d-none');
-                        $('.saveBtnLoader').addClass('d-none');
-                        
-                        const message = response.message || (response.status === 'success' ? 'Resident updated successfully' : 'Failed to update resident');
-                        const title = response.status === 'success' ? 'Saved' : 'Error';
-                        
-                        showBootstrapModal(title, message);
-                    },
-                    error: function(xhr) {
-                        // Hide loading state
-                        $('#saveBtn').prop('disabled', false);
-                        $('.saveBtnText').removeClass('d-none');
-                        $('.saveBtnLoader').addClass('d-none');
-                        
-                        const errorMsg = xhr.responseJSON?.message || 'Failed to connect to server.';
-                        showBootstrapModal('Error', errorMsg);
+                // Fill all form fields
+                for (const key in res) {
+                    if ($(`[name=${key}]`).length) {
+                        $(`[name=${key}]`).val(res[key]);
                     }
-                });
+                }
+                updatePreview();
             });
-
-
-        });
+        }
     </script>
 </body>
 

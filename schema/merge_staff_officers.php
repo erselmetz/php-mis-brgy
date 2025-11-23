@@ -5,11 +5,9 @@
 include '../includes/db.php';
 
 // Helper function to check if column exists
-if (!function_exists('columnExists')) {
-    function columnExists($conn, $table, $column) {
-        $result = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
-        return $result->num_rows > 0;
-    }
+function columnExists($conn, $table, $column) {
+    $result = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+    return $result->num_rows > 0;
 }
 
 // Step 1: Add position column to users table (for non-officers)
@@ -63,4 +61,5 @@ if ($result && $result->num_rows == 0) {
     echo "✅ Foreign key constraint 'fk_officer_user' already exists.\n";
 }
 
+$conn->close();
 ?>

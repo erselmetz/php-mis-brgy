@@ -52,13 +52,6 @@ $migrations = [
             'add_profile_picture_to_users.php',
         ]
     ],
-    'Database Optimization' => [
-        'description' => 'Adds indexes and optimizes database performance',
-        'files' => [
-            'migrations_table.php',
-            'add_indexes.php',
-        ]
-    ],
     'Structural Changes' => [
         'description' => 'Major schema changes and refactoring',
         'files' => [
@@ -111,11 +104,7 @@ function runMigrations($migrations, $isCLI) {
             // Capture output
             ob_start();
             try {
-                // Change to schema directory so relative paths in migration files work
-                $originalDir = getcwd();
-                chdir(__DIR__);
                 include $filePath;
-                chdir($originalDir);
                 $output = ob_get_clean();
                 
                 if (!$isCLI) {

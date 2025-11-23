@@ -1,344 +1,183 @@
-// Documentation System with Multi-page Support
+// Documentation System JavaScript
 class DocumentationSystem {
     constructor() {
-        this.currentPage = 'changelog'; // docs, api, changelog
-        this.currentVersion = 'v1.4.0';
+        this.currentVersion = 'v1.2.0';
         this.versions = {};
-        this.listenersSetup = false;
-        this.sidebarListenerAdded = false;
+        this.currentSection = 'overview';
+        this.init();
     }
 
     async init() {
-        try {
-            await this.loadVersions();
-            this.setupEventListeners();
-            this.loadPage(this.currentPage);
-        } catch (error) {
-            console.error('Error initializing documentation system:', error);
-        }
+        await this.loadVersions();
+        this.setupEventListeners();
+        this.loadContent(this.currentVersion);
     }
 
     async loadVersions() {
         try {
-            // Prefer embedded versions JSON when available (works for file:// and local previews)
-            const embedded = document.getElementById('docVersions');
-            if (embedded && embedded.textContent) {
-                try {
-                    this.versions = JSON.parse(embedded.textContent);
-                    return;
-                } catch (parseErr) {
-                    console.error('Failed to parse embedded versions JSON:', parseErr);
-                    // fallback to fetch
-                }
-            }
-
             const response = await fetch('data/versions.json');
-            if (!response.ok) throw new Error('Failed to fetch versions.json');
             this.versions = await response.json();
+            this.populateVersionSelector();
         } catch (error) {
             console.error('Error loading versions:', error);
-            this.versions = {};
+            // Fallback to default version
+            this.versions = {
+                'v1.0.0': {
+                    date: '2024-01-01',
+                    time: '00:00:00',
+                    description: 'Initial Release'
+                }
+            };
         }
+    }
+
+    populateVersionSelector() {
+        const select = document.getElementById('versionSelect');
+        select.innerHTML = '';
+        
+        Object.keys(this.versions).sort().reverse().forEach(version => {
+            const option = document.createElement('option');
+            option.value = version;
+            option.textContent = `${version} - ${this.versions[version].description}`;
+            if (version === this.currentVersion) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
     }
 
     setupEventListeners() {
-        // Check if already set up
-        if (this.listenersSetup) {
-            return;
-        }
-        this.listenersSetup = true;
+        // Version selector
+        document.getElementById('versionSelect').addEventListener('change', (e) => {
+            this.currentVersion = e.target.value;
+            this.loadContent(this.currentVersion);
+        });
 
-        // Page navigation
-        document.querySelectorAll('.nav-item[data-page]').forEach(link => {
+        // Navigation links
+        document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const page = e.target.getAttribute('data-page');
-                if (page) {
-                    this.setActivePage(page);
-                    this.loadPage(page);
-                }
+                const section = link.getAttribute('href').substring(1);
+                this.showSection(section);
             });
         });
 
-        // Sidebar navigation - use event delegation on document (only one listener)
-        // This is safe to add multiple times as it uses event delegation
-        if (!this.sidebarListenerAdded) {
-            document.addEventListener('click', (e) => {
-                if(e.target.closest('.sidebar-nav a')) {
-                    const link = e.target.closest('.sidebar-nav a');
-                    const sectionId = link.getAttribute('href')?.substring(1);
-                    if(sectionId) {
-                        this.highlightNavLink(sectionId);
-                        setTimeout(() => {
-                            const section = document.getElementById(sectionId);
-                            if(section) {
-                                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }, 100);
-                    }
-                }
-            });
-            this.sidebarListenerAdded = true;
-        }
-
-        // Footer links
-        document.querySelectorAll('.footer-section a[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                const page = e.target.getAttribute('data-page');
-                if (page) {
-                    this.setActivePage(page);
-                    this.loadPage(page);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
         });
     }
 
-    setActivePage(page) {
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
-        this.currentPage = page;
-    }
-
-    async loadPage(page) {
-        const contentArea = document.getElementById('contentArea');
-        if (!contentArea) {
-            console.error('Content area not found');
-            return;
-        }
-        contentArea.innerHTML = '<div class="loading">Loading...</div>';
-
+    async loadContent(version) {
         try {
-            let data;
-            if(page === 'api') {
-                console.log('Loading API documentation');
-                const response = await fetch('./data/api.json');
-                if (!response.ok) {
-                    throw new Error(`Failed to load API documentation (HTTP ${response.status})`);
-                }
-                data = await response.json();
-                console.log('API documentation loaded successfully');
-            } else if(page === 'changelog') {
-                console.log('Building changelog page');
-                data = await this.buildChangelogPage();
-                console.log('Changelog built successfully');
-            }
-
-            if (!data) {
-                throw new Error('No data received');
-            }
-
-            this.renderPage(data);
-            this.updateVersionInfo(data);
-            this.buildSidebar(data);
-
-            // Highlight code blocks
-            document.querySelectorAll('pre code').forEach(block => {
-                hljs.highlightElement(block);
-            });
-        } catch (error) {
-            console.error('Error loading page:', error);
-            console.error('Page:', page, 'Version:', this.currentVersion);
-            const errorMessage = `
-                <div class="alert alert-danger">
-                    <h4>Error loading content</h4>
-                    <p><strong>Details:</strong> ${error.message}</p>
-                    <p><strong>Page:</strong> ${page}</p>
-                    ${page === 'docs' ? `<p><strong>Version:</strong> ${this.currentVersion}</p>` : ''}
-                    <p>Please check the browser console for more details.</p>
-                </div>
-            `;
-            contentArea.innerHTML = errorMessage;
-        }
-    }
-
-    async buildChangelogPage() {
-        if (!this.versions || Object.keys(this.versions).length === 0) {
-            return {
-                title: 'Changelog',
-                description: 'Version history and changes',
-                sections: [{
-                    id: 'changelog-empty',
-                    title: 'No versions available',
-                    content: [{
-                        type: 'paragraph',
-                        text: 'Version history is not available at this time.'
-                    }]
-                }]
-            };
-        }
-
-        const versions = Object.keys(this.versions).sort().reverse();
-        const sections = [];
-
-        for(const version of versions) {
-            const versionData = this.versions[version];
-            if (!versionData) continue;
+            const response = await fetch(`data/${version}.json`);
+            const data = await response.json();
             
-            sections.push({
-                id: `changelog-${version}`,
-                title: `${version} - ${versionData.description || 'No description'}`,
-                content: [
-                    {
-                        type: 'paragraph',
-                        html: `<strong>Released:</strong> ${versionData.date || 'Unknown'} ${versionData.time || ''}`
-                    },
-                    {
-                        type: 'list',
-                        items: versionData.changes || []
-                    }
-                ]
-            });
+            this.updateVersionInfo(data);
+            this.renderContent(data);
+            this.updateNavigation(data.sections);
+        } catch (error) {
+            console.error('Error loading content:', error);
+            document.getElementById('contentArea').innerHTML = 
+                '<div class="error">Error loading documentation. Please try again later.</div>';
         }
-
-        return {
-            title: 'Changelog',
-            description: 'Version history and changes',
-            sections: sections
-        };
     }
 
     updateVersionInfo(data) {
-        // Use current version
-        const footerVersion = document.getElementById('footerVersion');
-        if (footerVersion) {
-            footerVersion.textContent = this.currentVersion;
-        }
-
-        // Prefer explicit page data.date, otherwise fall back to versions.json for the current version
-        const dateFromPage = data && data.date ? data.date : null;
-        const dateFromVersions = (this.versions && this.versions[this.currentVersion] && this.versions[this.currentVersion].date) ? this.versions[this.currentVersion].date : null;
-        const finalDate = dateFromPage || dateFromVersions || '';
-        if (finalDate) {
-            const footerDate = document.getElementById('footerDate');
-            if (footerDate) {
-                footerDate.textContent = finalDate;
-            }
-        }
+        document.getElementById('currentVersion').textContent = this.currentVersion;
+        document.getElementById('versionDate').textContent = data.date || this.versions[this.currentVersion]?.date || 'N/A';
+        document.getElementById('lastUpdated').textContent = 
+            `${data.date || 'N/A'} ${data.time || this.versions[this.currentVersion]?.time || '00:00:00'}`;
+        // Update page title
+        document.title = `MIS Barangay - Documentation ${this.currentVersion}`;
     }
 
-    buildSidebar(data) {
-        const sidebarNav = document.getElementById('sidebarNav');
-        if (!sidebarNav) {
-            return;
-        }
-        sidebarNav.innerHTML = '';
-
-        if(data && data.sections && data.sections.length > 0) {
-            data.sections.forEach(section => {
-                if (!section || !section.id || !section.title) return;
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.href = `#${section.id}`;
-                a.className = 'sidebar-nav-link';
-                a.textContent = section.title;
-                li.appendChild(a);
-                sidebarNav.appendChild(li);
-            });
-        }
-    }
-
-    highlightNavLink(sectionId) {
-        document.querySelectorAll('.sidebar-nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-        const activeLink = document.querySelector(`.sidebar-nav-link[href="#${sectionId}"]`);
-        if(activeLink) {
-            activeLink.classList.add('active');
-        }
-    }
-
-    renderPage(data) {
-        const contentArea = document.getElementById('contentArea');
-        if (!contentArea) {
-            console.error('Content area not found');
-            return;
-        }
+    updateNavigation(sections) {
+        const navMenu = document.getElementById('navMenu');
+        navMenu.innerHTML = '';
         
-        if (!data) {
-            contentArea.innerHTML = '<div class="alert alert-danger">No data available.</div>';
-            return;
-        }
+        sections.forEach(section => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = `#${section.id}`;
+            a.className = 'nav-link';
+            a.textContent = section.title;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showSection(section.id);
+            });
+            li.appendChild(a);
+            navMenu.appendChild(li);
+        });
+    }
 
+    showSection(sectionId) {
+        // Update active nav link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${sectionId}`) {
+                link.classList.add('active');
+            }
+        });
+
+        // Scroll to section
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    renderContent(data) {
+        const contentArea = document.getElementById('contentArea');
         let html = '';
 
-        // Add intro section if exists
-        if(data.description && data.title) {
-            html += `
-                <section class="section" style="padding: 2rem; border-bottom: 1px solid #dee2e6; margin-bottom: 0;">
-                    <h2>${this.escapeHtml(data.title)}</h2>
-                    <p>${this.escapeHtml(data.description)}</p>
-                </section>
-            `;
-        }
-
-        // Render all sections
-        if(data.sections && Array.isArray(data.sections)) {
-            data.sections.forEach(section => {
-                if (section) {
-                    html += this.renderSection(section);
-                }
-            });
-        }
+        data.sections.forEach(section => {
+            html += this.renderSection(section);
+        });
 
         contentArea.innerHTML = html;
     }
 
     renderSection(section) {
-        if (!section || !section.id || !section.title) {
-            return '';
-        }
+        let html = `<section id="${section.id}" class="section">`;
+        html += `<h2>${this.processText(section.title)}</h2>`;
         
-        let html = `<section id="${this.escapeHtml(section.id)}" class="section">`;
-        html += `<div style="padding: 0 2rem;"><h2>${this.escapeHtml(section.title)}</h2>`;
-        
-        if(section.content && Array.isArray(section.content)) {
+        if (section.content) {
             html += this.renderContentBlocks(section.content);
         }
 
-        if(section.subsections && Array.isArray(section.subsections)) {
+        if (section.subsections) {
             section.subsections.forEach(subsection => {
-                if (subsection && subsection.title) {
-                    html += `<h3>${this.escapeHtml(subsection.title)}</h3>`;
-                    if(subsection.content && Array.isArray(subsection.content)) {
-                        html += this.renderContentBlocks(subsection.content);
-                    }
+                html += `<h3>${this.processText(subsection.title)}</h3>`;
+                if (subsection.content) {
+                    html += this.renderContentBlocks(subsection.content);
                 }
             });
         }
 
-        html += `</div></section>`;
+        html += `</section>`;
         return html;
     }
 
     renderContentBlocks(content) {
-        if (!content || !Array.isArray(content)) {
-            return '';
-        }
-        
         let html = '';
         
         content.forEach(block => {
-            if (!block || !block.type) return;
-            
             switch (block.type) {
                 case 'paragraph':
-                    // Allow HTML if html property exists, otherwise escape text
-                    if (block.html !== undefined) {
-                        html += `<p>${block.html}</p>`;
-                    } else {
-                        html += `<p>${this.escapeHtml(block.text || '')}</p>`;
-                    }
+                    html += `<p>${this.processText(block.text)}</p>`;
                     break;
                 case 'list':
                     html += this.renderList(block);
                     break;
                 case 'code':
-                    const language = block.language || 'php';
-                    html += `<pre><code class="language-${language}">${this.escapeHtml(block.code || '')}</code></pre>`;
+                    html += `<pre><code>${this.escapeHtml(block.code)}</code></pre>`;
                     break;
                 case 'card':
                     html += this.renderCard(block);
@@ -347,10 +186,7 @@ class DocumentationSystem {
                     html += this.renderTable(block);
                     break;
                 case 'badge':
-                    html += `<span class="badge badge-${block.variant || 'info'}">${this.escapeHtml(block.text || '')}</span>`;
-                    break;
-                case 'alert':
-                    html += `<div class="alert alert-${block.variant || 'info'}">${this.escapeHtml(block.text || '')}</div>`;
+                    html += `<span class="badge badge-${block.variant || 'info'}">${block.text}</span>`;
                     break;
             }
         });
@@ -360,54 +196,41 @@ class DocumentationSystem {
 
     renderList(list) {
         const tag = list.ordered ? 'ol' : 'ul';
-        let html = `<${tag}>`;
-        (list.items || []).forEach(item => {
-            html += `<li>${this.escapeHtml(item)}</li>`;
+        let html = `<${tag} class="custom-list">`;
+        list.items.forEach(item => {
+            html += `<li>${this.processText(item)}</li>`;
         });
         html += `</${tag}>`;
         return html;
     }
 
     renderCard(card) {
-        if (!card) return '';
-        
-        const variant = card.variant ? ` card-${card.variant}` : '';
-        let html = `<div class="card${variant}">`;
-        if(card.title) {
-            html += `<div class="card-title">${this.escapeHtml(card.title)}</div>`;
+        let html = '<div class="card">';
+        if (card.title) {
+            html += `<div class="card-title">${this.processText(card.title)}</div>`;
         }
-        if (card.content) {
-            const content = String(card.content)
-                .split('\n')
-                .map(line => line.startsWith('•') ? `<div style="margin-bottom: 0.5rem;">• ${this.escapeHtml(line.substring(1).trim())}</div>` : `<div>${this.escapeHtml(line)}</div>`)
-                .join('');
-            html += `<div class="card-content">${content}</div>`;
-        }
+        html += `<div class="card-content">${this.processText(card.content)}</div>`;
         html += '</div>';
         return html;
     }
 
     renderTable(table) {
-        if (!table) return '';
-        
         let html = '<div class="table-container"><table>';
-        if(table.headers && Array.isArray(table.headers)) {
+        if (table.headers) {
             html += '<thead><tr>';
             table.headers.forEach(header => {
-                html += `<th>${this.escapeHtml(header)}</th>`;
+                html += `<th>${this.processText(header)}</th>`;
             });
             html += '</tr></thead>';
         }
-        if(table.rows && Array.isArray(table.rows)) {
+        if (table.rows) {
             html += '<tbody>';
             table.rows.forEach(row => {
-                if (Array.isArray(row)) {
-                    html += '<tr>';
-                    row.forEach(cell => {
-                        html += `<td>${this.escapeHtml(cell)}</td>`;
-                    });
-                    html += '</tr>';
-                }
+                html += '<tr>';
+                row.forEach(cell => {
+                    html += `<td>${this.processText(cell)}</td>`;
+                });
+                html += '</tr>';
             });
             html += '</tbody>';
         }
@@ -415,42 +238,41 @@ class DocumentationSystem {
         return html;
     }
 
+    processText(text) {
+        if (!text) return '';
+        
+        // First escape HTML to prevent XSS, but preserve our markdown patterns
+        let escaped = this.escapeHtml(text);
+        
+        // Convert markdown-style formatting (after escaping to prevent XSS)
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        escaped = escaped.replace(/`(.*?)`/g, '<code>$1</code>');
+        
+        // Convert line breaks
+        escaped = escaped.replace(/\n/g, '<br>');
+        
+        // Convert bullet points
+        escaped = escaped.replace(/^• /gm, '<span class="bullet">•</span> ');
+        
+        // Convert emojis to badges
+        escaped = escaped.replace(/✅/g, '<span class="badge badge-success">✓</span>');
+        escaped = escaped.replace(/❌/g, '<span class="badge badge-error">✗</span>');
+        escaped = escaped.replace(/⚠️/g, '<span class="badge badge-warning">⚠</span>');
+        escaped = escaped.replace(/ℹ️/g, '<span class="badge badge-info">ℹ</span>');
+        
+        return escaped;
+    }
+
     escapeHtml(text) {
-        if (text === null || text === undefined) {
-            return '';
-        }
         const div = document.createElement('div');
-        div.textContent = String(text);
+        div.textContent = text;
         return div.innerHTML;
     }
 }
 
 // Initialize when DOM is ready
-// Prevent multiple initializations
-window.docSystemInstance = null;
-
-function initializeDocs() {
-    if (window.docSystemInstance) {
-        return; // Already initialized
-    }
-    
-    // Check if required elements exist
-    if (!document.getElementById('contentArea')) {
-        console.error('Required DOM elements not found');
-        return;
-    }
-    
-    console.log('Initializing documentation system...');
-    window.docSystemInstance = new DocumentationSystem();
-    window.docSystemInstance.init();
-}
-
-// Wait for DOM to be ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeDocs);
-} else {
-    // DOM already loaded
-    initializeDocs();
-}
-
+document.addEventListener('DOMContentLoaded', () => {
+    new DocumentationSystem();
+});
 

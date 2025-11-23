@@ -18,8 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
 ";
 
 if ($conn->query($sql) === TRUE) {
-    echo "✅ Table 'users' created successfully.\n";
+    echo "✅ Table 'users' created successfully.";
 } else {
-    echo "❌ Error creating table 'users': " . $conn->error . "\n";
+    echo "❌ Error creating table 'users': " . $conn->error;
 }
+
+$conn->close();
 ?>

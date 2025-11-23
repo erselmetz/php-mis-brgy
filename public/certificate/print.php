@@ -5,13 +5,13 @@ requireStaff(); // Only Staff and Admin can access
 $id = intval($_GET['id'] ?? 0);
 
 if ($id === 0) {
-    header("Location: /certificate");
+    header("Location: /certificate/certificates");
     exit;
 }
 
-// Fetch certificate request with resident details (include issuer position)
+// Fetch certificate request with resident details
 $stmt = $conn->prepare("
-    SELECT cr.*, r.*, u.name as issued_by_name, u.position as issued_by_position
+    SELECT cr.*, r.*, u.name as issued_by_name 
     FROM certificate_request cr
     INNER JOIN residents r ON cr.resident_id = r.id
     LEFT JOIN users u ON cr.issued_by = u.id
@@ -22,7 +22,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: /certificate");
+    header("Location: /certificate/certificates");
     exit;
 }
 
@@ -37,43 +37,6 @@ $age = $birthDate->diff($today)->y;
 // Get current date
 $currentDate = date('F d, Y');
 $currentYear = date('Y');
-
-// Find active Barangay Captain (prefer current term)
-$captainName = '[Barangay Captain Name]';
-$capQuery = "SELECT o.*, COALESCE(u.name, CONCAT(r.first_name, ' ', COALESCE(r.middle_name,''), ' ', r.last_name)) AS captain_name
-             FROM officers o
-             LEFT JOIN users u ON o.user_id = u.id
-             LEFT JOIN residents r ON o.resident_id = r.id
-             WHERE o.position LIKE 'Barangay Captain' AND o.status = 'Active' AND CURDATE() BETWEEN o.term_start AND o.term_end
-             ORDER BY o.term_start DESC LIMIT 1";
-$capStmt = $conn->prepare($capQuery);
-if ($capStmt) {
-    $capStmt->execute();
-    $capRes = $capStmt->get_result();
-    if ($capRes && $capRes->num_rows > 0) {
-        $capRow = $capRes->fetch_assoc();
-        $captainName = trim($capRow['captain_name']);
-    } else {
-        // fallback: any active captain regardless of term dates
-        $capQuery2 = "SELECT o.*, COALESCE(u.name, CONCAT(r.first_name, ' ', COALESCE(r.middle_name,''), ' ', r.last_name)) AS captain_name
-                      FROM officers o
-                      LEFT JOIN users u ON o.user_id = u.id
-                      LEFT JOIN residents r ON o.resident_id = r.id
-                      WHERE o.position LIKE 'Barangay Captain' AND o.status = 'Active'
-                      ORDER BY o.term_start DESC LIMIT 1";
-        $capStmt2 = $conn->prepare($capQuery2);
-        if ($capStmt2) {
-            $capStmt2->execute();
-            $capRes2 = $capStmt2->get_result();
-            if ($capRes2 && $capRes2->num_rows > 0) {
-                $capRow2 = $capRes2->fetch_assoc();
-                $captainName = trim($capRow2['captain_name']);
-            }
-            $capStmt2->close();
-        }
-    }
-    $capStmt->close();
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -368,13 +331,13 @@ if ($capStmt) {
                 <div class="signature-line">
                     <strong>Prepared by:</strong><br>
                     <?= htmlspecialchars($cert['issued_by_name'] ?? 'Staff') ?><br>
-                    <small><?= htmlspecialchars($cert['issued_by_position'] ?? 'Barangay Staff') ?></small>
+                    <small>Barangay Staff</small>
                 </div>
             </div>
             <div class="signature-box">
                 <div class="signature-line">
                     <strong>Certified by:</strong><br>
-                    <?= htmlspecialchars($captainName) ?><br>
+                    [Barangay Captain Name]<br>
                     <small>Barangay Captain</small>
                 </div>
             </div>

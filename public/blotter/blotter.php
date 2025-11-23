@@ -89,9 +89,9 @@ $result = $stmt->get_result();
     <?php loadAllAssets(); ?>
 </head>
 <body class="bg-gray-100" style="display:none;">
-    <?php include '../layout/navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
     <div class="flex bg-gray-100">
-        <?php include '../layout/sidebar.php'; ?>
+        <?php include '../sidebar.php'; ?>
         <main class="p-6 w-screen">
             <h2 class="text-2xl font-semibold mb-4">Blotter Management</h2>
             
@@ -134,7 +134,7 @@ $result = $stmt->get_result();
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="/blotter/view.php?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline font-semibold">
+                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline font-semibold">
                                             <?= htmlspecialchars($row['case_number']) ?>
                                         </a>
                                     </td>
@@ -158,7 +158,7 @@ $result = $stmt->get_result();
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
                                     <td class="p-2">
-                                        <a href="/blotter/view.php?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline">View</a>
+                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-blue-600 hover:underline">View</a>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>

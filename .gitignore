@@ -1,5 +1,3 @@
 /public/node_modules/
-/public/uploads/
-
-# Markdown documentation (keep README.md in root)
-markdown/
+/uploads/profile/
+/markdown/

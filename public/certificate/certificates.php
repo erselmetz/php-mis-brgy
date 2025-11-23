@@ -13,10 +13,10 @@ requireStaff(); // Only Staff and Admin can access
 </head>
 
 <body class="bg-gray-100" style="display: none;">
-    <?php include '../layout/navbar.php'; ?>
+    <?php include '../navbar.php'; ?>
 
     <div class="flex bg-gray-100">
-        <?php include '../layout/sidebar.php'; ?>
+        <?php include '../sidebar.php'; ?>
 
         <main class="p-6 w-screen">
             <h2 class="text-2xl font-semibold mb-6">Certificate</h2>
@@ -73,7 +73,7 @@ requireStaff(); // Only Staff and Admin can access
                 }
 
                 $.ajax({
-                    url: "/certificate/search_residents.php",
+                    url: "/certificate/search_residents",
                     method: "GET",
                     data: {
                         q: query
@@ -118,7 +118,7 @@ requireStaff(); // Only Staff and Admin can access
             // ✅ Load resident info + table
             function loadResident(id) {
                 $.ajax({
-                    url: "/certificate/load_resident_details.php",
+                    url: "/certificate/load_resident_details",
                     method: "GET",
                     data: {
                         id

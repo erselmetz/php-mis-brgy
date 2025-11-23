@@ -99,79 +99,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <?php loadAllAssets(); ?>
 </head>
-<body class="bg-light" style="display: none;">
+<body class="bg-gray-100" style="display: none;">
   <?php include_once './navbar.php'; ?>
-  <div class="d-flex bg-light">
+  <div class="flex bg-gray-100">
     <?php include_once './sidebar.php'; ?>
-    <main class="p-4 w-100">
-      <h2 class="h3 mb-4">Profile Settings</h2>
-      <div class="mx-auto bg-white shadow-sm rounded p-4" style="max-width: 48rem;">
+    <main class="p-6 w-screen">
+      <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
+      <div class="max-w-3xl mx-auto bg-white shadow-sm rounded-xl p-8 border border-gray-200">
         
         <?php if (!empty($success)): ?>
-          <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+          <div class="bg-green-100 border border-green-300 text-green-700 p-3 rounded mb-4">
             <?= htmlspecialchars($success) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>
         <?php elseif (!empty($error)): ?>
-          <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+          <div class="bg-red-100 border border-red-300 text-red-700 p-3 rounded mb-4">
             <?= htmlspecialchars($error) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
           <!-- Profile Picture Section -->
-          <div class="d-flex gap-4 mb-4">
-            <div style="flex-shrink: 0;">
+          <div class="flex items-center space-x-6">
+            <div class="flex-shrink-0">
               <?php if (!empty($user['profile_picture']) && file_exists(__DIR__ . '/uploads/profiles/' . $user['profile_picture'])): ?>
-                 <img src="/uploads/profiles/<?= htmlspecialchars($user['profile_picture']) ?>" 
-                   alt="Profile Picture" 
-                   width="96" height="96"
-                   style="width: 96px; height: 96px; min-width: 96px; min-height: 96px; border-radius: 50%;"
-                   class="settings-avatar avatar rounded-circle border-4 border-secondary">
+                <img src="/uploads/profiles/<?= htmlspecialchars($user['profile_picture']) ?>" 
+                     alt="Profile Picture" 
+                     class="w-24 h-24 rounded-full object-cover border-4 border-gray-200">
               <?php else: ?>
-                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center border-4 border-dark" style="width: 96px; height: 96px;">
-                  <span class="fs-2 text-muted">👤</span>
+                <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                  <span class="text-3xl text-gray-400">👤</span>
                 </div>
               <?php endif; ?>
             </div>
-            <div class="flex-grow-1">
-              <label class="form-label">Profile Picture</label>
+            <div class="flex-grow">
+              <label class="block text-gray-700 font-medium mb-2">Profile Picture</label>
               <input type="file" name="profile_picture" accept="image/jpeg,image/jpg,image/png,image/gif"
-                class="form-control">
-              <div class="form-text">Max size: 2MB. Formats: JPEG, PNG, GIF</div>
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-300 focus:border-blue-400">
+              <p class="text-xs text-gray-500 mt-1">Max size: 2MB. Formats: JPEG, PNG, GIF</p>
             </div>
           </div>
 
-          <hr>
+          <hr class="border-gray-200">
 
           <!-- Account Information -->
-          <h3 class="h5 mb-3">Account Information</h3>
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">Account Information</h3>
           
-          <div class="mb-3">
-            <label class="form-label">Full Name</label>
+          <div>
+            <label class="block text-gray-700 mb-1 font-medium">Full Name</label>
             <input type="text" name="name" value="<?= htmlspecialchars($user['name']) ?>"
-              class="form-control"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
               required>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">Username</label>
+          <div>
+            <label class="block text-gray-700 mb-1 font-medium">Username</label>
             <input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>"
-              class="form-control"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
               required>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">New Password (optional)</label>
+          <div>
+            <label class="block text-gray-700 mb-1 font-medium">New Password (optional)</label>
             <input type="password" name="password" placeholder="Leave blank to keep current password"
-              class="form-control">
-            <div class="form-text">Leave blank if you don't want to change your password</div>
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+            <p class="text-xs text-gray-500 mt-1">Leave blank if you don't want to change your password</p>
           </div>
 
-          <div class="d-flex justify-content-end pt-3">
+          <div class="flex justify-end pt-4">
             <button type="submit"
-              class="btn btn-primary">
+              class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
               Save Changes
             </button>
           </div>
@@ -190,10 +186,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (file) {
           const reader = new FileReader();
           reader.onload = function(e) {
-          $('.flex-shrink-0 img, .flex-shrink-0 div').replaceWith(
-            '<img src="' + e.target.result + '" alt="Profile Preview" width="96" height="96" class="settings-avatar avatar rounded-circle border-4 border-secondary">'
-          );
-        };
+            $('.flex-shrink-0 img, .flex-shrink-0 div').replaceWith(
+              '<img src="' + e.target.result + '" alt="Profile Preview" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200">'
+            );
+          };
           reader.readAsDataURL(file);
         }
       });
