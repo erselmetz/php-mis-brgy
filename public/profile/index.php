@@ -1,5 +1,5 @@
 <?php
-require_once '../includes/app.php';
+require_once '../../includes/app.php';
 requireLogin();
 
 $user_id = $_SESSION['user_id'];
@@ -100,9 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php loadAllAssets(); ?>
 </head>
 <body class="bg-gray-100" style="display: none;">
-  <?php include_once './navbar.php'; ?>
+  <?php include_once '../layout/navbar.php'; ?>
   <div class="flex bg-gray-100">
-    <?php include_once './sidebar.php'; ?>
+    <?php include_once '../layout/sidebar.php'; ?>
     <main class="p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
       <div class="max-w-3xl mx-auto bg-white shadow-sm rounded-xl p-8 border border-gray-200">
