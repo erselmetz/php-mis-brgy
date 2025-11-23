@@ -1,41 +1,71 @@
 <?php
+/**
+ * Login Page
+ * 
+ * Handles user authentication and session management.
+ * Uses prepared statements to prevent SQL injection attacks.
+ * Validates user credentials and sets session variables upon successful login.
+ */
+
 require_once '../../includes/app.php';
 
+// Process login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $username = trim($_POST['username'] ?? '');
-  $password = $_POST['password'] ?? '';
+    // Sanitize and validate input
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-  if (empty($username) || empty($password)) {
-    $error = "Username and password are required.";
-  } else {
-    // Use prepared statement to prevent SQL injection
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-      $user = $result->fetch_assoc();
-
-      if (password_verify($password, $user['password'])) {
-        if ($user['status'] !== 'active') {
-          $error = "Account is " . htmlspecialchars($user['status']) . ". Please contact admin.";
-        } else {
-          $_SESSION['user_id'] = $user['id'];
-          $_SESSION['username'] = $user['username'];
-          $_SESSION['name'] = $user['name'];
-          $_SESSION['role'] = $user['role'];
-          header("Location: /dashboard");
-          exit;
-        }
-      } else {
-        $error = "Invalid password.";
-      }
+    // Basic validation - ensure both fields are provided
+    if (empty($username) || empty($password)) {
+        $error = "Username and password are required.";
     } else {
-      $error = "No account found.";
+        /**
+         * Use prepared statement to prevent SQL injection attacks
+         * This is critical for security - never use string concatenation for SQL queries
+         */
+        $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
+        if ($stmt === false) {
+            // Log database error for debugging
+            error_log('Login query preparation failed: ' . $conn->error);
+            $error = "Database error. Please try again later.";
+        } else {
+            $stmt->bind_param("s", $username);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows > 0) {
+                $user = $result->fetch_assoc();
+
+                /**
+                 * Verify password using PHP's password_verify function
+                 * This securely compares the provided password with the hashed password in the database
+                 */
+                if (password_verify($password, $user['password'])) {
+                    // Check if account is active
+                    if ($user['status'] !== 'active') {
+                        $error = "Account is " . htmlspecialchars($user['status'], ENT_QUOTES, 'UTF-8') . ". Please contact admin.";
+                    } else {
+                        // Set session variables for authenticated user
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['name'] = $user['name'];
+                        $_SESSION['role'] = $user['role'];
+                        
+                        // Redirect to dashboard after successful login
+                        header("Location: /dashboard");
+                        exit;
+                    }
+                } else {
+                    // Invalid password - don't reveal which field was wrong (security best practice)
+                    $error = "Invalid username or password.";
+                }
+            } else {
+                // User not found - same message as invalid password (security best practice)
+                $error = "Invalid username or password.";
+            }
+            $stmt->close();
+        }
     }
-    $stmt->close();
-  }
 }
 ?>
 <!DOCTYPE html>
@@ -87,8 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- show error message -->
         <?php if (isset($_GET['error'])): ?>
           <div class="mb-4 p-3 rounded-lg border border-red-300 bg-red-50 text-red-700 flex items-center space-x-2">
-
-            <span>❌ Error : <?php echo $_GET['error'] ?></span>
+            <span>❌ Error : <?= htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8') ?></span>
           </div>
         <?php endif; ?>
       </form>

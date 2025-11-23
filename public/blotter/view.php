@@ -13,13 +13,23 @@ if ($id === 0) {
 
 // Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'update_status') {
-        $status = $_POST['status'] ?? '';
-        $resolution = trim($_POST['resolution'] ?? '');
+    /**
+     * CSRF Protection
+     * Validate CSRF token to prevent Cross-Site Request Forgery attacks
+     */
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $error = "Invalid security token. Please refresh the page and try again.";
+    } elseif ($_POST['action'] === 'update_status') {
+        $status = sanitizeString($_POST['status'] ?? '', false);
+        $resolution = sanitizeString($_POST['resolution'] ?? '');
         $resolved_date = $_POST['resolved_date'] ?? null;
         
-        if (empty($status)) {
-            $error = "Status is required.";
+        // Validate status against allowed values
+        $allowedStatuses = ['pending', 'under_investigation', 'resolved', 'dismissed'];
+        if (empty($status) || !in_array($status, $allowedStatuses)) {
+            $error = "Invalid status value.";
+        } elseif (!empty($resolved_date) && !validateDateFormat($resolved_date)) {
+            $error = "Invalid date format for resolved date.";
         } else {
             $stmt = $conn->prepare("
                 UPDATE blotter 
@@ -215,6 +225,7 @@ $stmt->close();
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Update Case Status</h3>
                 <form method="POST" class="space-y-4">
+                    <?= csrfTokenField() ?>
                     <input type="hidden" name="action" value="update_status">
                     
                     <div class="grid grid-cols-2 gap-4">

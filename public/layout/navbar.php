@@ -34,7 +34,7 @@
                         echo "<a href='/admin/account' class='block px-4 py-2 hover:bg-gray-100'>Manage Account</a>";
                     } ?>
                     <hr>
-                    <a href="/logout" class="block px-4 py-2 text-red-600 hover:bg-gray-100 font-medium">Logout</a>
+                    <a href="/logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100 font-medium">Logout</a>
                 </div>
             </div>
         </nav>

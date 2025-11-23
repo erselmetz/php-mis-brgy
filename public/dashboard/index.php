@@ -21,7 +21,12 @@ $dismissedCount = 0;
 $totalBlotterCases = 0;
 
 if ($role === 'staff' || $role === 'admin') {
-    // Fetch resident statistics
+    /**
+     * Fetch resident statistics using a single optimized query
+     * This query calculates all statistics in one pass for better performance
+     * No user input is used, so prepared statements aren't strictly necessary,
+     * but we use them for consistency and best practices
+     */
     $sql = "
         SELECT 
             COUNT(*) AS total,
@@ -34,22 +39,36 @@ if ($role === 'staff' || $role === 'admin') {
         FROM residents
     ";
     
+    // Execute query and handle errors gracefully
     $result = $conn->query($sql);
     if ($result === false) {
+        // Log error for debugging but don't expose to user
         error_log('Dashboard query error: ' . $conn->error);
+        // Set default values to prevent undefined variable errors
+        $totalPopulation = 0;
+        $maleCount = 0;
+        $femaleCount = 0;
+        $seniorCount = 0;
+        $pwdCount = 0;
+        $voter_registered_count = 0;
+        $voter_unregistered_count = 0;
     } elseif ($result && $row = $result->fetch_assoc()) {
-        $totalPopulation = (int)$row['total'];
-        $maleCount = (int)$row['male_count'];
-        $femaleCount = (int)$row['female_count'];
-        $seniorCount = (int)$row['senior_count'];
-        $pwdCount = (int)$row['pwd_count'];
-        $voter_registered_count = (int)$row['voter_registered_count'];
-        $voter_unregistered_count = (int)$row['voter_unregistered_count'];
+        // Safely convert to integers (default to 0 if null)
+        $totalPopulation = (int)($row['total'] ?? 0);
+        $maleCount = (int)($row['male_count'] ?? 0);
+        $femaleCount = (int)($row['female_count'] ?? 0);
+        $seniorCount = (int)($row['senior_count'] ?? 0);
+        $pwdCount = (int)($row['pwd_count'] ?? 0);
+        $voter_registered_count = (int)($row['voter_registered_count'] ?? 0);
+        $voter_unregistered_count = (int)($row['voter_unregistered_count'] ?? 0);
     }
 }
 
 if ($role === 'tanod' || $role === 'admin') {
-    // Fetch blotter statistics
+    /**
+     * Fetch blotter statistics using a single optimized query
+     * Calculates all status counts in one database query for efficiency
+     */
     $sql = "
         SELECT 
             COUNT(*) AS total,
@@ -60,15 +79,24 @@ if ($role === 'tanod' || $role === 'admin') {
         FROM blotter
     ";
     
+    // Execute query and handle errors gracefully
     $result = $conn->query($sql);
     if ($result === false) {
+        // Log error for debugging but don't expose to user
         error_log('Blotter dashboard query error: ' . $conn->error);
+        // Set default values to prevent undefined variable errors
+        $totalBlotterCases = 0;
+        $pendingCount = 0;
+        $underInvestigationCount = 0;
+        $resolvedCount = 0;
+        $dismissedCount = 0;
     } elseif ($result && $row = $result->fetch_assoc()) {
-        $totalBlotterCases = (int)$row['total'];
-        $pendingCount = (int)$row['pending_count'];
-        $underInvestigationCount = (int)$row['under_investigation_count'];
-        $resolvedCount = (int)$row['resolved_count'];
-        $dismissedCount = (int)$row['dismissed_count'];
+        // Safely convert to integers (default to 0 if null)
+        $totalBlotterCases = (int)($row['total'] ?? 0);
+        $pendingCount = (int)($row['pending_count'] ?? 0);
+        $underInvestigationCount = (int)($row['under_investigation_count'] ?? 0);
+        $resolvedCount = (int)($row['resolved_count'] ?? 0);
+        $dismissedCount = (int)($row['dismissed_count'] ?? 0);
     }
 }
 

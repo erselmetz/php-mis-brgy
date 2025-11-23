@@ -1,44 +1,67 @@
 <?php
+/**
+ * Save Resident API Endpoint
+ * 
+ * Handles AJAX requests to save new resident records.
+ * Validates input data and uses prepared statements for security.
+ * Returns JSON response for frontend handling.
+ */
+
 require_once '../../includes/app.php';
 requireStaff(); // Only Staff and Admin can access
 
 header('Content-Type: application/json');
 
+// Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request method.']);
     exit;
 }
 
 try {
-    // Securely collect POST data
+    /**
+     * Define allowed fields to prevent mass assignment vulnerabilities
+     * Only these fields will be processed from POST data
+     */
     $fields = [
         'household_id', 'birthdate', 'first_name', 'middle_name', 'last_name', 'suffix',
         'gender', 'birthplace', 'civil_status', 'religion', 'occupation', 'citizenship',
         'contact_no', 'address', 'voter_status', 'remarks'
     ];
 
+    // Collect and sanitize POST data
     $data = [];
     foreach ($fields as $f) {
         $data[$f] = isset($_POST[$f]) ? trim($_POST[$f]) : null;
     }
 
-    // Basic validation
+    /**
+     * Input Validation
+     * Validate required fields and data formats before database operations
+     */
+    
+    // Required fields validation
     if (empty($data['first_name']) || empty($data['last_name'])) {
         echo json_encode(['status' => 'error', 'message' => 'First and last name are required.']);
         exit;
     }
 
-    if (!empty($data['birthdate']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['birthdate'])) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid birthdate format.']);
+    // Birthdate format validation (YYYY-MM-DD)
+    if (!empty($data['birthdate']) && !validateDateFormat($data['birthdate'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid birthdate format. Use YYYY-MM-DD format.']);
         exit;
     }
 
-    if (!empty($data['contact_no']) && !preg_match('/^09\d{9}$/', $data['contact_no'])) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid contact number format.']);
+    // Philippine phone number validation (09XXXXXXXXX)
+    if (!empty($data['contact_no']) && !validatePhilippinePhone($data['contact_no'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid contact number format. Use 09XXXXXXXXX format.']);
         exit;
     }
 
-    // Insert new record securely using mysqli prepared statements
+    /**
+     * Insert new resident record using prepared statements
+     * Prepared statements prevent SQL injection attacks by separating SQL structure from data
+     */
     $stmt = $conn->prepare("
         INSERT INTO residents (
             household_id, birthdate, first_name, middle_name, last_name, suffix,
@@ -49,10 +72,21 @@ try {
         )
     ");
 
-    // Bind parameters in the correct order
+    if ($stmt === false) {
+        error_log('Resident Save Error - Query preparation failed: ' . $conn->error);
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
+        exit;
+    }
+
+    /**
+     * Bind parameters in the correct order
+     * Parameter types: i = integer, s = string
+     * Order must match the VALUES placeholders in the SQL query
+     */
+    $householdId = !empty($data['household_id']) ? (int)$data['household_id'] : null;
     $stmt->bind_param(
         "isssssssssssssss",
-        $data['household_id'],
+        $householdId,
         $data['birthdate'],
         $data['first_name'],
         $data['middle_name'],
@@ -70,17 +104,23 @@ try {
         $data['remarks']
     );
 
+    // Execute query and handle result
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'Resident saved successfully.']);
     } else {
+        // Log detailed error for debugging (not exposed to user)
         error_log('Resident Save Error: ' . $stmt->error);
-        echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred. Please try again.']);
     }
     
     $stmt->close();
 
 } catch (Exception $e) {
-    // Log error internally (not shown to user)
-    error_log('Resident Save Error: ' . $e->getMessage());
-    echo json_encode(['status' => 'error', 'message' => 'Database error occurred.']);
+    /**
+     * Catch any unexpected errors
+     * Log full error details for debugging but show generic message to user
+     * This prevents exposing sensitive system information
+     */
+    error_log('Resident Save Exception: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+    echo json_encode(['status' => 'error', 'message' => 'An error occurred while saving resident. Please try again.']);
 }

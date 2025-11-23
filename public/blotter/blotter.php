@@ -1,84 +1,138 @@
 <?php
+/**
+ * Blotter Management Page
+ * 
+ * Handles creation and listing of blotter cases.
+ * Only accessible by Tanod and Admin roles.
+ * Uses prepared statements for all database operations.
+ */
+
 require_once '../../includes/app.php';
 requireTanod(); // Only Tanod (and admin) can access
 
-// Handle form submission
+// Initialize message variables
 $success = '';
 $error = '';
 
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action === 'add_blotter') {
-        $complainant_name = trim($_POST['complainant_name'] ?? '');
-        $complainant_address = trim($_POST['complainant_address'] ?? '');
-        $complainant_contact = trim($_POST['complainant_contact'] ?? '');
-        $respondent_name = trim($_POST['respondent_name'] ?? '');
-        $respondent_address = trim($_POST['respondent_address'] ?? '');
-        $respondent_contact = trim($_POST['respondent_contact'] ?? '');
+        /**
+         * Collect and sanitize form data
+         * All inputs are sanitized to prevent XSS and SQL injection
+         */
+        $complainant_name = sanitizeString($_POST['complainant_name'] ?? '', false);
+        $complainant_address = sanitizeString($_POST['complainant_address'] ?? '');
+        $complainant_contact = sanitizeString($_POST['complainant_contact'] ?? '');
+        $respondent_name = sanitizeString($_POST['respondent_name'] ?? '', false);
+        $respondent_address = sanitizeString($_POST['respondent_address'] ?? '');
+        $respondent_contact = sanitizeString($_POST['respondent_contact'] ?? '');
         $incident_date = $_POST['incident_date'] ?? '';
         $incident_time = $_POST['incident_time'] ?? '';
-        $incident_location = trim($_POST['incident_location'] ?? '');
-        $incident_description = trim($_POST['incident_description'] ?? '');
+        $incident_location = sanitizeString($_POST['incident_location'] ?? '', false);
+        $incident_description = sanitizeString($_POST['incident_description'] ?? '', false);
         $status = $_POST['status'] ?? 'pending';
         
-        // Validation
+        /**
+         * Validate required fields
+         * Ensure all critical information is provided
+         */
         if (empty($complainant_name) || empty($respondent_name) || empty($incident_date) || empty($incident_location) || empty($incident_description)) {
             $error = "Please fill in all required fields.";
+        } elseif (!validateDateFormat($incident_date)) {
+            $error = "Invalid incident date format.";
         } else {
-            // Generate case number
+            /**
+             * Generate unique case number
+             * Format: BLT-YYYY-#### (e.g., BLT-2024-0001)
+             * Counts existing cases for the current year and increments
+             */
             $year = date('Y');
             $stmt = $conn->prepare("SELECT COUNT(*) as count FROM blotter WHERE case_number LIKE ?");
-            $pattern = "BLT-$year-%";
-            $stmt->bind_param("s", $pattern);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $row = $result->fetch_assoc();
-            $count = $row['count'] + 1;
-            $case_number = "BLT-$year-" . str_pad($count, 4, '0', STR_PAD_LEFT);
-            
-            // Insert blotter record
-            $stmt = $conn->prepare("
-                INSERT INTO blotter (
-                    case_number, complainant_name, complainant_address, complainant_contact,
-                    respondent_name, respondent_address, respondent_contact,
-                    incident_date, incident_time, incident_location, incident_description,
-                    status, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            
-            $created_by = $_SESSION['user_id'];
-            $stmt->bind_param(
-                "ssssssssssssi",
-                $case_number,
-                $complainant_name,
-                $complainant_address,
-                $complainant_contact,
-                $respondent_name,
-                $respondent_address,
-                $respondent_contact,
-                $incident_date,
-                $incident_time,
-                $incident_location,
-                $incident_description,
-                $status,
-                $created_by
-            );
-            
-            if ($stmt->execute()) {
-                $success = "Blotter case added successfully. Case Number: $case_number";
+            if ($stmt === false) {
+                $error = "Error generating case number. Please try again.";
             } else {
-                $error = "Error adding blotter: " . $stmt->error;
+                $pattern = "BLT-$year-%";
+                $stmt->bind_param("s", $pattern);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $row = $result->fetch_assoc();
+                $count = ($row['count'] ?? 0) + 1;
+                $case_number = "BLT-$year-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $stmt->close();
+                
+                /**
+                 * Validate status value against allowed values
+                 * Prevents invalid status from being stored
+                 */
+                $allowedStatuses = ['pending', 'under_investigation', 'resolved', 'dismissed'];
+                if (!in_array($status, $allowedStatuses)) {
+                    $status = 'pending'; // Default to pending if invalid
+                }
+                
+                /**
+                 * Insert blotter record using prepared statement
+                 * This prevents SQL injection attacks
+                 */
+                $stmt = $conn->prepare("
+                    INSERT INTO blotter (
+                        case_number, complainant_name, complainant_address, complainant_contact,
+                        respondent_name, respondent_address, respondent_contact,
+                        incident_date, incident_time, incident_location, incident_description,
+                        status, created_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                
+                if ($stmt === false) {
+                    error_log('Blotter Insert Error - Query preparation failed: ' . $conn->error);
+                    $error = "Error adding blotter. Please try again.";
+                } else {
+                    $created_by = $_SESSION['user_id'];
+                    $stmt->bind_param(
+                        "ssssssssssssi",
+                        $case_number,
+                        $complainant_name,
+                        $complainant_address,
+                        $complainant_contact,
+                        $respondent_name,
+                        $respondent_address,
+                        $respondent_contact,
+                        $incident_date,
+                        $incident_time,
+                        $incident_location,
+                        $incident_description,
+                        $status,
+                        $created_by
+                    );
+                    
+                    if ($stmt->execute()) {
+                        $success = "Blotter case added successfully. Case Number: " . htmlspecialchars($case_number, ENT_QUOTES, 'UTF-8');
+                    } else {
+                        error_log('Blotter Insert Error: ' . $stmt->error);
+                        $error = "Error adding blotter. Please try again.";
+                    }
+                    $stmt->close();
+                }
             }
-            $stmt->close();
         }
     }
 }
 
-// Fetch all blotter records
+/**
+ * Fetch all blotter records for display
+ * Includes creator name from users table via LEFT JOIN
+ */
+
 $stmt = $conn->prepare("SELECT b.*, u.name as created_by_name FROM blotter b LEFT JOIN users u ON b.created_by = u.id ORDER BY b.created_at DESC");
-$stmt->execute();
-$result = $stmt->get_result();
+if ($stmt === false) {
+    error_log('Blotter List Error - Query preparation failed: ' . $conn->error);
+    $result = false;
+} else {
+    $stmt->execute();
+    $result = $stmt->get_result();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -23,4 +23,9 @@ if ($row = $result->fetch_assoc()) {
 }
 
 $stmt->close();
-$conn->close();
+
+/**
+ * IMPORTANT: Do not close $conn here
+ * It's a shared connection managed by db.php
+ * Closing it would break other operations that use the same connection
+ */

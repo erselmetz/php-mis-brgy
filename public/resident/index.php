@@ -94,7 +94,9 @@ if ($stmt === false) {
   <div id="addResidentModal" title="Add New Resident" class="hidden max-h-[50vh]">
     <form method="POST" class="space-y-3 overflow-y-scroll ">
       <input type="hidden" name="action" value="add_resident">
-      <?php if (isset($error)) echo "<p class='text-red-600 font-medium'>$error</p>"; ?>
+      <?php if (isset($error)): ?>
+        <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+      <?php endif; ?>
 
       <!-- Household -->
       <div>

@@ -16,40 +16,60 @@ $stmt->close();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    /**
+     * CSRF Protection
+     * Validate CSRF token to prevent Cross-Site Request Forgery attacks
+     */
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $error = "Invalid security token. Please refresh the page and try again.";
+    } else {
+        $name = sanitizeString($_POST['name'] ?? '', false);
+        $username = sanitizeString($_POST['username'] ?? '', false);
+        $password = sanitizeString($_POST['password'] ?? '');
     
     // Handle profile picture upload
     $profile_picture = $user['profile_picture']; // Keep existing if not changed
     
+    /**
+     * Handle profile picture upload with security validation
+     * Uses comprehensive file validation to prevent malicious uploads
+     */
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
         $uploadDir = __DIR__ . '/uploads/profiles/';
+        
+        // Create upload directory if it doesn't exist
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
         
-        $file = $_FILES['profile_picture'];
-        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-        $maxSize = 2 * 1024 * 1024; // 2MB
+        // Validate uploaded file using secure validation function
+        $validation = validateUploadedFile(
+            $_FILES['profile_picture'],
+            ['image/jpeg', 'image/png', 'image/gif'], // Allowed MIME types
+            2 * 1024 * 1024, // Max size: 2MB
+            ['jpg', 'jpeg', 'png', 'gif'] // Allowed extensions
+        );
         
-        if (!in_array($file['type'], $allowedTypes)) {
-            $error = "Invalid file type. Only JPEG, PNG, and GIF are allowed.";
-        } elseif ($file['size'] > $maxSize) {
-            $error = "File size exceeds 2MB limit.";
+        if (!$validation['valid']) {
+            $error = $validation['error'];
         } else {
-            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $filename = 'profile_' . $user_id . '_' . time() . '.' . $extension;
+            // Use safe filename from validation
+            $filename = 'profile_' . $user_id . '_' . $validation['safe_filename'];
             $filepath = $uploadDir . $filename;
             
-            if (move_uploaded_file($file['tmp_name'], $filepath)) {
-                // Delete old profile picture if exists
-                if (!empty($user['profile_picture']) && file_exists(__DIR__ . '/uploads/profiles/' . $user['profile_picture'])) {
-                    unlink(__DIR__ . '/uploads/profiles/' . $user['profile_picture']);
+            // Move uploaded file to destination
+            if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $filepath)) {
+                // Delete old profile picture if exists (prevent path traversal)
+                if (!empty($user['profile_picture'])) {
+                    $oldFilePath = $uploadDir . basename($user['profile_picture']); // basename prevents path traversal
+                    if (file_exists($oldFilePath) && is_file($oldFilePath)) {
+                        unlink($oldFilePath);
+                    }
                 }
                 $profile_picture = $filename;
             } else {
-                $error = "Failed to upload profile picture.";
+                error_log('Profile picture upload failed for user ID: ' . $user_id);
+                $error = "Failed to upload profile picture. Please try again.";
             }
         }
     }
@@ -89,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
     }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -118,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data" class="space-y-6">
+          <?= csrfTokenField() ?>
           <!-- Profile Picture Section -->
           <div class="flex items-center space-x-6">
             <div class="flex-shrink-0">

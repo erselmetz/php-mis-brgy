@@ -1,20 +1,34 @@
 <?php
+/**
+ * Update Resident API Endpoint
+ * 
+ * Handles AJAX requests to update existing resident records.
+ * Validates input data and uses prepared statements for security.
+ * Returns JSON response for frontend handling.
+ */
+
 require_once '../../includes/app.php';
 requireLogin();
 
 header('Content-Type: application/json');
 
+// Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
     exit;
 }
 
-$id = intval($_POST['id'] ?? 0);
-if ($id <= 0) {
-    echo json_encode(['success' => false, 'message' => 'Missing ID']);
+// Validate and sanitize resident ID
+$id = sanitizeInt($_POST['id'] ?? 0, 1);
+if (empty($id)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid or missing resident ID.']);
     exit;
 }
 
+/**
+ * Define allowed fields to prevent mass assignment vulnerabilities
+ * Only these fields will be processed from POST data
+ */
 $fields = [
     'household_id', 'first_name', 'middle_name', 'last_name', 'suffix',
     'gender', 'birthdate', 'birthplace', 'civil_status', 'religion',
@@ -22,11 +36,39 @@ $fields = [
     'disability_status', 'remarks'
 ];
 
+// Collect and sanitize POST data
 $data = [];
 foreach ($fields as $field) {
-    $data[$field] = $_POST[$field] ?? null;
+    if ($field === 'household_id') {
+        // Special handling for household_id - can be null
+        $data[$field] = !empty($_POST[$field]) ? sanitizeInt($_POST[$field], 1) : null;
+    } else {
+        $data[$field] = sanitizeString($_POST[$field] ?? null);
+    }
 }
 
+// Validate required fields
+if (empty($data['first_name']) || empty($data['last_name'])) {
+    echo json_encode(['success' => false, 'message' => 'First and last name are required.']);
+    exit;
+}
+
+// Validate birthdate format if provided
+if (!empty($data['birthdate']) && !validateDateFormat($data['birthdate'])) {
+    echo json_encode(['success' => false, 'message' => 'Invalid birthdate format. Use YYYY-MM-DD format.']);
+    exit;
+}
+
+// Validate phone number format if provided
+if (!empty($data['contact_no']) && !validatePhilippinePhone($data['contact_no'])) {
+    echo json_encode(['success' => false, 'message' => 'Invalid contact number format. Use 09XXXXXXXXX format.']);
+    exit;
+}
+
+/**
+ * Update resident record using prepared statement
+ * Prepared statements prevent SQL injection attacks
+ */
 $sql = "UPDATE residents SET
     household_id = ?, first_name = ?, middle_name = ?, last_name = ?, suffix = ?,
     gender = ?, birthdate = ?, birthplace = ?, civil_status = ?, religion = ?,
@@ -34,11 +76,19 @@ $sql = "UPDATE residents SET
     disability_status = ?, remarks = ?
     WHERE id = ?";
 
-if (empty($data['household_id']) || !is_numeric($data['household_id'])) {
-    $data['household_id'] = null;
+$stmt = $conn->prepare($sql);
+
+if ($stmt === false) {
+    error_log('Resident Update Error - Query preparation failed: ' . $conn->error);
+    echo json_encode(['success' => false, 'message' => 'Database error occurred.']);
+    exit;
 }
 
-$stmt = $conn->prepare($sql);
+/**
+ * Bind parameters in the correct order
+ * Parameter types: i = integer, s = string
+ * Order must match the SET placeholders in the SQL query
+ */
 $stmt->bind_param(
     'issssssssssssssssi',
     $data['household_id'],
@@ -61,11 +111,19 @@ $stmt->bind_param(
     $id
 );
 
+// Execute query and handle result
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Resident updated successfully']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Update failed: ' . $conn->error]);
+    // Log error for debugging but don't expose database details to user
+    error_log('Resident Update Error: ' . $stmt->error);
+    echo json_encode(['success' => false, 'message' => 'Update failed. Please try again.']);
 }
 
 $stmt->close();
-$conn->close();
+
+/**
+ * IMPORTANT: Do not close $conn here
+ * It's a shared connection managed by db.php
+ * Closing it would break other operations that use the same connection
+ */

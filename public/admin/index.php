@@ -254,7 +254,9 @@ if ($stmt === false) {
         <form method="POST" class="space-y-4" id="addAccountForm">
             <input type="hidden" name="action" value="add_account">
             <input type="hidden" name="resident_id" id="addResidentId" value="">
-            <?php if (isset($error)) echo "<p class='text-red-600 font-medium'>$error</p>"; ?>
+            <?php if (isset($error)): ?>
+                <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700">Full Name</label>
