@@ -56,7 +56,6 @@ if ($stmt === false) {
               <th class="p-2 text-left">Citizenship</th>
               <th class="p-2 text-left">Contact No</th>
               <th class="p-2 text-left">Address</th>
-              <th class="p-2 text-left">Voter</th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +76,6 @@ if ($stmt === false) {
                 <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['voter_status']); ?></td>
               </tr>
               <?php endwhile; ?>
             <?php else: ?>

@@ -21,13 +21,13 @@ $dismissedCount = 0;
 $totalBlotterCases = 0;
 
 if ($role === 'staff' || $role === 'admin') {
-    /**
-     * Fetch resident statistics using a single optimized query
-     * This query calculates all statistics in one pass for better performance
-     * No user input is used, so prepared statements aren't strictly necessary,
-     * but we use them for consistency and best practices
-     */
-    $sql = "
+  /**
+   * Fetch resident statistics using a single optimized query
+   * This query calculates all statistics in one pass for better performance
+   * No user input is used, so prepared statements aren't strictly necessary,
+   * but we use them for consistency and best practices
+   */
+  $sql = "
         SELECT 
             COUNT(*) AS total,
             SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) AS male_count,
@@ -38,38 +38,38 @@ if ($role === 'staff' || $role === 'admin') {
             SUM(CASE WHEN voter_status = 'No' THEN 1 ELSE 0 END) AS voter_unregistered_count
         FROM residents
     ";
-    
-    // Execute query and handle errors gracefully
-    $result = $conn->query($sql);
-    if ($result === false) {
-        // Log error for debugging but don't expose to user
-        error_log('Dashboard query error: ' . $conn->error);
-        // Set default values to prevent undefined variable errors
-        $totalPopulation = 0;
-        $maleCount = 0;
-        $femaleCount = 0;
-        $seniorCount = 0;
-        $pwdCount = 0;
-        $voter_registered_count = 0;
-        $voter_unregistered_count = 0;
-    } elseif ($result && $row = $result->fetch_assoc()) {
-        // Safely convert to integers (default to 0 if null)
-        $totalPopulation = (int)($row['total'] ?? 0);
-        $maleCount = (int)($row['male_count'] ?? 0);
-        $femaleCount = (int)($row['female_count'] ?? 0);
-        $seniorCount = (int)($row['senior_count'] ?? 0);
-        $pwdCount = (int)($row['pwd_count'] ?? 0);
-        $voter_registered_count = (int)($row['voter_registered_count'] ?? 0);
-        $voter_unregistered_count = (int)($row['voter_unregistered_count'] ?? 0);
-    }
+
+  // Execute query and handle errors gracefully
+  $result = $conn->query($sql);
+  if ($result === false) {
+    // Log error for debugging but don't expose to user
+    error_log('Dashboard query error: ' . $conn->error);
+    // Set default values to prevent undefined variable errors
+    $totalPopulation = 0;
+    $maleCount = 0;
+    $femaleCount = 0;
+    $seniorCount = 0;
+    $pwdCount = 0;
+    $voter_registered_count = 0;
+    $voter_unregistered_count = 0;
+  } elseif ($result && $row = $result->fetch_assoc()) {
+    // Safely convert to integers (default to 0 if null)
+    $totalPopulation = (int)($row['total'] ?? 0);
+    $maleCount = (int)($row['male_count'] ?? 0);
+    $femaleCount = (int)($row['female_count'] ?? 0);
+    $seniorCount = (int)($row['senior_count'] ?? 0);
+    $pwdCount = (int)($row['pwd_count'] ?? 0);
+    $voter_registered_count = (int)($row['voter_registered_count'] ?? 0);
+    $voter_unregistered_count = (int)($row['voter_unregistered_count'] ?? 0);
+  }
 }
 
 if ($role === 'tanod' || $role === 'admin') {
-    /**
-     * Fetch blotter statistics using a single optimized query
-     * Calculates all status counts in one database query for efficiency
-     */
-    $sql = "
+  /**
+   * Fetch blotter statistics using a single optimized query
+   * Calculates all status counts in one database query for efficiency
+   */
+  $sql = "
         SELECT 
             COUNT(*) AS total,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
@@ -78,47 +78,51 @@ if ($role === 'tanod' || $role === 'admin') {
             SUM(CASE WHEN status = 'dismissed' THEN 1 ELSE 0 END) AS dismissed_count
         FROM blotter
     ";
-    
-    // Execute query and handle errors gracefully
-    $result = $conn->query($sql);
-    if ($result === false) {
-        // Log error for debugging but don't expose to user
-        error_log('Blotter dashboard query error: ' . $conn->error);
-        // Set default values to prevent undefined variable errors
-        $totalBlotterCases = 0;
-        $pendingCount = 0;
-        $underInvestigationCount = 0;
-        $resolvedCount = 0;
-        $dismissedCount = 0;
-    } elseif ($result && $row = $result->fetch_assoc()) {
-        // Safely convert to integers (default to 0 if null)
-        $totalBlotterCases = (int)($row['total'] ?? 0);
-        $pendingCount = (int)($row['pending_count'] ?? 0);
-        $underInvestigationCount = (int)($row['under_investigation_count'] ?? 0);
-        $resolvedCount = (int)($row['resolved_count'] ?? 0);
-        $dismissedCount = (int)($row['dismissed_count'] ?? 0);
-    }
+
+  // Execute query and handle errors gracefully
+  $result = $conn->query($sql);
+  if ($result === false) {
+    // Log error for debugging but don't expose to user
+    error_log('Blotter dashboard query error: ' . $conn->error);
+    // Set default values to prevent undefined variable errors
+    $totalBlotterCases = 0;
+    $pendingCount = 0;
+    $underInvestigationCount = 0;
+    $resolvedCount = 0;
+    $dismissedCount = 0;
+  } elseif ($result && $row = $result->fetch_assoc()) {
+    // Safely convert to integers (default to 0 if null)
+    $totalBlotterCases = (int)($row['total'] ?? 0);
+    $pendingCount = (int)($row['pending_count'] ?? 0);
+    $underInvestigationCount = (int)($row['under_investigation_count'] ?? 0);
+    $resolvedCount = (int)($row['resolved_count'] ?? 0);
+    $dismissedCount = (int)($row['dismissed_count'] ?? 0);
+  }
 }
 
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - MIS Barangay</title>
   <?php loadAllStyles(); ?>
+  <?= loadAsset('node_js', 'chart.js/dist/chart.umd.min.js') ?>
+
 </head>
+
 <body class="bg-gray-100">
   <?php include '../layout/navbar.php'; ?>
   <div class="flex bg-gray-100">
     <?php include '../layout/sidebar.php'; ?>
     <main class="p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
-      
+
       <?php if ($role === 'staff' || $role === 'admin'): ?>
         <!-- Staff/Admin Dashboard -->
-        
+
         <!-- Population Report -->
         <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Population Report</h3>
@@ -154,6 +158,13 @@ if ($role === 'tanod' || $role === 'admin') {
               </div>
             </div>
           </div>
+          <!-- Gender Chart -->
+          <div class="bg-white p-6 shadow-sm rounded-xl my-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Population Overview (Graph)</h3>
+            <div class="relative" style="min-height:200px;">
+              <canvas id="genderChart"></canvas>
+            </div>
+          </div>
         </div>
 
         <!-- Senior Citizen / PWD -->
@@ -178,6 +189,18 @@ if ($role === 'tanod' || $role === 'admin') {
               <div class="ml-4">
                 <p class="text-sm text-gray-500">PWDs</p>
                 <h2 class="text-2xl font-bold text-gray-800"><?= $pwdCount ?></h2>
+              </div>
+            </div>
+          </div>
+          <!-- Senior & PWD Charts: separate Senior vs Non-Senior and PWD vs Non-PWD -->
+          <div class="bg-white p-6 shadow-sm rounded-xl my-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Seniors & PWD Overview (Graphs)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="relative" style="min-height:160px;">
+                <canvas id="seniorChart"></canvas>
+              </div>
+              <div class="relative" style="min-height:160px;">
+                <canvas id="pwdChart"></canvas>
               </div>
             </div>
           </div>
@@ -208,10 +231,17 @@ if ($role === 'tanod' || $role === 'admin') {
               </div>
             </div>
           </div>
+          <!-- Voter Chart -->
+          <div class="bg-white p-6 shadow-sm rounded-xl my-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Voter Registration (Graph)</h3>
+            <div class="relative" style="min-height:160px;">
+              <canvas id="voterChart"></canvas>
+            </div>
+          </div>
         </div>
-        
+
       <?php endif; ?>
-      
+
       <?php if ($role === 'tanod' || $role === 'admin'): ?>
         <!-- Tanod Dashboard -->
         <div class="bg-white p-6 shadow-sm rounded-xl mb-6 border border-gray-200">
@@ -269,6 +299,13 @@ if ($role === 'tanod' || $role === 'admin') {
             </div>
           </div>
         </div>
+        <!-- Blotter Chart -->
+        <div class="bg-white p-6 shadow-sm rounded-xl my-6 border border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Blotter Cases Overview (Graph)</h3>
+          <div class="relative" style="min-height:200px;">
+            <canvas id="blotterChart"></canvas>
+          </div>
+        </div>
       <?php endif; ?>
     </main>
   </div>
@@ -303,19 +340,23 @@ if ($role === 'tanod' || $role === 'admin') {
           'ui-dialog-title': 'font-semibold',
           'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
         },
-        position: { my: "center", at: "center", of: window }
+        position: {
+          my: "center",
+          at: "center",
+          of: window
+        }
       });
 
       // Handle card clicks
       $('[data-filter]').on('click', function() {
         const filter = $(this).data('filter');
         const role = '<?= $role ?>';
-        
+
         // Skip non-clickable cards
         if (!$(this).hasClass('cursor-pointer')) {
           return;
         }
-        
+
         loadFilteredData(filter, role);
       });
 
@@ -323,11 +364,13 @@ if ($role === 'tanod' || $role === 'admin') {
         // Show loading
         $("#dataDialog").dialog("open");
         $("#dataTableContainer").html('<div class="text-center p-8">Loading data...</div>');
-        
+
         $.ajax({
           url: '/api/dashboard_data.php',
           method: 'GET',
-          data: { filter: filter },
+          data: {
+            filter: filter
+          },
           dataType: 'json',
           success: function(response) {
             console.log('API Response:', response);
@@ -370,14 +413,14 @@ if ($role === 'tanod' || $role === 'admin') {
             $("#dataTableContainer").html('<div class="text-center p-8 text-gray-500">No data found for this filter.</div>');
             return;
           }
-          
+
           // Determine data type based on the first item's structure
           const isBlotterData = data[0].hasOwnProperty('case_number') || data[0].hasOwnProperty('complainant_name');
           const isResidentData = data[0].hasOwnProperty('first_name') || data[0].hasOwnProperty('last_name');
-          
+
           let headers = [];
           let tableHtml = '<table id="dataTable" class="display w-full text-sm"><thead><tr>';
-          
+
           if (isBlotterData) {
             // Blotter data
             headers = ['Case Number', 'Complainant', 'Respondent', 'Incident Date', 'Location', 'Status'];
@@ -391,9 +434,9 @@ if ($role === 'tanod' || $role === 'admin') {
             $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">Unknown data format.</div>');
             return;
           }
-          
+
           tableHtml += '</tr></thead><tbody>';
-          
+
           data.forEach(function(item) {
             tableHtml += '<tr>';
             if (isBlotterData) {
@@ -414,17 +457,21 @@ if ($role === 'tanod' || $role === 'admin') {
             }
             tableHtml += '</tr>';
           });
-          
+
           tableHtml += '</tbody></table>';
           $("#dataTableContainer").html(tableHtml);
-          
+
           // Initialize DataTable
           if ($.fn.DataTable.isDataTable('#dataTable')) {
             $('#dataTable').DataTable().destroy();
           }
           $('#dataTable').DataTable({
             pageLength: 25,
-            order: isBlotterData ? [[0, 'desc']] : [[0, 'asc']]
+            order: isBlotterData ? [
+              [0, 'desc']
+            ] : [
+              [0, 'asc']
+            ]
           });
         } catch (error) {
           console.error('Error displaying data:', error);
@@ -464,7 +511,211 @@ if ($role === 'tanod' || $role === 'admin') {
         }
         return age;
       }
+
+      // Charts: clean, responsive, and re-usable
+      (function initCharts() {
+        const pageRole = <?= json_encode($role) ?>;
+        const population = {
+          total: <?= json_encode($totalPopulation) ?>,
+          male: <?= json_encode($maleCount) ?>,
+          female: <?= json_encode($femaleCount) ?>,
+          senior: <?= json_encode($seniorCount) ?>,
+          pwd: <?= json_encode($pwdCount) ?>,
+          voter_registered: <?= json_encode($voter_registered_count) ?>,
+          voter_unregistered: <?= json_encode($voter_unregistered_count) ?>
+        };
+
+        const blotter = {
+          total: <?= json_encode($totalBlotterCases) ?>,
+          pending: <?= json_encode($pendingCount) ?>,
+          under_investigation: <?= json_encode($underInvestigationCount) ?>,
+          resolved: <?= json_encode($resolvedCount) ?>,
+          dismissed: <?= json_encode($dismissedCount) ?>
+        };
+
+        const charts = {};
+
+        function createOrUpdateChart(key, ctx, config) {
+          if (!ctx) return null;
+          if (charts[key]) {
+            try { charts[key].destroy(); } catch (e) { console.warn('Chart destroy error', e); }
+          }
+          charts[key] = new Chart(ctx, config);
+          return charts[key];
+        }
+
+        function renderGenderChart() {
+          const el = document.getElementById('genderChart');
+          if (!el) return;
+          const ctx = el.getContext('2d');
+          const others = Math.max(0, population.total - population.male - population.female);
+          const labels = others > 0 ? ['Male', 'Female', 'Others'] : ['Male', 'Female'];
+          const data = others > 0 ? [population.male, population.female, others] : [population.male, population.female];
+
+          const config = {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: ['#3b82f6', '#ec4899', '#6b7280']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { mode: 'index' }
+              },
+              animation: { duration: 400 }
+            }
+          };
+
+          createOrUpdateChart('genderChart', ctx, config);
+        }
+
+        function renderBlotterChart() {
+          const el = document.getElementById('blotterChart');
+          if (!el) return;
+          const ctx = el.getContext('2d');
+          const labels = ['Pending', 'Under Investigation', 'Resolved', 'Dismissed'];
+          const data = [blotter.pending, blotter.under_investigation, blotter.resolved, blotter.dismissed];
+
+          const config = {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Cases',
+                data: data,
+                backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#9ca3af']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { mode: 'index' } },
+              scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+              },
+              animation: { duration: 400 }
+            }
+          };
+
+          createOrUpdateChart('blotterChart', ctx, config);
+        }
+
+        function renderSeniorChart() {
+          const el = document.getElementById('seniorChart');
+          if (!el) return;
+          const ctx = el.getContext('2d');
+          const seniors = population.senior || 0;
+          const nonSeniors = Math.max(0, (population.total || 0) - seniors);
+
+          const labels = ['Senior', 'Non-Senior'];
+          const data = [seniors, nonSeniors];
+
+          const config = {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: ['#7c3aed', '#06b6d4', '#9ca3af']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+              animation: { duration: 300 }
+            }
+          };
+
+          createOrUpdateChart('seniorChart', ctx, config);
+        }
+
+        function renderPwdChart() {
+          const el = document.getElementById('pwdChart');
+          if (!el) return;
+          const ctx = el.getContext('2d');
+          const pwds = population.pwd || 0;
+          const nonPwds = Math.max(0, (population.total || 0) - pwds);
+
+          const labels = ['PWD', 'Non-PWD'];
+          const data = [pwds, nonPwds];
+
+          const config = {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: ['#06b6d4', '#d1d5db']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+              animation: { duration: 300 }
+            }
+          };
+
+          createOrUpdateChart('pwdChart', ctx, config);
+        }
+
+        function renderVoterChart() {
+          const el = document.getElementById('voterChart');
+          if (!el) return;
+          const ctx = el.getContext('2d');
+          const reg = population.voter_registered || 0;
+          const unreg = population.voter_unregistered || 0;
+          const others = Math.max(0, population.total - reg - unreg);
+
+          const labels = ['Registered', 'Unregistered', 'Others'];
+          const data = [reg, unreg, others];
+
+          const config = {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: ['#4f46e5', '#ef4444', '#6b7280']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+              animation: { duration: 300 }
+            }
+          };
+
+          createOrUpdateChart('voterChart', ctx, config);
+        }
+
+        // Render charts based on role and DOM presence
+        try {
+          if (document.getElementById('genderChart') && (pageRole === 'staff' || pageRole === 'admin')) {
+            renderGenderChart();
+            renderSeniorChart();
+            renderPwdChart();
+            renderVoterChart();
+          }
+
+          if (document.getElementById('blotterChart') && (pageRole === 'tanod' || pageRole === 'admin')) {
+            renderBlotterChart();
+          }
+        } catch (e) {
+          console.error('Chart render error', e);
+        }
+      })();
     });
   </script>
 </body>
+
 </html>

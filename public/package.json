@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@tailwindcss/cli": "^4.1.14",
+    "chart.js": "^4.5.1",
     "datatables.net": "^2.3.4",
     "datatables.net-dt": "^2.3.4",
     "datatables.net-jqui": "^2.3.4",
