@@ -39,6 +39,3 @@ Quick setup
 Notes
 - Keep `config.php` out of public/remote repositories if it contains secrets.
 - See `public/docs/` for API documentation and version history.
-
-Need more?
-- I can expand this README with deployment steps for XAMPP/WAMP/Docker, sample credentials, or contribution guidelines — tell me which you'd like.
