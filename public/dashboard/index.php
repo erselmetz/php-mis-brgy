@@ -384,8 +384,8 @@ if ($role === 'tanod' || $role === 'admin') {
             tableHtml += '<th>Case Number</th><th>Complainant</th><th>Respondent</th><th>Incident Date</th><th>Location</th><th>Status</th>';
           } else if (isResidentData) {
             // Resident data
-            headers = ['Name', 'Gender', 'Birthdate', 'Age', 'Address', 'Contact', 'Voter Status'];
-            tableHtml += '<th>Name</th><th>Gender</th><th>Birthdate</th><th>Age</th><th>Address</th><th>Contact</th><th>Voter Status</th>';
+            headers = ['Name', 'Gender', 'Birthdate', 'Age', 'Address', 'Contact'];
+            tableHtml += '<th>Name</th><th>Gender</th><th>Birthdate</th><th>Age</th><th>Address</th><th>Contact</th>';
           } else {
             console.error('Unknown data type:', data[0]);
             $("#dataTableContainer").html('<div class="text-center p-8 text-red-500">Unknown data format.</div>');
@@ -397,7 +397,7 @@ if ($role === 'tanod' || $role === 'admin') {
           data.forEach(function(item) {
             tableHtml += '<tr>';
             if (isBlotterData) {
-              tableHtml += '<td><a href="/blotter/view?id=' + item.id + '" class="text-blue-600 hover:underline">' + escapeHtml(item.case_number || '') + '</a></td>';
+              tableHtml += '<td><a href="/blotter/view.php?id=' + item.id + '" class="text-blue-600 hover:underline">' + escapeHtml(item.case_number || '') + '</a></td>';
               tableHtml += '<td>' + escapeHtml(item.complainant_name || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.respondent_name || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.incident_date || '') + '</td>';
@@ -405,13 +405,12 @@ if ($role === 'tanod' || $role === 'admin') {
               tableHtml += '<td><span class="px-2 py-1 rounded text-xs font-semibold ' + getStatusClass(item.status) + '">' + escapeHtml((item.status || '').replace('_', ' ')) + '</span></td>';
             } else if (isResidentData) {
               const fullName = escapeHtml((item.first_name || '') + ' ' + (item.middle_name || '') + ' ' + (item.last_name || '') + ' ' + (item.suffix || '')).trim();
-              tableHtml += '<td><a href="/resident/view?id=' + item.id + '" class="text-blue-600 hover:underline">' + fullName + '</a></td>';
+              tableHtml += '<td><a href="/resident/view.php?id=' + item.id + '" class="text-blue-600 hover:underline">' + fullName + '</a></td>';
               tableHtml += '<td>' + escapeHtml(item.gender || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.birthdate || '') + '</td>';
               tableHtml += '<td>' + calculateAge(item.birthdate) + '</td>';
               tableHtml += '<td>' + escapeHtml(item.address || '') + '</td>';
               tableHtml += '<td>' + escapeHtml(item.contact_no || '') + '</td>';
-              tableHtml += '<td>' + escapeHtml(item.voter_status || '') + '</td>';
             }
             tableHtml += '</tr>';
           });
