@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['role'] = $user['role'];
                         
                         // Redirect to dashboard after successful login
-                        header("Location: /dashboard");
+                        header("Location: /dashboard/");
                         exit;
                     }
                 } else {
@@ -73,47 +73,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MIS Barangay - Login</title>
+  <link rel="icon" type="image/x-icon" href="/assets/images/logo.ico">
   <?php loadAllAssets(); ?>
+  <style>
+    .login-bg {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    }
+    .login-form-container {
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .logo-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100 widget">
 
   <section class="min-h-screen flex flex-col lg:flex-row">
-    <!-- Left: Landing info -->
-    <div class="lg:w-2/3 bg-blue-700 text-white p-12 flex flex-col justify-center">
-      <h1 class="text-5xl font-bold mb-6">MIS Barangay</h1>
-      <p class="text-lg max-w-2xl mb-10">
-        A simple and efficient barangay management information system for handling residents, households,
-        certificates, and more.
-      </p>
-      <img src="assets/images/barangay.jpg" alt="Barangay" class="rounded-lg shadow-lg w-3/4">
+    <!-- Left: Landing info with Barangay Hall Image -->
+    <div class="lg:w-2/3 login-bg text-white p-8 lg:p-12 flex flex-col justify-center relative overflow-hidden">
+      <div class="relative z-10">
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-4 mb-6">
+          <img src="/assets/images/logo.ico" alt="Barangay Logo" class="w-16 h-16 object-contain bg-white rounded-lg p-2 shadow-lg">
+          <div>
+            <h1 class="text-4xl lg:text-5xl font-bold">MIS Barangay</h1>
+            <p class="text-blue-200 text-sm lg:text-base">Barangay Bombongan</p>
+          </div>
+        </div>
+        
+        <p class="text-lg lg:text-xl max-w-2xl mb-8 text-blue-100 leading-relaxed">
+          A comprehensive and efficient barangay management information system for handling residents, households,
+          certificates, and more. Streamline your barangay operations with ease.
+        </p>
+        
+        <!-- Barangay Hall Image -->
+        <div class="mt-8">
+          <img src="/assets/images/brgy-hall.jpg" alt="Barangay Hall" class="rounded-xl shadow-2xl w-full max-w-2xl object-cover" style="max-height: 400px;">
+        </div>
+      </div>
+      
+      <!-- Decorative background elements -->
+      <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full opacity-20 blur-3xl"></div>
+      <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
     </div>
 
-    <!-- Right: Login -->
-    <div class="lg:w-1/3 flex items-center justify-center p-8 bg-white shadow-lg">
+    <!-- Right: Login Form -->
+    <div class="lg:w-1/3 flex items-center justify-center p-8 login-form-container shadow-2xl">
       <form method="POST" class="w-full max-w-sm">
-        <h2 class="text-3xl font-bold mb-6 text-center text-blue-700">System Login</h2>
+        <!-- Logo in Login Form -->
+        <div class="text-center mb-6">
+          <img src="/assets/images/logo.ico" alt="Logo" class="w-20 h-20 mx-auto mb-4 object-contain bg-white rounded-lg p-2 shadow-md">
+          <h2 class="text-3xl font-bold text-blue-700">System Login</h2>
+          <p class="text-gray-600 text-sm mt-2">Enter your credentials to access</p>
+        </div>
 
         <?php if (!empty($error)): ?>
-          <div class="bg-red-100 text-red-700 p-2 rounded mb-4 text-center"><?= $error ?></div>
+          <div class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center border border-red-300">
+            <span class="font-medium"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></span>
+          </div>
           <?= AlertMessage($error, "Error"); ?>
         <?php endif; ?>
 
-        <div class="mb-4">
-          <label class="block text-gray-700 mb-2">Username</label>
-          <input type="text" name="username" required class="w-full p-2 border rounded">
+        <div class="mb-5">
+          <label class="block text-gray-700 font-medium mb-2">Username</label>
+          <input type="text" name="username" required 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none">
         </div>
 
         <div class="mb-6">
-          <label class="block text-gray-700 mb-2">Password</label>
-          <input type="password" name="password" required class="w-full p-2 border rounded">
+          <label class="block text-gray-700 font-medium mb-2">Password</label>
+          <input type="password" name="password" required 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none">
         </div>
 
-        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+        <button type="submit" 
+                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
           Login
         </button>
-        <hr class="my-6">
+        
+        <hr class="my-6 border-gray-300">
+        
         <!-- show error message -->
         <?php if (isset($_GET['error'])): ?>
           <div class="mb-4 p-3 rounded-lg border border-red-300 bg-red-50 text-red-700 flex items-center space-x-2">

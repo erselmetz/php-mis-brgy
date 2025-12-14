@@ -5,7 +5,7 @@
             🏠 Dashboard
         </a>
         
-        <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff"): ?>
+        <?php if ($_SESSION['role'] == "admin" || $_SESSION['role'] == "staff" || $_SESSION['kagawad']): ?>
             <a href="/resident/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 ">
                 👥 Residents
             </a>
@@ -34,10 +34,5 @@
         </a>
         
         <hr class="my-2 border-gray-300">
-        
-        
-        <div class="px-3 py-1 text-xs text-gray-500">
-            Version: <span class="font-semibold"><a href="/docs" class="px-3 py-2 rounded-md text-gray-700 hover:text-blue-500">v1.2.0</a></span>
-        </div>
     </nav>
 </aside>

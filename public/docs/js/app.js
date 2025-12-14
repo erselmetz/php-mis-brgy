@@ -1,58 +1,16 @@
 // Documentation System JavaScript
 class DocumentationSystem {
     constructor() {
-        this.currentVersion = 'v1.2.0';
-        this.versions = {};
         this.currentSection = 'overview';
         this.init();
     }
 
     async init() {
-        await this.loadVersions();
         this.setupEventListeners();
-        this.loadContent(this.currentVersion);
-    }
-
-    async loadVersions() {
-        try {
-            const response = await fetch('data/versions.json');
-            this.versions = await response.json();
-            this.populateVersionSelector();
-        } catch (error) {
-            console.error('Error loading versions:', error);
-            // Fallback to default version
-            this.versions = {
-                'v1.0.0': {
-                    date: '2024-01-01',
-                    time: '00:00:00',
-                    description: 'Initial Release'
-                }
-            };
-        }
-    }
-
-    populateVersionSelector() {
-        const select = document.getElementById('versionSelect');
-        select.innerHTML = '';
-        
-        Object.keys(this.versions).sort().reverse().forEach(version => {
-            const option = document.createElement('option');
-            option.value = version;
-            option.textContent = `${version} - ${this.versions[version].description}`;
-            if (version === this.currentVersion) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
+        await this.loadContent();
     }
 
     setupEventListeners() {
-        // Version selector
-        document.getElementById('versionSelect').addEventListener('change', (e) => {
-            this.currentVersion = e.target.value;
-            this.loadContent(this.currentVersion);
-        });
-
         // Navigation links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -74,12 +32,11 @@ class DocumentationSystem {
         });
     }
 
-    async loadContent(version) {
+    async loadContent() {
         try {
-            const response = await fetch(`data/${version}.json`);
+            const response = await fetch('data/documentation.json');
             const data = await response.json();
             
-            this.updateVersionInfo(data);
             this.renderContent(data);
             this.updateNavigation(data.sections);
         } catch (error) {
@@ -87,15 +44,6 @@ class DocumentationSystem {
             document.getElementById('contentArea').innerHTML = 
                 '<div class="error">Error loading documentation. Please try again later.</div>';
         }
-    }
-
-    updateVersionInfo(data) {
-        document.getElementById('currentVersion').textContent = this.currentVersion;
-        document.getElementById('versionDate').textContent = data.date || this.versions[this.currentVersion]?.date || 'N/A';
-        document.getElementById('lastUpdated').textContent = 
-            `${data.date || 'N/A'} ${data.time || this.versions[this.currentVersion]?.time || '00:00:00'}`;
-        // Update page title
-        document.title = `MIS Barangay - Documentation ${this.currentVersion}`;
     }
 
     updateNavigation(sections) {
@@ -275,4 +223,3 @@ class DocumentationSystem {
 document.addEventListener('DOMContentLoaded', () => {
     new DocumentationSystem();
 });
-

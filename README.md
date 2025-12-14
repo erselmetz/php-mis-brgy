@@ -10,7 +10,7 @@ Main features
 - Blotter entries (log, view, and print incidents)
 - Certificate requests and printing
 - Basic user authentication and admin pages
-- Versioned API and documentation in `public/docs/`
+- API and documentation in `public/docs/`
 
 Repository structure (important folders/files)
 - `public/` — web root (views, assets, APIs)
@@ -38,7 +38,7 @@ Quick setup
 
 Notes
 - Keep `config.php` out of public/remote repositories if it contains secrets.
-- See `public/docs/` for API documentation and version history.
+- See `public/docs/` for API documentation.
 
 Need more?
 - I can expand this README with deployment steps for XAMPP/WAMP/Docker, sample credentials, or contribution guidelines — tell me which you'd like.
