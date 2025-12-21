@@ -11,5 +11,9 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.11"
+  },
+  "scripts": {
+    "dev": "tailwindcss -i ./assets/css/input.css -o ./assets/css/style.css --watch",
+    "build": "tailwindcss -i ./assets/css/input.css -o ./assets/css/style.css --minify"
   }
 }

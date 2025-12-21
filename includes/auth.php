@@ -31,9 +31,9 @@ function requireLogin() {
 function requireAdmin() {
     requireLogin(); // First check if user is logged in
     
-    if ($_SESSION['role'] !== 'admin') {
-        // Non-admin users are redirected to dashboard
-        header("Location: /dashboard");
+    if ($_SESSION['role'] !== 'secretary') {
+        // Non-secretary users are redirected to dashboard
+        header("Location: ../public/navigator.php");
         exit();
     }
 }

@@ -77,7 +77,7 @@ function loadAllScripts()
             'jquery-ui/dist/jquery-ui.js',
             'datatables.net/js/dataTables.js',
         ],
-        'js' => ['tailwindcss.js', 'app.js'],
+        'js' => ['tailwindcss.js', 'app.js','theme.js'],
     ]);
 }
 
@@ -120,7 +120,7 @@ function AlertMessage($message, $title = "Alert")
                         resizable: false,
                         classes: {
                             'ui-dialog': 'rounded-lg shadow-lg',
-                            'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
+                            'ui-dialog-titlebar': 'bg-green-600 text-white rounded-t-lg',
                             'ui-dialog-title': 'font-semibold',
                             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
                         },
@@ -130,8 +130,8 @@ function AlertMessage($message, $title = "Alert")
                                 $(this).remove();
                             }
                         },
-                        open: function() {
-                            $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+                            open: function() {
+                            $('.ui-dialog-buttonpane button').addClass('bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded');
                         }
                     });
                 });
@@ -167,7 +167,7 @@ function DialogMessage($message, $title = "Message")
                         resizable: false,
                         classes: {
                             'ui-dialog': 'rounded-lg shadow-lg',
-                            'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
+                            'ui-dialog-titlebar': 'bg-green-600 text-white rounded-t-lg',
                             'ui-dialog-title': 'font-semibold',
                             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
                         },
@@ -177,9 +177,9 @@ function DialogMessage($message, $title = "Message")
                                 $(this).remove();
                             }
                         },
-                        open: function() {
-                            $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
-                        }
+                            open: function() {
+                    $('.ui-dialog-buttonpane button').addClass('bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded');
+                }
                     });
                 });
             </script>";
@@ -238,7 +238,7 @@ function showDialogReloadScript()
                 resizable: false,
                 classes: {
                     'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-blue-600 text-white rounded-t-lg',
+                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
                     'ui-dialog-title': 'font-semibold',
                     'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
                 },
@@ -250,7 +250,7 @@ function showDialogReloadScript()
                     }
                 },
                 open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded');
+                    $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded');
                 }
             });
         }

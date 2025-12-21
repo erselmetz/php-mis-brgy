@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['name'] = $user['name'];
                         $_SESSION['role'] = $user['role'];
                         
-                        // Redirect to dashboard after successful login
-                        header("Location: /dashboard/");
+                        // Redirect to central navigator after successful login
+                        header("Location: /navigator.php");
                         exit;
                     }
                 } else {
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php loadAllAssets(); ?>
   <style>
     .login-bg {
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      background: linear-gradient(135deg, var(--theme-color-6) 0%, var(--theme-secondary) 100%);
     }
     .login-form-container {
       background: rgba(255, 255, 255, 0.98);
@@ -110,11 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <img src="/assets/images/logo.ico" alt="Barangay Logo" class="w-16 h-16 object-contain bg-white rounded-lg p-2 shadow-lg">
           <div>
             <h1 class="text-4xl lg:text-5xl font-bold">MIS Barangay</h1>
-            <p class="text-blue-200 text-sm lg:text-base">Barangay Bombongan</p>
+            <p class="text-theme-accent text-sm lg:text-base">Barangay Bombongan</p>
           </div>
         </div>
         
-        <p class="text-lg lg:text-xl max-w-2xl mb-8 text-blue-100 leading-relaxed">
+        <p class="text-lg lg:text-xl max-w-2xl mb-8 text-theme-accent leading-relaxed">
           A comprehensive and efficient barangay management information system for handling residents, households,
           certificates, and more. Streamline your barangay operations with ease.
         </p>
@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       
       <!-- Decorative background elements -->
-      <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full opacity-20 blur-3xl"></div>
-      <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
+      <div class="absolute top-0 right-0 w-64 h-64 bg-theme-primary rounded-full opacity-20 blur-3xl"></div>
+      <div class="absolute bottom-0 left-0 w-48 h-48 bg-theme-primary rounded-full opacity-20 blur-3xl"></div>
     </div>
 
     <!-- Right: Login Form -->
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Logo in Login Form -->
         <div class="text-center mb-6">
           <img src="/assets/images/logo.ico" alt="Logo" class="w-20 h-20 mx-auto mb-4 object-contain bg-white rounded-lg p-2 shadow-md">
-          <h2 class="text-3xl font-bold text-blue-700">System Login</h2>
+          <h2 class="text-3xl font-bold text-theme-accent">System Login</h2>
           <p class="text-gray-600 text-sm mt-2">Enter your credentials to access</p>
         </div>
 
@@ -150,17 +150,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="mb-5">
           <label class="block text-gray-700 font-medium mb-2">Username</label>
           <input type="text" name="username" required 
-                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none">
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary focus:border-theme-primary transition outline-none">
         </div>
 
         <div class="mb-6">
           <label class="block text-gray-700 font-medium mb-2">Password</label>
           <input type="password" name="password" required 
-                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition outline-none">
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary focus:border-theme-primary transition outline-none">
         </div>
 
         <button type="submit" 
-                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                class="w-full bg-theme-primary text-white py-3 rounded-lg hover-theme-darker transition font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
           Login
         </button>
         

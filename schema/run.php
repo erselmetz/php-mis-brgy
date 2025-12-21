@@ -26,7 +26,7 @@ if (!$isCLI) {
     echo "<style>body{font-family:monospace;padding:20px;background:#f5f5f5;}";
     echo ".section{margin:20px 0;padding:15px;background:white;border-radius:5px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}";
     echo ".success{color:#10b981;} .error{color:#ef4444;} .warning{color:#f59e0b;}";
-    echo ".migration{padding:10px;margin:5px 0;background:#f9fafb;border-left:3px solid #3b82f6;}";
+    echo ".migration{padding:10px;margin:5px 0;background:#f9fafb;border-left:3px solid #446c3e;}";
     echo "pre{background:#1f2937;color:#f9fafb;padding:15px;border-radius:5px;overflow-x:auto;}</style></head><body>";
     echo "<h1>🚀 Database Migration Runner</h1>";
     echo "<p><a href='/admin/account'>← Back to Admin</a></p>";
