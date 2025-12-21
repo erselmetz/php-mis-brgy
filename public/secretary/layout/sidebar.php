@@ -21,6 +21,14 @@
             📝 Blotter
         </a>
 
+        <a href="/secretary/events-scheduling" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+            📅 Events & Scheduling
+        </a>
+
+        <a href="/secretary/inventory" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+            📁 Inventory
+        </a>
+
         <a href="/secretary/profile" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             ⚙️ Settings
         </a>

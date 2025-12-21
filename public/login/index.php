@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 
-<body class="bg-gray-100 widget">
+<body class="bg-gray-100 widget" style="display: none;">
 
   <section class="min-h-screen flex flex-col lg:flex-row">
     <!-- Left: Landing info with Barangay Hall Image -->
@@ -175,6 +175,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </form>
     </div>
   </section>
+  <script>
+    $(document).ready(function() {
+      $('body').show();
+    });
+  </script>
 </body>
 
 </html>

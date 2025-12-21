@@ -37,7 +37,7 @@ if ($stmt === false) {
       <!-- ✅ Add Button -->
       <div class="p-6">
         <button id="openResidentModalBtn"
-          class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
+          class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
           ➕ Add Resident
         </button>
       </div>
@@ -61,22 +61,22 @@ if ($stmt === false) {
           <tbody>
             <?php if ($result !== false): ?>
               <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td class="p-2">
+                <tr>
+                  <td class="p-2">
                     <a href="view.php?id=<?= $row['id']; ?>" class="text-theme-accent hover:underline">
-                    <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
-                  </a>
-                </td>
-                <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
-                <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-              </tr>
+                      <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
+                    </a>
+                  </td>
+                  <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
+                </tr>
               <?php endwhile; ?>
             <?php else: ?>
               <tr>
@@ -85,6 +85,9 @@ if ($stmt === false) {
             <?php endif; ?>
           </tbody>
         </table>
+      </div>
+      <div class="flex justify-end mt-6">
+        <button id="archiveResidentsBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">Residence Archive</button>
       </div>
     </main>
   </div>
@@ -241,6 +244,68 @@ if ($stmt === false) {
         </button>
       </div>
     </form>
+    <!-- archive modal -->
+    <div id="archivedResidentsDialog" title="Archived Residents" class="hidden">
+
+      <!-- Search -->
+      <div class="p-4 border-b">
+        <div class="relative">
+          <input
+            type="text"
+            placeholder="Search archived residents..."
+            class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none" />
+          <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="p-4 overflow-auto max-h-[360px]">
+        <table class="w-full text-sm border-collapse">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 text-left">ID</th>
+              <th class="p-2 text-left">Full Name</th>
+              <th class="p-2 text-left">Date Archived</th>
+              <th class="p-2 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <tr>
+              <td class="p-2 font-semibold">042</td>
+              <td class="p-2">Juan Tamad</td>
+              <td class="p-2">2023-10-01</td>
+              <td class="p-2 text-center">
+                <button class="restore-btn">Restore</button>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="p-2 font-semibold">089</td>
+              <td class="p-2">Maria Clara</td>
+              <td class="p-2">2023-11-12</td>
+              <td class="p-2 text-center">
+                <button class="restore-btn">Restore</button>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="p-2 font-semibold">105</td>
+              <td class="p-2">Pedro Penduko</td>
+              <td class="p-2">2023-12-05</td>
+              <td class="p-2 text-center">
+                <button class="restore-btn">Restore</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-4 py-2 text-xs text-gray-500 border-t">
+        Showing 3 of 3 archived residents
+      </div>
+
+    </div>
 
   </div>
   <script>
@@ -268,12 +333,33 @@ if ($stmt === false) {
           effect: "fadeOut",
           duration: 200
         },
-          open: function() {
+        open: function() {
           $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
         }
       });
+
       $("#openResidentModalBtn").on("click", function() {
         $("#addResidentModal").dialog("open");
+      });
+
+
+      $("#archivedResidentsDialog").dialog({
+        autoOpen: false,
+        modal: true,
+        width: 500,
+        resizable: false,
+        draggable: true,
+        classes: {
+          "ui-dialog": "rounded-lg shadow-xl",
+          "ui-dialog-title": "font-semibold text-sm",
+          "ui-dialog-buttonpane": "hidden"
+        }
+      });
+
+      // example open
+      // $("#archivedResidentsDialog").dialog("open");
+      $("#archiveResidentsBtn").on("click", function() {
+        $("#archivedResidentsDialog").dialog("open");
       });
     })
   </script>

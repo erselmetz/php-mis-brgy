@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* ===== THEME UTILITIES ===== */
+.bg-theme-primary {
+  background-color: var(--theme-primary);
+}
+
+.text-theme-primary {
+  color: var(--theme-primary);
+}
+
+.border-theme-primary {
+  border-color: var(--theme-primary);
+}
+
+/* darker hover */
+.hover-theme-darker:hover {
+  filter: brightness(0.9);
+}
+/* Force theme color on jQuery UI dialog titlebar */
+.ui-dialog .ui-dialog-titlebar {
+  background-color: var(--theme-primary) !important;
+  color: white;
+  border: none;
+}
+
+/* Hover darkening */
+.ui-dialog .ui-dialog-titlebar:hover {
+  filter: brightness(0.9);
+}
+
