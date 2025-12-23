@@ -26,13 +26,14 @@ if ($stmt === false) {
   <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
 
   <?php include_once '../layout/navbar.php'; ?>
 
-  <div class="flex bg-gray-100">
+  <div class="flex h-full bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
-    <main class="p-6 w-screen">
+    
+    <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
       <div class="p-6">

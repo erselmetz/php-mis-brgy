@@ -12,13 +12,13 @@ requireAdmin();
     echo showDialogReloadScript(); ?>
 </head>
 
-<body class="bg-gray-100" style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
     <?php include '../layout/navbar.php'; ?>
 
-    <div class="flex bg-gray-100">
+    <div class="flex h-full bg-gray-100">
         <?php include '../layout/sidebar.php'; ?>
 
-        <main class="p-6 w-screen">
+        <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
             <h2 class="text-2xl font-semibold mb-6">Certificate</h2>
             <?php if (!empty($_SESSION['success'])): ?>
                 <div class="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg mb-4">

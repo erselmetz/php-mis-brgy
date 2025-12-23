@@ -33,7 +33,7 @@ function requireAdmin() {
     
     if ($_SESSION['role'] !== 'secretary') {
         // Non-secretary users are redirected to dashboard
-        header("Location: ../public/navigator.php");
+        header("Location: /navigator.php");
         exit();
     }
 }
@@ -48,7 +48,7 @@ function requireTanod() {
     
     if ($_SESSION['role'] !== 'tanod' && $_SESSION['role'] !== 'admin') {
         // Only tanod and admin can access tanod features
-        header("Location: /dashboard");
+        header("Location: /navigator.php");
         exit();
     }
 }
@@ -63,7 +63,7 @@ function requireStaff() {
     
     if ($_SESSION['role'] !== 'staff' && $_SESSION['role'] !== 'admin') {
         // Only staff and admin can access staff features
-        header("Location: /dashboard");
+        header("Location: /navigator.php");
         exit();
     }
 }

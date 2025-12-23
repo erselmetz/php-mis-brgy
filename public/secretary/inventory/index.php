@@ -12,11 +12,11 @@ requireAdmin();
     <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100 font-sans" style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden font-sans" style="display: none;">
     <?php include_once '../layout/navbar.php'; ?>
-    <div class="flex bg-gray-100">
+    <div class="flex h-full bg-gray-100">
         <?php include_once '../layout/sidebar.php'; ?>
-        <main class="p-6 w-screen">
+        <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
             <h1 class="text-green-600 text-2xl font-semibold mb-6">INVENTORY</h1>
 
             <div class="flex flex-wrap items-center justify-between mb-4 space-y-2 sm:space-y-0">

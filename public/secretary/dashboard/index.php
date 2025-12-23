@@ -79,13 +79,13 @@ $blotter = fetchStats($conn, "
   <?= loadAsset('node_js', 'chart.js/dist/chart.umd.min.js') ?>
 </head>
 
-<body class="bg-gray-100" style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
   <?php include '../layout/navbar.php'; ?>
 
-  <div class="flex">
+  <div class="flex h-full">
     <?php include '../layout/sidebar.php'; ?>
 
-    <main class="flex-1 p-6">
+    <main class="flex-1 p-6 overflow-y-auto h-screen pb-24">
       <h2 class="text-2xl font-semibold mb-6">Dashboard</h2>
       <!-- SUMMARY CARDS -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

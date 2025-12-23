@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../includes/app.php';
-require_once __DIR__ . '/../includes/auth.php';
 
 // Ensure user is logged in
 if (!isset($_SESSION['role'])) {

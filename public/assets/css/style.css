@@ -183,6 +183,12 @@
 .h-\[400px\] {
   height: 400px;
 }
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
 .max-h-\[50vh\] {
   max-height: 50vh;
 }

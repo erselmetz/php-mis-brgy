@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireAdmin(); // Only Staff and Admin can access
 
 $id = intval($_GET['id'] ?? 0);
 
@@ -44,6 +44,7 @@ $currentYear = date('Y');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Print Certificate - <?= htmlspecialchars($cert['certificate_type']) ?></title>
+    <?= loadAllAssets(); ?>
     <style>
         /* A4 Size: 210mm x 297mm (8.27in x 11.69in) */
         /* Usable area with margins: ~7.5in x 10in */
@@ -110,7 +111,7 @@ $currentYear = date('Y');
             top: 20px;
             right: 20px;
             background: white;
-            border: 2px solid var(--theme-secondary);
+            border: 2px solid var(--theme-primary);
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -120,7 +121,7 @@ $currentYear = date('Y');
         .print-controls h3 {
             margin: 0 0 10px 0;
             font-size: 14px;
-            color: var(--theme-secondary);
+            color: var(--theme-primary);
         }
         
         .control-group {
@@ -145,7 +146,7 @@ $currentYear = date('Y');
         
         .print-button {
             width: 100%;
-            background: var(--theme-secondary);
+            background: var(--theme-primary);
             color: white;
             padding: 10px;
             border: none;
@@ -157,7 +158,7 @@ $currentYear = date('Y');
         }
         
         .print-button:hover {
-            background: var(--theme-secondary);
+            background: var(--theme-primary-dark);
         }
         
         .certificate {

@@ -12,11 +12,11 @@ requireAdmin();
     <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100 font-sans" style="display: none;">
+<body class="bg-gray-100 font-sans h-screen overflow-hidden" style="display: none;">
     <?php include_once '../layout/navbar.php'; ?>
-    <div class="flex bg-gray-100">
+    <div class="flex h-full bg-gray-100">
         <?php include_once '../layout/sidebar.php'; ?>
-        <main class="p-6 w-screen">
+        <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
             <div class="flex justify-between items-center mb-4">
                 <div class="flex space-x-2">
                     <input type="text" placeholder="Search" class="border border-gray-300 rounded px-3 py-2 w-48">

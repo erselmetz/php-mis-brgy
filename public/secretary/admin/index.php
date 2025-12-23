@@ -35,11 +35,11 @@ if ($stmt === false) {
     <?php loadAllAssets(); ?>
 </head>
 
-<body style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
     <?php include '../layout/navbar.php'; ?>
-    <div class="flex bg-gray-100">
+    <div class="flex h-full bg-gray-100">
         <?php include '../layout/sidebar.php'; ?>
-        <main class="p-20 w-screen">
+        <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
             <h2 class="text-2xl font-semibold mb-4">Staff & Officers Management</h2>
 
             <!-- show success message -->
@@ -51,7 +51,7 @@ if ($stmt === false) {
             <!-- ✅ Add Button -->
             <div class="p-6">
                 <button id="openModalBtn"
-                    class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
+                    class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
                     ➕ Add New Account / Officer
                 </button>
             </div>
@@ -359,7 +359,7 @@ if ($stmt === false) {
 
             <div class="pt-2">
                 <button type="submit"
-                    class="w-full bg-theme-secondary hover-theme-darker text-white py-2 rounded font-semibold">
+                    class="w-full bg-theme-primary hover-theme-darker text-white py-2 rounded font-semibold">
                     Add Account
                 </button>
             </div>
@@ -648,7 +648,7 @@ if ($stmt === false) {
                     },
                     open: function() {
                         $(".ui-dialog-buttonpane button:contains('Save Changes')")
-                            .addClass("bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded mr-2");
+                            .addClass("bg-green-800 hover:bg-green-700 text-white px-4 py-2 rounded mr-2");
                         $(".ui-dialog-buttonpane button:contains('Cancel')")
                             .addClass("bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded");
                     }
