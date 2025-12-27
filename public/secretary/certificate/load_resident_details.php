@@ -145,23 +145,5 @@ $resident = $stmt->get_result()->fetch_assoc();
     function printCertificate(certId, certType) {
         // Open print window
         const printWindow = window.open('/secretary/certificate/print.php?id=' + certId, '_blank', 'width=800,height=600');
-        
-        // Update status to "Printed" after printing
-        $.ajax({
-            url: 'update_status.php',
-            method: 'POST',
-            data: {
-                id: certId,
-                status: 'Printed'
-            },
-            success: function(response) {
-                if (response.status === 'success') {
-                    // Reload the page to show updated status
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                }
-            }
-        });
     }
 </script>
