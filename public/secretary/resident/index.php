@@ -240,7 +240,7 @@ if ($stmt === false) {
       <!-- Submit -->
       <div class="pt-2">
         <button type="submit"
-          class="w-full bg-theme-secondary hover-theme-darker text-white py-2 rounded font-semibold">
+          class="w-full bg-theme-primary hover-theme-darker text-white py-2 rounded font-semibold">
           Add Resident
         </button>
       </div>

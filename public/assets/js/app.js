@@ -56,3 +56,28 @@ function showDialogReload(title, message) {
         }
     });
 }
+
+// Helper function to show message dialogs
+function showMessage(title, message, isError = false) {
+    const $dialog = $('<div class="p-4">' + message + '</div>');
+    $dialog.dialog({
+        modal: true,
+        title: title,
+        width: 420,
+        resizable: false,
+        buttons: {
+            Ok: function() {
+                $(this).dialog('close').remove();
+            }
+        },
+        classes: {
+            'ui-dialog': 'rounded-lg shadow-lg',
+            'ui-dialog-titlebar': (isError ? 'bg-red-600' : 'bg-theme-primary') + ' text-white rounded-t-lg',
+            'ui-dialog-title': 'font-semibold',
+            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+        },
+        open: function() {
+            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
+        }
+    });
+}

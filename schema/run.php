@@ -45,6 +45,9 @@ $migrations = [
             'create_certificates_request_table.php',
             'create_blotter_table.php',
             'create_events_scheduling.php',
+            'create_inventory_table.php',
+            'create_inventory_categories_table.php',
+            'create_inventory_audit_trail_table.php',
         ]
     ],
     'Feature Additions' => [

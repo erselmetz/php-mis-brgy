@@ -6,7 +6,7 @@
  * Uses prepared statements to prevent SQL injection attacks.
  * Validates user credentials and sets session variables upon successful login.
  */
-
+include_once '../navigator.php';
 require_once '../../includes/app.php';
 
 // Process login form submission

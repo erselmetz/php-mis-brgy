@@ -257,6 +257,7 @@ function showDialogReloadScript()
     </script>";
 }
 
+
 /**
  * Input Validation and Sanitization Functions
  * These functions help prevent security vulnerabilities and ensure data integrity

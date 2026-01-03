@@ -87,28 +87,6 @@ $blotter = fetchStats($conn, "
 
     <main class="flex-1 p-6 overflow-y-auto h-screen pb-24">
       <h2 class="text-2xl font-semibold mb-6">Dashboard</h2>
-      <!-- SUMMARY CARDS -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-        <?php
-        $cards = [
-          ['Total Population', $population['total'], 'users', 'green'],
-          ['Total Cases', $blotter['total'], 'file-text', 'green'],
-          ['Seniors', $population['senior'], 'user-check', 'green'],
-          ['PWDs', $population['pwd'], 'wheelchair', 'green']
-        ];
-        foreach ($cards as [$label, $val, $icon, $clr]): ?>
-          <div class="bg-white p-4 rounded-lg shadow-sm border flex items-center">
-            <div class="p-3 bg-<?= $clr; ?>-50 text-<?= $clr; ?>-600 rounded-full">
-              <i data-lucide="<?= $icon ?>" class="w-6 h-6"></i>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm text-gray-500"><?= $label ?></p>
-              <p class="text-xl font-bold"><?= $val ?></p>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
 
       <!-- CHARTS -->
       <div class="bg-white p-6 rounded-xl shadow-sm border">
