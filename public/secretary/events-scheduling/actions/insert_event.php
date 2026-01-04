@@ -2,7 +2,7 @@
 // actions/insert_event.php
 // Handles insertion of new events for MIS Barangay Inventory / Scheduling
 
-require_once __DIR__ . '/../../includes/app.php';
+require_once __DIR__ . '/../../../../includes/app.php';
 requireAdmin(); // Only admins can insert events
 header('Content-Type: application/json');
 
@@ -14,17 +14,29 @@ $response = [
 /* =========================
    1️⃣ Validate POST data
 ========================= */
-$title       = trim($_POST['title'] ?? '');
-$description = trim($_POST['description'] ?? '');
+$title       = sanitizeString($_POST['title'] ?? '');
+$description = sanitizeString($_POST['description'] ?? '');
 $event_date  = $_POST['event_date'] ?? '';
 $event_time  = $_POST['event_time'] ?? '';
-$location    = trim($_POST['location'] ?? '');
-$priority    = $_POST['priority'] ?? 'normal'; // normal / important / urgent
+$location    = sanitizeString($_POST['location'] ?? '');
+$priority    = sanitizeString($_POST['priority'] ?? 'normal'); // normal / important / urgent
 
-if (!$title || !$event_date) {
+if (empty($title) || empty($event_date)) {
     $response['message'] = 'Title and Event Date are required.';
     echo json_encode($response);
     exit;
+}
+
+// Validate date format
+if (!validateDateFormat($event_date)) {
+    $response['message'] = 'Invalid date format.';
+    echo json_encode($response);
+    exit;
+}
+
+// Validate priority
+if (!in_array($priority, ['normal', 'important', 'urgent'])) {
+    $priority = 'normal';
 }
 
 /* =========================
@@ -73,12 +85,12 @@ if ($stmt->execute()) {
     $response['event_code'] = $event_code;
 } else {
     $response['message'] = "Database error: " . $conn->error;
+    error_log('Insert event error: ' . $conn->error);
 }
 
 /* =========================
-   4️⃣ Close connection and output JSON
+   4️⃣ Close statement and output JSON
 ========================= */
 $stmt->close();
-$conn->close();
 echo json_encode($response);
 ?>

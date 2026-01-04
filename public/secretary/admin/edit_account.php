@@ -46,7 +46,6 @@ if ($action === 'edit_account') {
                 $role = sanitizeString($_POST['role'] ?? '');
                 $status = sanitizeString($_POST['status'] ?? '');
                 $password = sanitizeString($_POST['password'] ?? '');
-                $position = sanitizeString($_POST['position'] ?? '');
                 
                 // Officer-related fields
                 $isOfficer = isset($_POST['is_officer']) && $_POST['is_officer'] === '1';
@@ -83,8 +82,9 @@ if ($action === 'edit_account') {
                             /**
                              * Step 5: Update user account
                              * Handle password update only if new password is provided
+                             * Position is set to role for non-officers, null for officers
                              */
-                            $positionValue = $isOfficer ? null : ($position ?: null);
+                            $positionValue = $isOfficer ? null : ucfirst($role);
                             
                             if (!empty($password)) {
                                 // Hash password if provided

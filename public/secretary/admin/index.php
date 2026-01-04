@@ -42,12 +42,6 @@ if ($stmt === false) {
         <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
             <h2 class="text-2xl font-semibold mb-4">Staff & Officers Management</h2>
 
-            <!-- show success message -->
-            <?php if (isset($success) && $success != "") echo DialogMessage($success) ?>
-
-            <!-- show error message -->
-            <?php if (isset($error) && $error != "") echo DialogMessage($error) ?>
-
             <!-- ✅ Add Button -->
             <div class="p-6">
                 <button id="openModalBtn"
@@ -63,7 +57,6 @@ if ($stmt === false) {
                             <th class="p-2 text-left">Name</th>
                             <th class="p-2 text-left">Username</th>
                             <th class="p-2 text-left">Role</th>
-                            <th class="p-2 text-left">Position</th>
                             <th class="p-2 text-left">Status</th>
                             <th class="p-2 text-left">Created</th>
                             <th class="p-2 text-left">Actions</th>
@@ -76,18 +69,6 @@ if ($stmt === false) {
                                 <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
                                 <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
                                 <td class="p-2"><?= ucfirst($row['role']); ?></td>
-                                <td class="p-2">
-                                    <?php if ($row['officer_id']): ?>
-                                        <span class="text-theme-accent font-medium"><?= htmlspecialchars($row['officer_position']); ?></span>
-                                        <?php if ($row['resident_full_name']): ?>
-                                            <br><span class="text-xs text-gray-500">(<?= htmlspecialchars(trim($row['resident_full_name'])); ?>)</span>
-                                        <?php endif; ?>
-                                    <?php elseif ($row['position']): ?>
-                                        <span class="text-gray-700"><?= htmlspecialchars($row['position']); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-gray-400 italic">—</span>
-                                    <?php endif; ?>
-                                </td>
                                 <td class="p-2">
                                     <?php
                                     $statusColor = $row['status'] === 'active' 
@@ -107,7 +88,6 @@ if ($stmt === false) {
                                         data-username="<?= htmlspecialchars($row['username']) ?>"
                                         data-role="<?= htmlspecialchars($row['role']) ?>"
                                         data-status="<?= htmlspecialchars($row['status']) ?>"
-                                        data-position="<?= htmlspecialchars($row['position'] ?? '') ?>"
                                         data-officer-id="<?= $row['officer_id'] ?? '' ?>"
                                         data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
                                         data-term-start="<?= $row['term_start'] ?? '' ?>"
@@ -238,21 +218,13 @@ if ($stmt === false) {
                     </select>
                 </div>
             </div>
-
-            <!-- Non-Officer Position Field -->
-            <div id="editPositionField" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Position (if not an officer)</label>
-                <input type="text" name="position" id="editPosition"
-                    placeholder="e.g., Clerk, Secretary, etc."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
         </form>
     </div>
 
 
     <!-- add account thru modal -->
     <div id="addAccountModal" title="Add New Account / Officer" class="hidden">
-        <form method="POST" class="space-y-4" id="addAccountForm">
+        <form method="POST" class="space-y-3" id="addAccountForm">
             <input type="hidden" name="action" value="add_account">
             <input type="hidden" name="resident_id" id="addResidentId" value="">
             <?php if (isset($error)): ?>
@@ -260,31 +232,41 @@ if ($stmt === false) {
             <?php endif; ?>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                <input type="text" name="fullname" placeholder="Full Name" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                <label class="block text-gray-700 font-medium">Full Name</label>
+                <input type="text" name="fullname" id="addFullname" required
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Username</label>
-                <input type="text" name="username" placeholder="Username" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                <label class="block text-gray-700 font-medium">Username</label>
+                <input type="text" name="username" id="addUsername" required
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" name="password" placeholder="Password" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Role</label>
-                <select name="role" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <option value="staff">Staff</option>
-                    <option value="tanod">Tanod</option>
-                    <option value="admin">Admin</option>
+                <label class="block text-gray-700 font-medium">Role</label>
+                <select name="role" id="addRole" required
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                    <option value="captain">Captain</option>
+                    <option value="kagawad">Kagawad</option>
+                    <option value="secretary">Secretary</option>
+                    <option value="hcnurse">hcnurse</option>
                 </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-medium">Status</label>
+                <select name="status" id="addStatus" required
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                    <option value="active">Active</option>
+                    <option value="disabled">Disabled</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-medium">Password</label>
+                <input type="password" name="password" id="addPassword" required
+                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
             </div>
 
             <hr class="my-4">
@@ -293,7 +275,7 @@ if ($stmt === false) {
                 <label class="flex items-center space-x-2">
                     <input type="checkbox" id="addIsOfficer" class="rounded">
                     <input type="hidden" name="is_officer" id="addIsOfficerHidden" value="0">
-                    <span class="text-sm font-medium text-gray-700">This user is an Officer</span>
+                    <span class="text-gray-700 font-medium">This user is an Officer</span>
                 </label>
             </div>
 
@@ -348,21 +330,6 @@ if ($stmt === false) {
                     </select>
                 </div>
             </div>
-
-            <!-- Non-Officer Position Field -->
-            <div id="addPositionField" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Position (if not an officer)</label>
-                <input type="text" name="position" id="addPosition"
-                    placeholder="e.g., Clerk, Secretary, etc."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div class="pt-2">
-                <button type="submit"
-                    class="w-full bg-theme-primary hover-theme-darker text-white py-2 rounded font-semibold">
-                    Add Account
-                </button>
-            </div>
         </form>
     </div>
     <script>
@@ -370,18 +337,25 @@ if ($stmt === false) {
             $('body').show();
             $('#accountsTable').DataTable();
 
+            // Show success/error messages using showMessage function
+            <?php if (isset($success) && $success != ""): ?>
+                showMessage('Success', <?php echo json_encode($success); ?>);
+            <?php endif; ?>
+            
+            <?php if (isset($error) && $error != ""): ?>
+                showMessage('Error', <?php echo json_encode($error); ?>, true);
+            <?php endif; ?>
+
             // Toggle officer fields for add form
             $("#addIsOfficer").on("change", function() {
                 if ($(this).is(":checked")) {
                     $("#addOfficerFields").show();
-                    $("#addPositionField").hide();
                     $("#addIsOfficerHidden").val("1");
                     $("#addOfficerPosition").prop("required", true);
                     $("#addTermStart").prop("required", true);
                     $("#addTermEnd").prop("required", true);
                 } else {
                     $("#addOfficerFields").hide();
-                    $("#addPositionField").show();
                     $("#addIsOfficerHidden").val("0");
                     $("#addOfficerPosition").prop("required", false);
                     $("#addTermStart").prop("required", false);
@@ -393,14 +367,12 @@ if ($stmt === false) {
             $("#editIsOfficer").on("change", function() {
                 if ($(this).is(":checked")) {
                     $("#editOfficerFields").show();
-                    $("#editPositionField").hide();
                     $("#editIsOfficerHidden").val("1");
                     $("#editOfficerPosition").prop("required", true);
                     $("#editTermStart").prop("required", true);
                     $("#editTermEnd").prop("required", true);
                 } else {
                     $("#editOfficerFields").hide();
-                    $("#editPositionField").show();
                     $("#editIsOfficerHidden").val("0");
                     $("#editOfficerPosition").prop("required", false);
                     $("#editTermStart").prop("required", false);
@@ -545,12 +517,24 @@ if ($stmt === false) {
                 autoOpen: false,
                 modal: true,
                 width: 600,
+                height: 'auto',
+                maxHeight: 600,
                 resizable: true,
                 classes: {
                     'ui-dialog': 'rounded-lg shadow-lg',
                     'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
                     'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
+                    'ui-dialog-content': 'overflow-y-auto max-h-[500px]'
+                },
+                buttons: {
+                    "Add Account": function() {
+                        $('#addAccountForm').submit(); // submit form via POST
+                        $(this).dialog("close");
+                    },
+                    "Cancel": function() {
+                        $(this).dialog("close");
+                    }
                 },
                 show: {
                     effect: "fadeIn",
@@ -561,12 +545,19 @@ if ($stmt === false) {
                     duration: 200
                 },
                 open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded');
+                    // Add overflow styling to dialog content
+                    $(this).find('.ui-dialog-content').css({
+                        'overflow-y': 'auto',
+                        'max-height': '500px'
+                    });
+                    $(".ui-dialog-buttonpane button:contains('Add Account')")
+                        .addClass("bg-green-800 hover:bg-green-700 text-white px-4 py-2 rounded mr-2");
+                    $(".ui-dialog-buttonpane button:contains('Cancel')")
+                        .addClass("bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded");
                     // Reset form
                     $("#addAccountForm")[0].reset();
                     $("#addIsOfficer").prop("checked", false);
                     $("#addOfficerFields").hide();
-                    $("#addPositionField").hide();
                     clearAddResidentSelection();
                 }
             });
@@ -583,7 +574,6 @@ if ($stmt === false) {
                 const username = $(this).data('username');
                 const role = $(this).data('role');
                 const status = $(this).data('status');
-                const position = $(this).data('position') || '';
                 const officerId = $(this).data('officer-id') || '';
                 const officerPosition = $(this).data('officer-position') || '';
                 const termStart = $(this).data('term-start') || '';
@@ -599,7 +589,6 @@ if ($stmt === false) {
                 $('#editRole').val(role);
                 $('#editStatus').val(status);
                 $('#editPassword').val('');
-                $('#editPosition').val(position);
                 $('#editOfficerId').val(officerId);
                 $('#editResidentId').val(residentId);
 
@@ -607,7 +596,6 @@ if ($stmt === false) {
                 if (officerId) {
                     $("#editIsOfficer").prop("checked", true);
                     $("#editOfficerFields").show();
-                    $("#editPositionField").hide();
                     $("#editOfficerPosition").val(officerPosition);
                     $("#editTermStart").val(termStart);
                     $("#editTermEnd").val(termEnd);
@@ -622,7 +610,6 @@ if ($stmt === false) {
                 } else {
                     $("#editIsOfficer").prop("checked", false);
                     $("#editOfficerFields").hide();
-                    $("#editPositionField").show();
                     clearEditResidentSelection();
                 }
 
@@ -630,12 +617,15 @@ if ($stmt === false) {
                 $("#editAccountDialog").dialog({
                     modal: true,
                     width: 600,
+                    height: 'auto',
+                    maxHeight: 600,
                     resizable: true,
                     classes: {
                         'ui-dialog': 'rounded-lg shadow-lg',
                         'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
                         'ui-dialog-title': 'font-semibold',
-                        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
+                        'ui-dialog-content': 'overflow-y-auto max-h-[500px]'
                     },
                     buttons: {
                         "Save Changes": function() {
@@ -647,6 +637,11 @@ if ($stmt === false) {
                         }
                     },
                     open: function() {
+                        // Add overflow styling to dialog content
+                        $(this).find('.ui-dialog-content').css({
+                            'overflow-y': 'auto',
+                            'max-height': '500px'
+                        });
                         $(".ui-dialog-buttonpane button:contains('Save Changes')")
                             .addClass("bg-green-800 hover:bg-green-700 text-white px-4 py-2 rounded mr-2");
                         $(".ui-dialog-buttonpane button:contains('Cancel')")
