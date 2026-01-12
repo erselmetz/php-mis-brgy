@@ -58,6 +58,21 @@ try {
         exit;
     }
 
+    // Validate household_id if provided - check if household exists
+    if (!empty($data['household_id'])) {
+        $householdCheckQuery = "SELECT id FROM households WHERE id = ?";
+        $householdStmt = $conn->prepare($householdCheckQuery);
+        $householdStmt->bind_param('i', $data['household_id']);
+        $householdStmt->execute();
+        $householdResult = $householdStmt->get_result();
+
+        if ($householdResult->num_rows === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Selected household does not exist.']);
+            exit;
+        }
+        $householdStmt->close();
+    }
+
     /**
      * Insert new resident record using prepared statements
      * Prepared statements prevent SQL injection attacks by separating SQL structure from data
@@ -112,10 +127,8 @@ try {
         error_log('Resident Save Error: ' . $stmt->error);
         echo json_encode(['status' => 'error', 'message' => 'Database error occurred. Please try again.']);
     }
-    
-    $stmt->close();
 
-} catch (Exception $e) {
+    $stmt->close();
     /**
      * Catch any unexpected errors
      * Log full error details for debugging but show generic message to user

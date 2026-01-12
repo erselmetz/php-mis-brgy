@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireAdmin(); // Only Staff and Admin can access
 
 header('Content-Type: application/json');
 
@@ -56,6 +56,21 @@ try {
     if (!empty($data['contact_no']) && !validatePhilippinePhone($data['contact_no'])) {
         echo json_encode(['status' => 'error', 'message' => 'Invalid contact number format. Use 09XXXXXXXXX format.']);
         exit;
+    }
+
+    // Validate household_id if provided - check if household exists
+    if (!empty($data['household_id'])) {
+        $householdCheckQuery = "SELECT id FROM households WHERE id = ?";
+        $householdStmt = $conn->prepare($householdCheckQuery);
+        $householdStmt->bind_param('i', $data['household_id']);
+        $householdStmt->execute();
+        $householdResult = $householdStmt->get_result();
+
+        if ($householdResult->num_rows === 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Selected household does not exist.']);
+            exit;
+        }
+        $householdStmt->close();
     }
 
     /**
@@ -112,7 +127,7 @@ try {
         error_log('Resident Save Error: ' . $stmt->error);
         echo json_encode(['status' => 'error', 'message' => 'Database error occurred. Please try again.']);
     }
-    
+
     $stmt->close();
 
 } catch (Exception $e) {

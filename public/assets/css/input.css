@@ -30,3 +30,63 @@
   filter: brightness(0.9);
 }
 
+/* ===== INPUT AUTOCOMPLETE ===== */
+/* Disable autocomplete for all text inputs for cleaner UX */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  autocomplete: off;
+}
+
+/* Additional autocomplete off for form inputs */
+input:not([type]),
+input[type="text"]:not([autocomplete]),
+input[type="email"]:not([autocomplete]),
+input[type="password"]:not([autocomplete]),
+input[type="search"]:not([autocomplete]),
+input[type="tel"]:not([autocomplete]),
+input[type="url"]:not([autocomplete]) {
+  autocomplete: off !important;
+}
+
+/* ===== JAVASCRIPT AUTOCOMPLETE DISABLE ===== */
+/* Force disable autocomplete with JavaScript for maximum browser support */
+/* This script will run on DOM ready to disable autocomplete on all inputs */
+.force-no-autocomplete {
+  autocomplete: off !important;
+}
+
+/* ===== AGGRESSIVE AUTOCOMPLETE DISABLE ===== */
+/* Multiple approaches to ensure autocomplete is disabled across all browsers */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  -webkit-autocomplete: off !important;
+  -moz-autocomplete: off !important;
+  -ms-autocomplete: off !important;
+  autocomplete: off !important;
+  -webkit-appearance: none;
+  -webkit-user-select: text;
+}
+
+/* Disable browser suggestions with CSS */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+textarea:focus {
+  -webkit-autofill: none !important;
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+}

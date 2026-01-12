@@ -73,16 +73,31 @@ if (!empty($data['contact_no']) && !validatePhilippinePhone($data['contact_no'])
     exit;
 }
 
+// Validate household_id if provided - check if household exists
+if (!empty($data['household_id'])) {
+    $householdCheckQuery = "SELECT id FROM households WHERE id = ?";
+    $householdStmt = $conn->prepare($householdCheckQuery);
+    $householdStmt->bind_param('i', $data['household_id']);
+    $householdStmt->execute();
+    $householdResult = $householdStmt->get_result();
+
+    if ($householdResult->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Selected household does not exist.']);
+        exit;
+    }
+    $householdStmt->close();
+}
+
 /**
  * Update resident record using prepared statement
  * Prepared statements prevent SQL injection attacks
  */
 $sql = "UPDATE residents SET
-    household_id = ?, first_name = ?, middle_name = ?, last_name = ?, suffix = ?,
-    gender = ?, birthdate = ?, birthplace = ?, civil_status = ?, religion = ?,
-    occupation = ?, citizenship = ?, contact_no = ?, address = ?, voter_status = ?,
-    disability_status = ?, remarks = ?
-    WHERE id = ?";
+household_id = ?, first_name = ?, middle_name = ?, last_name = ?, suffix = ?,
+gender = ?, birthdate = ?, birthplace = ?, civil_status = ?, religion = ?,
+occupation = ?, citizenship = ?, contact_no = ?, address = ?, voter_status = ?,
+disability_status = ?, remarks = ?
+WHERE id = ?";
 
 $stmt = $conn->prepare($sql);
 

@@ -54,6 +54,7 @@ $migrations = [
         'description' => 'Adds new features and columns to existing tables',
         'files' => [
             'add_profile_picture_to_users.php',
+            'add_archived_to_residents.php'
         ]
     ],
     'Structural Changes' => [
