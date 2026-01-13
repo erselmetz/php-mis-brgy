@@ -108,6 +108,14 @@ if ($stmt === false) {
                     </tbody>
                 </table>
             </div>
+            <div class="flex justify-end mt-6 space-x-2">
+                <button id="archiveCurrentTermBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
+                    📦 Archive Current Term
+                </button>
+                <button id="termHistoryBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
+                    📋 Term History
+                </button>
+            </div>
         </main>
     </div>
 
@@ -332,324 +340,72 @@ if ($stmt === false) {
             </div>
         </form>
     </div>
+
+    <!-- Archive Current Term Dialog -->
+    <div id="archiveCurrentTermDialog" title="Archive Current Term" class="hidden">
+        <div class="p-4">
+            <p class="mb-4 text-gray-700">
+                This will archive all accounts/officers except the latest new account with role "secretary". 
+                Are you sure you want to proceed?
+            </p>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p class="text-sm text-yellow-800">
+                    <strong>⚠️ Warning:</strong> This action cannot be undone. All archived records will be moved to the archive.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Term History Dialog -->
+    <div id="termHistoryDialog" title="Term History" class="hidden">
+        <!-- Search -->
+        <div class="p-4 border-b">
+            <div class="relative">
+                <input
+                    type="text"
+                    id="termHistorySearchInput"
+                    placeholder="Search by officer name or position..."
+                    class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1" />
+                <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="p-4 overflow-auto max-h-[400px]">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-gray-100 text-left">
+                    <tr>
+                        <th class="p-2 w-[15%]">Officer</th>
+                        <th class="p-2 w-[15%]">Position</th>
+                        <th class="p-2 w-[12%]">Action</th>
+                        <th class="p-2 w-[20%]">Term Period</th>
+                        <th class="p-2 w-[12%]">Status</th>
+                        <th class="p-2 w-[15%]">Changed By</th>
+                        <th class="p-2 w-[11%]">Date/Time</th>
+                    </tr>
+                </thead>
+                <tbody id="termHistoryTableBody" class="divide-y">
+                    <!-- Dynamic content will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-4 py-2 text-xs text-gray-500 border-t">
+            <span id="termHistoryFooter">Loading...</span>
+        </div>
+    </div>
+
+    <script src="js/index.js"></script>
     <script>
-        $(function() {
-            $('body').show();
-            $('#accountsTable').DataTable();
-
-            // Show success/error messages using showMessage function
-            <?php if (isset($success) && $success != ""): ?>
-                showMessage('Success', <?php echo json_encode($success); ?>);
-            <?php endif; ?>
-            
-            <?php if (isset($error) && $error != ""): ?>
-                showMessage('Error', <?php echo json_encode($error); ?>, true);
-            <?php endif; ?>
-
-            // Toggle officer fields for add form
-            $("#addIsOfficer").on("change", function() {
-                if ($(this).is(":checked")) {
-                    $("#addOfficerFields").show();
-                    $("#addIsOfficerHidden").val("1");
-                    $("#addOfficerPosition").prop("required", true);
-                    $("#addTermStart").prop("required", true);
-                    $("#addTermEnd").prop("required", true);
-                } else {
-                    $("#addOfficerFields").hide();
-                    $("#addIsOfficerHidden").val("0");
-                    $("#addOfficerPosition").prop("required", false);
-                    $("#addTermStart").prop("required", false);
-                    $("#addTermEnd").prop("required", false);
-                }
-            });
-
-            // Toggle officer fields for edit form
-            $("#editIsOfficer").on("change", function() {
-                if ($(this).is(":checked")) {
-                    $("#editOfficerFields").show();
-                    $("#editIsOfficerHidden").val("1");
-                    $("#editOfficerPosition").prop("required", true);
-                    $("#editTermStart").prop("required", true);
-                    $("#editTermEnd").prop("required", true);
-                } else {
-                    $("#editOfficerFields").hide();
-                    $("#editIsOfficerHidden").val("0");
-                    $("#editOfficerPosition").prop("required", false);
-                    $("#editTermStart").prop("required", false);
-                    $("#editTermEnd").prop("required", false);
-                }
-            });
-
-            // Resident search for add form
-            $("#addResidentSearch").on("input", function() {
-                const query = $(this).val().trim();
-                if (query.length < 2) {
-                    $("#addResidentSearchResults").hide();
-                    return;
-                }
-
-                $.ajax({
-                    url: "../certificate/search_residents.php",
-                    method: "GET",
-                    data: { q: query },
-                    success: function(res) {
-                        let data = [];
-                        try {
-                            data = JSON.parse(res);
-                        } catch (e) {
-                            console.error("Error parsing response:", e);
-                            data = [];
-                        }
-
-                        if (data.length === 0) {
-                            $("#addResidentSearchResults").html('<div class="p-3 text-sm text-gray-600">No results found</div>').show();
-                            return;
-                        }
-
-                        const html = data.map(r => {
-                            const fullName = `${r.first_name} ${r.middle_name || ''} ${r.last_name}`.trim();
-                            return `
-                                <div class="px-4 py-2 hover-theme-light cursor-pointer border-b border-gray-100 last:border-b-0" data-id="${r.id}" data-name="${fullName}">
-                                    <div class="font-medium text-gray-800">${fullName}</div>
-                                    <div class="text-sm text-gray-600">${r.address || 'No address'}</div>
-                                </div>
-                            `;
-                        }).join('');
-                        $("#addResidentSearchResults").html(html).show();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Search error:", error);
-                        $("#addResidentSearchResults").html('<div class="p-3 text-sm text-red-600">Error searching residents</div>').show();
-                    }
-                });
-            });
-
-            // Resident search for edit form
-            $("#editResidentSearch").on("input", function() {
-                const query = $(this).val().trim();
-                if (query.length < 2) {
-                    $("#editResidentSearchResults").hide();
-                    return;
-                }
-
-                $.ajax({
-                    url: "../certificate/search_residents.php",
-                    method: "GET",
-                    data: { q: query },
-                    success: function(res) {
-                        let data = [];
-                        try {
-                            data = JSON.parse(res);
-                        } catch (e) {
-                            console.error("Error parsing response:", e);
-                            data = [];
-                        }
-
-                        if (data.length === 0) {
-                            $("#editResidentSearchResults").html('<div class="p-3 text-sm text-gray-600">No results found</div>').show();
-                            return;
-                        }
-
-                        const html = data.map(r => {
-                            const fullName = `${r.first_name} ${r.middle_name || ''} ${r.last_name}`.trim();
-                            return `
-                                <div class="px-4 py-2 hover-theme-light cursor-pointer border-b border-gray-100 last:border-b-0" data-id="${r.id}" data-name="${fullName}">
-                                    <div class="font-medium text-gray-800">${fullName}</div>
-                                    <div class="text-sm text-gray-600">${r.address || 'No address'}</div>
-                                </div>
-                            `;
-                        }).join('');
-                        $("#editResidentSearchResults").html(html).show();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Search error:", error);
-                        $("#editResidentSearchResults").html('<div class="p-3 text-sm text-red-600">Error searching residents</div>').show();
-                    }
-                });
-            });
-
-            // Select resident from search results (add)
-            $(document).on("click", "#addResidentSearchResults div[data-id]", function() {
-                const id = $(this).data("id");
-                const name = $(this).data("name");
-                $("#addResidentId").val(id);
-                $("#addResidentSearch").val(name);
-                $("#addSelectedResidentName").text(name);
-                $("#addSelectedResident").show();
-                $("#addResidentSearchResults").hide();
-            });
-
-            // Select resident from search results (edit)
-            $(document).on("click", "#editResidentSearchResults div[data-id]", function() {
-                const id = $(this).data("id");
-                const name = $(this).data("name");
-                $("#editResidentId").val(id);
-                $("#editResidentSearch").val(name);
-                $("#editSelectedResidentName").text(name);
-                $("#editSelectedResident").show();
-                $("#editResidentSearchResults").hide();
-            });
-
-            // Hide dropdown on outside click
-            $(document).click(function(e) {
-                if (!$(e.target).closest("#addResidentSearch, #addResidentSearchResults, #addSelectedResident").length) {
-                    $("#addResidentSearchResults").hide();
-                }
-                if (!$(e.target).closest("#editResidentSearch, #editResidentSearchResults, #editSelectedResident").length) {
-                    $("#editResidentSearchResults").hide();
-                }
-            });
-
-            function clearAddResidentSelection() {
-                $("#addResidentId").val('');
-                $("#addResidentSearch").val('');
-                $("#addSelectedResident").hide();
-            }
-
-            function clearEditResidentSelection() {
-                $("#editResidentId").val('');
-                $("#editResidentSearch").val('');
-                $("#editSelectedResident").hide();
-            }
-
-            // Initialize modal (hidden by default) - Modernized
-            $("#addAccountModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 600,
-                height: 'auto',
-                maxHeight: 600,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-                    'ui-dialog-content': 'overflow-y-auto max-h-[500px]'
-                },
-                buttons: {
-                    "Add Account": function() {
-                        $('#addAccountForm').submit(); // submit form via POST
-                        $(this).dialog("close");
-                    },
-                    "Cancel": function() {
-                        $(this).dialog("close");
-                    }
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                open: function() {
-                    // Add overflow styling to dialog content
-                    $(this).find('.ui-dialog-content').css({
-                        'overflow-y': 'auto',
-                        'max-height': '500px'
-                    });
-                    $(".ui-dialog-buttonpane button:contains('Add Account')")
-                        .addClass("bg-green-800 hover:bg-green-700 text-white px-4 py-2 rounded mr-2");
-                    $(".ui-dialog-buttonpane button:contains('Cancel')")
-                        .addClass("bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded");
-                    // Reset form
-                    $("#addAccountForm")[0].reset();
-                    $("#addIsOfficer").prop("checked", false);
-                    $("#addOfficerFields").hide();
-                    clearAddResidentSelection();
-                }
-            });
-
-            // Open modal when button clicked
-            $("#openModalBtn").on("click", function() {
-                $("#addAccountModal").dialog("open");
-            });
-
-            $('.edit-btn').on('click', function() {
-                // Get data from button
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const username = $(this).data('username');
-                const role = $(this).data('role');
-                const status = $(this).data('status');
-                const officerId = $(this).data('officer-id') || '';
-                const officerPosition = $(this).data('officer-position') || '';
-                const termStart = $(this).data('term-start') || '';
-                const termEnd = $(this).data('term-end') || '';
-                const officerStatus = $(this).data('officer-status') || 'Active';
-                const residentId = $(this).data('resident-id') || '';
-                const residentName = $(this).data('resident-name') || '';
-
-                // Fill form fields
-                $('#editAccountId').val(id);
-                $('#editFullname').val(name);
-                $('#editUsername').val(username);
-                $('#editRole').val(role);
-                $('#editStatus').val(status);
-                $('#editPassword').val('');
-                $('#editOfficerId').val(officerId);
-                $('#editResidentId').val(residentId);
-
-                // Check if user is an officer
-                if (officerId) {
-                    $("#editIsOfficer").prop("checked", true);
-                    $("#editOfficerFields").show();
-                    $("#editOfficerPosition").val(officerPosition);
-                    $("#editTermStart").val(termStart);
-                    $("#editTermEnd").val(termEnd);
-                    $("#editOfficerStatus").val(officerStatus);
-                    if (residentId && residentName) {
-                        $("#editResidentSearch").val(residentName);
-                        $("#editSelectedResidentName").text(residentName);
-                        $("#editSelectedResident").show();
-                    } else {
-                        clearEditResidentSelection();
-                    }
-                } else {
-                    $("#editIsOfficer").prop("checked", false);
-                    $("#editOfficerFields").hide();
-                    clearEditResidentSelection();
-                }
-
-                // Open dialog - Modernized
-                $("#editAccountDialog").dialog({
-                    modal: true,
-                    width: 600,
-                    height: 'auto',
-                    maxHeight: 600,
-                    resizable: true,
-                    classes: {
-                        'ui-dialog': 'rounded-lg shadow-lg',
-                        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                        'ui-dialog-title': 'font-semibold',
-                        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-                        'ui-dialog-content': 'overflow-y-auto max-h-[500px]'
-                    },
-                    buttons: {
-                        "Save Changes": function() {
-                            $('#editAccountForm').submit(); // submit form via POST
-                            $(this).dialog("close");
-                        },
-                        "Cancel": function() {
-                            $(this).dialog("close");
-                        }
-                    },
-                    open: function() {
-                        // Add overflow styling to dialog content
-                        $(this).find('.ui-dialog-content').css({
-                            'overflow-y': 'auto',
-                            'max-height': '500px'
-                        });
-                        $(".ui-dialog-buttonpane button:contains('Save Changes')")
-                            .addClass("bg-green-800 hover:bg-green-700 text-white px-4 py-2 rounded mr-2");
-                        $(".ui-dialog-buttonpane button:contains('Cancel')")
-                            .addClass("bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded");
-                    }
-                });
-            });
-        });
+        // Show success/error messages using showMessage function (PHP-specific)
+        <?php if (isset($success) && $success != ""): ?>
+            showMessage('Success', <?php echo json_encode($success); ?>);
+        <?php endif; ?>
+        
+        <?php if (isset($error) && $error != ""): ?>
+            showMessage('Error', <?php echo json_encode($error); ?>, true);
+        <?php endif; ?>
     </script>
 </body>
 

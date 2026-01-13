@@ -75,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch all blotter records
-$stmt = $conn->prepare("SELECT b.*, u.name as created_by_name FROM blotter b LEFT JOIN users u ON b.created_by = u.id ORDER BY b.created_at DESC");
+// Fetch all blotter records (excluding archived)
+$stmt = $conn->prepare("SELECT b.*, u.name as created_by_name FROM blotter b LEFT JOIN users u ON b.created_by = u.id WHERE b.archived_at IS NULL ORDER BY b.created_at DESC");
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -86,6 +86,7 @@ $result = $stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="autocomplete" content="off">
     <title>Blotter Management - MIS Barangay</title>
     <?php loadAllAssets(); ?>
 </head>
@@ -136,9 +137,9 @@ $result = $stmt->get_result();
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="view.php?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline font-semibold">
+                                        <span class="view-blotter-btn text-theme-accent hover:underline font-semibold cursor-pointer" data-id="<?= $row['id'] ?>">
                                             <?= htmlspecialchars($row['case_number']) ?>
-                                        </a>
+                                        </span>
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['complainant_name']) ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['respondent_name']) ?></td>
@@ -160,7 +161,7 @@ $result = $stmt->get_result();
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
                                     <td class="p-2">
-                                        <a href="view.php?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline">View</a>
+                                        <span class="view-blotter-btn text-theme-accent hover:underline cursor-pointer" data-id="<?= $row['id'] ?>">View</span>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
@@ -174,7 +175,7 @@ $result = $stmt->get_result();
             </div>
             <div class="flex justify-end mt-6 space-x-2">
                 <button id="archivedBlotterDialogBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">Archive Case</button>
-                <button class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">History</button>
+                <button id="historyBlotterDialogBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">History</button>
             </div>
         </main>
     </div>
@@ -275,6 +276,7 @@ $result = $stmt->get_result();
             <div class="relative">
                 <input
                     type="text"
+                    id="archiveSearchInput"
                     placeholder="Search archived cases..."
                     class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1" />
                 <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
@@ -286,124 +288,185 @@ $result = $stmt->get_result();
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-gray-100 text-left">
                     <tr>
-                        <th class="p-2">Entry No.</th>
-                        <th class="p-2">Parties / Incident</th>
-                        <th class="p-2">Date Archived</th>
-                        <th class="p-2 text-center">Action</th>
+                        <th class="p-2 w-[18%]">Entry No.</th>
+                        <th class="p-2 w-[45%]">Parties / Incident</th>
+                        <th class="p-2 w-[20%]">Date Archived</th>
+                        <th class="p-2 text-center w-[17%]">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y">
-                    <tr>
-                        <td class="p-2 font-semibold">BL-2022-045</td>
-                        <td class="p-2">
-                            R. Dalisay vs T. Asiong
-                            <div class="text-xs text-gray-500">Physical Injuries</div>
-                        </td>
-                        <td class="p-2">2023-01-10</td>
-                        <td class="p-2 text-center">
-                            <button class="restore-btn">Restore</button>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="p-2 font-semibold">BL-2022-112</td>
-                        <td class="p-2">
-                            K. Kadamay vs L. Lito
-                            <div class="text-xs text-gray-500">Noise Complaint</div>
-                        </td>
-                        <td class="p-2">2023-02-15</td>
-                        <td class="p-2 text-center">
-                            <button class="restore-btn">Restore</button>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="p-2 font-semibold">BL-2023-005</td>
-                        <td class="p-2">
-                            B. Batumbakal vs Unknown
-                            <div class="text-xs text-gray-500">Vandalism</div>
-                        </td>
-                        <td class="p-2">2023-03-01</td>
-                        <td class="p-2 text-center">
-                            <button class="restore-btn">Restore</button>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="p-2 font-semibold">BL-2023-012</td>
-                        <td class="p-2">
-                            J. Rizal vs D. Ibarra
-                            <div class="text-xs text-gray-500">Property Dispute</div>
-                        </td>
-                        <td class="p-2">2023-06-20</td>
-                        <td class="p-2 text-center">
-                            <button class="restore-btn">Restore</button>
-                        </td>
-                    </tr>
+                <tbody id="archivedBlotterTableBody" class="divide-y">
+                    <!-- Dynamic content will be loaded here -->
                 </tbody>
             </table>
         </div>
 
         <!-- Footer -->
         <div class="px-4 py-2 text-xs text-gray-500 border-t">
-            Showing 4 of 48 archived records
+            <span id="archivedBlotterFooter">Loading...</span>
         </div>
     </div>
     <!-- end of archived blotter dialog -->
 
-    <script>
-        $(function() {
-            $('body').show();
-            $('#blotterTable').DataTable({
-                order: [
-                    [0, 'desc']
-                ],
-                pageLength: 25
-            });
+    <!-- View Blotter Modal -->
+    <div id="viewBlotterModal" title="Blotter Case Details" class="hidden">
+        <form id="blotterForm" class="space-y-4">
+            <?= csrfTokenField() ?>
+            <input type="hidden" name="id" id="blotter_id">
 
-            $("#addBlotterModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 700,
-                height: 600,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                },
-                open: function() {
-                    $('.ui-dialog-buttonpane button')
-                        .addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-                }
-            });
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Case Information -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Case Information</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Case Number</label>
+                        <p id="case_number_display" class="text-gray-900 font-semibold"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                        <select name="status" id="status" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                            <option value="pending">Pending</option>
+                            <option value="under_investigation">Under Investigation</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="dismissed">Dismissed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
+                        <p id="created_by_display" class="text-gray-900"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date Created</label>
+                        <p id="created_at_display" class="text-gray-900"></p>
+                    </div>
+                </div>
 
-            $("#archivedBlotterDialog").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 600,
-                height: 500,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                },
-                open: function() {
-                    $('.ui-dialog-buttonpane button')
-                        .addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-                }
-            });
+                <!-- Incident Information -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Incident Information</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Incident Date *</label>
+                        <input type="date" name="incident_date" id="incident_date" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Incident Time</label>
+                        <input type="time" name="incident_time" id="incident_time"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                        <input type="text" name="incident_location" id="incident_location" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                        <textarea name="incident_description" id="incident_description" rows="3" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"></textarea>
+                    </div>
+                </div>
 
-            $("#openBlotterModalBtn").on("click", function() {
-                $("#addBlotterModal").dialog("open");
-            });
+                <!-- Complainant Information -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Complainant Information</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="complainant_name" id="complainant_name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <textarea name="complainant_address" id="complainant_address" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+                        <input type="text" name="complainant_contact" id="complainant_contact"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                </div>
 
-            $("#archivedBlotterDialogBtn").on("click", function() {
-                $("#archivedBlotterDialog").dialog("open");
-            });
-        });
-    </script>
+                <!-- Respondent Information -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Respondent Information</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                        <input type="text" name="respondent_name" id="respondent_name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <textarea name="respondent_address" id="respondent_address" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+                        <input type="text" name="respondent_contact" id="respondent_contact"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resolution Section -->
+            <div class="mt-4 pt-4 border-t">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Resolution</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Resolved Date</label>
+                        <input type="date" name="resolved_date" id="resolved_date"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Resolution Notes</label>
+                        <textarea name="resolution" id="resolution" rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"></textarea>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!-- end of view blotter modal -->
+
+    <!-- History Dialog -->
+    <div id="historyBlotterDialog" title="Blotter Case History" class="hidden">
+        <!-- Search -->
+        <div class="p-4 border-b">
+            <div class="relative">
+                <input
+                    type="text"
+                    id="historySearchInput"
+                    placeholder="Search by case number..."
+                    class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1" />
+                <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="p-4 overflow-auto max-h-[400px]">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-gray-100 text-left">
+                    <tr>
+                        <th class="p-2 w-[15%]">Case Number</th>
+                        <th class="p-2 w-[12%]">Action</th>
+                        <th class="p-2 w-[28%]">Status Change</th>
+                        <th class="p-2 w-[15%]">Changed By</th>
+                        <th class="p-2 w-[30%]">Date/Time</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBlotterTableBody" class="divide-y">
+                    <!-- Dynamic content will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-4 py-2 text-xs text-gray-500 border-t">
+            <span id="historyBlotterFooter">Loading...</span>
+        </div>
+    </div>
+    <!-- end of history dialog -->
+
+    <script src="js/index.js"></script>
 </body>
 
 </html>

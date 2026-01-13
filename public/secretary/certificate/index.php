@@ -33,17 +33,60 @@ requireAdmin();
             <?php endif; ?>
 
             <!-- 🔍 Resident Search -->
-            <div class="relative max-w-xl bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
-                <label for="residentSearch" class="block text-gray-700 font-medium mb-2">Search Resident</label>
-                <input id="residentSearch" type="text"
-                    placeholder="Search by name, ID, or address..."
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary">
-                <div id="searchResults"
-                    class="absolute z-10 mt-1 w-[30rem] bg-white border border-gray-200 rounded-lg shadow-lg hidden"></div>
+            <div class="flex justify-center mb-6">
+                <div class="relative max-w-xl w-full bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <label for="residentSearch" class="block text-gray-700 font-medium mb-2">Search Resident</label>
+                    <input id="residentSearch" type="text"
+                        placeholder="Search by name, ID, or address..."
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary">
+                    <div id="searchResults"
+                        class="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden"></div>
+                </div>
             </div>
 
             <!-- 🧾 Resident Info + History -->
-            <div id="residentDetails"></div>
+            <div id="residentDetails">
+                <!-- Blank Resident Information -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Resident Information</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <p><span class="font-medium text-gray-700">Full Name:</span> <span class="text-gray-400">-</span></p>
+                        <p><span class="font-medium text-gray-700">Birthdate:</span> <span class="text-gray-400">-</span></p>
+                        <p><span class="font-medium text-gray-700">Gender:</span> <span class="text-gray-400">-</span></p>
+                        <p><span class="font-medium text-gray-700">Address:</span> <span class="text-gray-400">-</span></p>
+                        <p><span class="font-medium text-gray-700">Voter Status:</span> <span class="text-gray-400">-</span></p>
+                        <p><span class="font-medium text-gray-700">Disability Status:</span> <span class="text-gray-400">-</span></p>
+                    </div>
+
+                    <div class="mt-6 border-t pt-4">
+                        <h4 class="text-lg font-medium mb-2 text-gray-800">Create Certificate Request</h4>
+                        <p class="text-gray-500 text-sm">Please search and select a resident to create a certificate request.</p>
+                    </div>
+                </div>
+
+                <!-- Blank Certificate Request History -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h4 class="text-lg font-medium mb-4 text-gray-800">Certificate Request History</h4>
+                    <div class="overflow-x-auto">
+                        <table id="historyTable" class="display w-full text-sm border border-gray-200 rounded-lg">
+                            <thead class="bg-gray-50 text-gray-700">
+                                <tr>
+                                    <th class="p-2 text-left">Certificate Type</th>
+                                    <th class="p-2 text-left">Purpose</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Requested At</th>
+                                    <th class="p-2 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="p-4 text-center text-gray-500">No resident selected. Please search and select a resident to view certificate request history.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <!-- Dialog -->
             <!-- Dialog Template -->

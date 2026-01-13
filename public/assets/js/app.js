@@ -12,6 +12,26 @@
  * @param {string} title - Dialog title
  * @param {string} message - Dialog message content
  */
+
+// force disable autocomplete on all inputs
+function disableAutocomplete() {
+    $('input[type="text"], input[type="email"], input[type="password"], input[type="search"], input[type="tel"], input[type="url"], textarea, select').each(function () {
+        $(this).attr('autocomplete', 'off');
+    });
+}
+
+disableAutocomplete();
+
+// run on page load
+$(function () {
+    $('body').show();
+    disableAutocomplete();
+    // Also run when modals are opened (for dynamic content)
+    $(document).on('dialogopen', function () {
+        setTimeout(disableAutocomplete, 100);
+    });
+});
+
 function showDialog(title, message) {
     // Set dialog title and content
     $("#dialog-message").attr("title", title);
@@ -66,7 +86,7 @@ function showMessage(title, message, isError = false) {
         width: 420,
         resizable: false,
         buttons: {
-            Ok: function() {
+            Ok: function () {
                 $(this).dialog('close').remove();
             }
         },
@@ -76,7 +96,7 @@ function showMessage(title, message, isError = false) {
             'ui-dialog-title': 'font-semibold',
             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
         },
-        open: function() {
+        open: function () {
             $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
         }
     });
@@ -91,13 +111,13 @@ function showConfirm(title, message, onConfirm) {
         width: 420,
         resizable: false,
         buttons: {
-            'Yes': function() {
+            'Yes': function () {
                 $(this).dialog('close').remove();
                 if (typeof onConfirm === 'function') {
                     onConfirm();
                 }
             },
-            'Cancel': function() {
+            'Cancel': function () {
                 $(this).dialog('close').remove();
             }
         },
@@ -107,8 +127,8 @@ function showConfirm(title, message, onConfirm) {
             'ui-dialog-title': 'font-semibold',
             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
         },
-        open: function() {
-            $('.ui-dialog-buttonpane button').each(function() {
+        open: function () {
+            $('.ui-dialog-buttonpane button').each(function () {
                 if ($(this).text() === 'Yes') {
                     $(this).addClass('bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded');
                 } else {

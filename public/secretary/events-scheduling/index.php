@@ -160,15 +160,7 @@ $csrf_token = getCSRFToken();
         </div>
     </div>
 
-    <script>
-        $(function() {
-            try {
-                $("body").show();
-
-                let currentMonth = new Date().getMonth() + 1;
-                let currentYear = new Date().getFullYear();
-                let events = [];
-                let currentEditId = null;
+    <script src="js/index.js"></script>
 
             // Initialize modals
             $("#eventModal").dialog({

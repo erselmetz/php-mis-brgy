@@ -114,36 +114,4 @@ $resident = $stmt->get_result()->fetch_assoc();
     </div>
 </div>
 
-<script>
-    $(document).ready(function() {
-        $("#certificateRequestForm").on("submit", function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: "certificate_request_submit.php",
-                method: "POST",
-                data: $(this).serialize(),
-                dataType: "json",
-                beforeSend: function() {
-                    $("#submitBtn").prop("disabled", true).text("Submitting...");
-                },
-                success: function(response) {
-                    $("#submitBtn").prop("disabled", false).text("Submit Request");
-                    if (response.status === "success") {
-                        showDialogReload("✅ Success", response.message);
-                    } else {
-                        showDialogReload("❌ Error", response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    $("#submitBtn").prop("disabled", false).text("Submit Request");
-                    alert("AJAX error: " + error);
-                }
-            });
-        });
-    });
-
-    function printCertificate(certId, certType) {
-        // Open print window
-        const printWindow = window.open('/secretary/certificate/print.php?id=' + certId, '_blank', 'width=800,height=600');
-    }
-</script>
+<script src="js/load_resident_details.js"></script>
