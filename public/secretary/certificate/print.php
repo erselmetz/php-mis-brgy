@@ -392,5 +392,5 @@ $currentYear = date('Y');
         </div>
     </div>
 
-    <script src="js/print.js"></script>
+    <script src="./js/print.js"></script>
 </html>

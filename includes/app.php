@@ -12,6 +12,9 @@
  * database access or authentication.
  */
 
+  // Start session for user authentication and state management
+  session_start();
+
 // Configure secure session settings before starting session
 if (session_status() === PHP_SESSION_NONE) {
     // Set secure session cookie parameters
@@ -19,9 +22,6 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_secure', '0'); // Set to 1 in production with HTTPS
     ini_set('session.use_strict_mode', '1'); // Prevent session fixation attacks
     ini_set('session.cookie_samesite', 'Strict'); // CSRF protection
-    
-    // Start session for user authentication and state management
-    session_start();
     
     // Regenerate session ID periodically to prevent session fixation
     if (!isset($_SESSION['created'])) {
