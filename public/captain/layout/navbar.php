@@ -32,7 +32,7 @@
                 <!-- Dropdown Menu -->
                 <div id="userDropdown"
                     class="hidden absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden">
-                    <a href="/secretary/profile" class="block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link">Profile Account</a>
+                    <a href="/captain/profile/" class="block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link">Profile Account</a>
                     <?php if ($_SESSION['role'] == "secretary") {
                         echo "<a href='/secretary/admin' class='block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link'>Manage Account</a>";
                     } ?>

@@ -39,10 +39,6 @@ if ($stmt === false) {
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
       <div class="p-6 flex gap-4">
-        <button id="openResidentModalBtn"
-          class="disabled:opacity-50 bg-theme-primary hover:bg-theme-darker text-white font-semibold px-4 py-2 rounded shadow disable-select text-sm" disabled>
-          ➕ Add Resident
-        </button>
         <button id="manageHouseholdsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold">
           🏠 Manage Households
         </button>
@@ -89,12 +85,6 @@ if ($stmt === false) {
                       <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
                         View
                       </button>
-                      <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
-                        Edit
-                      </button>
-                      <button type="button" class="archive-resident-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
-                        Archive
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -106,9 +96,6 @@ if ($stmt === false) {
             <?php endif; ?>
           </tbody>
         </table>
-      </div>
-      <div class="flex justify-end mt-6">
-        <button id="archiveResidentsBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">Residence Archive</button>
       </div>
     </main>
   </div>
@@ -162,297 +149,10 @@ if ($stmt === false) {
   </div>
 
   <!-- ✅ Edit Resident Modal -->
-  <div id="editResidentModal" title="Edit Resident" class="hidden">
-    <form id="editResidentForm" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
-      <input type="hidden" id="edit-resident-id" name="id">
-      <!-- Household -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Household (optional)</label>
-        <div class="relative">
-          <input type="text" id="edit-household-search" placeholder="Search households..." autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <select id="edit-household-id" name="household_id" class="hidden">
-            <option value="">-- Select Household --</option>
-            <!-- Households will be loaded dynamically -->
-          </select>
-          <div id="edit-household-dropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-60 overflow-y-auto hidden">
-            <!-- Household options will appear here -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Name Fields -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">First Name</label>
-          <input type="text" id="edit-first-name" name="first_name" required autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Middle Name</label>
-          <input type="text" id="edit-middle-name" name="middle_name" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Last Name</label>
-          <input type="text" id="edit-last-name" name="last_name" required autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Suffix</label>
-          <input type="text" id="edit-suffix" name="suffix" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Gender & Birthdate -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Gender</label>
-          <select id="edit-gender" name="gender" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Birthdate</label>
-          <input type="date" id="edit-birthdate" name="birthdate" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Birthplace -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Birthplace</label>
-        <input type="text" id="edit-birthplace" name="birthplace" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-      </div>
-
-      <!-- Civil Status & Religion -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Civil Status</label>
-          <select id="edit-civil-status" name="civil_status" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-            <option value="Single">Single</option>
-            <option value="Married">Married</option>
-            <option value="Widowed">Widowed</option>
-            <option value="Separated">Separated</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Religion</label>
-          <input type="text" id="edit-religion" name="religion" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Occupation & Citizenship -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Occupation</label>
-          <input type="text" id="edit-occupation" name="occupation" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Citizenship</label>
-          <input type="text" id="edit-citizenship" name="citizenship" value="Filipino" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Contact & Address -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Contact No.</label>
-          <input type="text" id="edit-contact-no" name="contact_no" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Address</label>
-          <input type="text" id="edit-address" name="address" autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Voter Status -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Voter Status</label>
-        <select id="edit-voter-status" name="voter_status" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <option value="No">No</option>
-          <option value="Yes">Yes</option>
-        </select>
-      </div>
-
-      <!-- Disability Status -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Disability Status</label>
-        <select id="edit-disability-status" name="disability_status" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <option value="No">No</option>
-          <option value="Yes">Yes</option>
-        </select>
-      </div>
-
-      <!-- Remarks -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Remarks</label>
-        <textarea id="edit-remarks" name="remarks" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary"></textarea>
-      </div>
-    </form>
-  </div>
 
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
-  <div id="addResidentModal" title="Add New Resident" class="hidden max-h-[50vh]">
-    <form method="POST" class="space-y-3 overflow-y-scroll">
-      <input type="hidden" name="action" value="add_resident">
-      <?php if (isset($error)): ?>
-        <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
-      <?php endif; ?>
 
-      <!-- Household -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Household (optional)</label>
-        <div class="relative">
-          <input type="text" id="add-household-search" placeholder="Search households..." autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <select name="household_id" id="add-household-id" class="hidden">
-            <option value="">-- Select Household --</option>
-            <!-- Households will be loaded dynamically -->
-          </select>
-          <div id="add-household-dropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-60 overflow-y-auto hidden">
-            <!-- Household options will appear here -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Name Fields -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">First Name</label>
-          <input type="text" name="first_name" placeholder="First Name" required autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Middle Name</label>
-          <input type="text" name="middle_name" placeholder="Middle Name" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Last Name</label>
-          <input type="text" name="last_name" placeholder="Last Name" required autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Suffix</label>
-          <input type="text" name="suffix" placeholder="e.g. Jr., Sr." autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Gender & Birthdate -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Gender</label>
-          <select name="gender" required
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Birthdate</label>
-          <input type="date" name="birthdate" required
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Birthplace -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Birthplace</label>
-        <input type="text" name="birthplace" placeholder="Enter birthplace" autocomplete="off"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-      </div>
-
-      <!-- Civil Status & Religion -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Civil Status</label>
-          <select name="civil_status"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-            <option value="Single">Single</option>
-            <option value="Married">Married</option>
-            <option value="Widowed">Widowed</option>
-            <option value="Separated">Separated</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Religion</label>
-          <input type="text" name="religion" placeholder="e.g. Catholic" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Occupation & Citizenship -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Occupation</label>
-          <input type="text" name="occupation" placeholder="Occupation" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Citizenship</label>
-          <input type="text" name="citizenship" value="Filipino" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Contact & Purok -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Contact No.</label>
-          <input type="text" name="contact_no" placeholder="09XXXXXXXXX" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Address</label>
-          <input type="text" name="address" placeholder="Enter address" autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-        </div>
-      </div>
-
-      <!-- Voter Status -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Voter Status</label>
-        <select name="voter_status"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <option value="No">No</option>
-          <option value="Yes">Yes</option>
-        </select>
-      </div>
-
-      <!-- Disability Status -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Disability Status</label>
-        <select name="disability_status"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-          <option value="No">No</option>
-          <option value="Yes">Yes</option>
-        </select>
-      </div>
-
-      <!-- Remarks -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Remarks</label>
-        <textarea name="remarks" rows="2" placeholder="Additional notes..."
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary"></textarea>
-      </div>
-
-      <!-- Submit -->
-      <div class="pt-2">
-        <button type="submit"
-          class="w-full bg-theme-primary hover-theme-darker text-white py-2 rounded font-semibold">
-          Add Resident
-        </button>
-      </div>
-    </form>
-    <!-- archive modal -->
+  <!-- archive modal -->
     <div id="archivedResidentsDialog" title="Archived Residents" class="hidden">
 
       <!-- Search -->
@@ -517,37 +217,6 @@ if ($stmt === false) {
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- ✅ Create/Edit Household Modal -->
-  <div id="householdFormModal" title="Household Details" class="hidden">
-    <form id="householdForm" class="p-4 space-y-4">
-      <input type="hidden" id="householdFormId" name="id">
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Household Number *</label>
-        <input type="text" id="householdFormNo" name="household_no" required autocomplete="off"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-        <input type="text" id="householdFormAddress" name="address" required autocomplete="off"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
-      </div>
-
-      <div id="householdFormHeadContainer">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Head of Household *</label>
-        <div class="relative">
-          <input type="text" id="householdFormHeadSearch" placeholder="Search residents..." required autocomplete="off"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
-          <input type="hidden" id="householdFormHeadId" name="head_resident_id">
-          <div id="householdFormHeadDropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-60 overflow-y-auto hidden">
-            <!-- Resident options will appear here -->
-          </div>
-        </div>
-      </div>
-    </form>
   </div>
 
   <script src="js/index.js"></script>

@@ -587,34 +587,11 @@ $(function() {
                 <div>👥 Members: ${household.total_members}</div>
               </div>
             </div>
-            <div class="flex gap-2">
-              <button class="edit-household-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
-                      data-id="${household.id}" data-household='${JSON.stringify(household)}'>
-                ✏️ Edit
-              </button>
-              <button class="archive-household-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                      data-id="${household.id}" data-name="${household.household_no}">
-                🗑️ Archive
-              </button>
-            </div>
           </div>
         </div>
       `;
       container.append(item);
     });
-
-    // Attach event handlers
-    $('.edit-household-btn').on('click', function() {
-      const household = JSON.parse($(this).attr('data-household'));
-      editHousehold(household);
-    });
-
-    $('.archive-household-btn').on('click', function() {
-      const id = $(this).data('id');
-      const name = $(this).data('name');
-      archiveHousehold(id, name);
-    });
-  }
 
   // Function to reset household form
   function resetHouseholdForm() {
@@ -661,122 +638,6 @@ $(function() {
     });
   }
 
-  // Function to edit household
-  function editHousehold(household) {
-    $('#householdFormId').val(household.id);
-    $('#householdFormNo').val(household.household_no);
-    $('#householdFormAddress').val(household.address);
-    // Note: Head cannot be changed after household creation
-    $('#householdFormHeadContainer').hide();
-    $('#householdFormHeadSearch').prop('required', false);
-
-    $("#householdFormModal").dialog("option", "title", "Edit Household");
-    $("#householdFormModal").dialog("open");
-  }
-
-  // Function to save household
-  function saveHousehold() {
-    const formData = new FormData(document.getElementById('householdForm'));
-    const data = Object.fromEntries(formData.entries());
-    const isEdit = data.id ? true : false;
-
-    // Validate required fields
-    if (!data.household_no || !data.address) {
-      alert('Please fill in all required fields.');
-      return;
-    }
-
-    // For creation, head_resident_id is required
-    if (!isEdit && !data.head_resident_id) {
-      alert('Please select a head of household.');
-      return;
-    }
-
-    const action = isEdit ? 'update' : 'create';
-    data.action = action;
-
-    $.ajax({
-      url: 'household_api.php',
-      type: 'POST',
-      data: data,
-      dataType: 'json',
-      success: function(response) {
-        if (response.success) {
-          // Show success message
-          $('<div>' + response.message + '</div>').dialog({
-            modal: true,
-            title: 'Success',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-                $("#householdFormModal").dialog('close');
-                loadHouseholds(); // Refresh the list
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded');
-            }
-          });
-        } else {
-          alert('Error: ' + response.message);
-        }
-      },
-      error: function() {
-        alert('Failed to save household. Please try again.');
-      }
-    });
-  }
-
-  // Function to perform household archiving
-  function performArchiveHousehold(id) {
-    $.ajax({
-      url: 'household_api.php',
-      type: 'POST',
-      data: {
-        action: 'archive',
-        id: id
-      },
-      dataType: 'json',
-      success: function(response) {
-        if (response.success) {
-          // Show success message
-          $('<div>' + response.message + '</div>').dialog({
-            modal: true,
-            title: 'Success',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-                loadHouseholds(); // Refresh the list
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded');
-            }
-          });
-        } else {
-          alert('Error: ' + response.message);
-        }
-      },
-      error: function() {
-        alert('Failed to archive household. Please try again.');
-      }
-    });
-  }
-
   // Helper function to calculate age
   function calculateAge(birthdate) {
     if (!birthdate) return null;
@@ -791,3 +652,4 @@ $(function() {
     }
     return age;
   }
+}
