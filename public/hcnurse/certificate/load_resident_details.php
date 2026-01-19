@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireHCNurse();
 
 if (!isset($_GET['id'])) exit;
 

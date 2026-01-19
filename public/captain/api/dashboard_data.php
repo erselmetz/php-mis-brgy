@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireLogin();
+requireCaptain(); 
 header('Content-Type: application/json');
 
 // Get filter parameter and validate

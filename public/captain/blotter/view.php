@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireCaptain();
 
 $id = intval($_GET['id'] ?? 0);
 $success = '';

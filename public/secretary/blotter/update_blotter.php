@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireAdmin();
+requireSecretary();
 
 header('Content-Type: application/json');
 

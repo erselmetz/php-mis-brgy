@@ -16,7 +16,7 @@ while (!file_exists($configDir)) {
 }
 require_once $configDir;
 if (defined('APP_BOOT')) { require_once APP_BOOT; }
-requireAdmin();
+requireSecretary();
 
 header('Content-Type: application/json');
 

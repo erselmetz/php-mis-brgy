@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireLogin();
+requireCaptain();
 
 $user_id = $_SESSION['user_id'];
 $success = '';
@@ -120,11 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <?php loadAllAssets(); ?>
 </head>
-<body class="bg-gray-100" style="display: none;">
+<body class="bg-gray-100 overflow-hidden h-screen" style="display: none;">
   <?php include_once '../layout/navbar.php'; ?>
   <div class="flex bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
-    <main class="p-6 w-screen">
+    <main class="overflow-y-auto h-screen pb-24 p-6 flex-1">
       <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
       <div class="max-w-3xl mx-auto bg-white shadow-sm rounded-xl p-8 border border-gray-200">
         

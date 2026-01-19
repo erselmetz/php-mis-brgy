@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireCaptain();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,8 +89,8 @@ requireStaff(); // Only Staff and Admin can access
                             return;
                         }
 
-                        const html = data.map(r => `
-              <div class="px-4 py-2 hover-theme-light cursor-pointer" data-id="${r.id}">
+                                                const html = data.map(r => `
+                            <div class="px-4 py-2 hover-theme-light cursor-pointer" data-id="${r.id}">
                 <div class="font-medium text-gray-800">${r.first_name} ${r.middle_name ?? ''} ${r.last_name}</div>
                 <div class="text-sm text-gray-600">${r.address}</div>
               </div>

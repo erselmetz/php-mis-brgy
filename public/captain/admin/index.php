@@ -1,12 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST'){
-    $action = $_POST['action'] ?? '';
-    include_once __DIR__ . '/add_account.php';
-    include_once __DIR__ . '/edit_account.php';
-}
-requireAdmin();
+requireCaptain();
 
 // Fetch all users with their officer information and resident details
 $stmt = $conn->prepare("
@@ -35,11 +30,11 @@ if ($stmt === false) {
     <?php loadAllAssets(); ?>
 </head>
 
-<body style="display: none;">
+<body class="overflow-hidden bg-gray-100 h-screen" style="display: none;">
     <?php include '../layout/navbar.php'; ?>
     <div class="flex bg-gray-100">
         <?php include '../layout/sidebar.php'; ?>
-        <main class="p-20 w-screen">
+        <main class="overflow-y-auto h-screen pb-24 p-6 flex-1">
             <h2 class="text-2xl font-semibold mb-4">Staff & Officers Management</h2>
 
             <!-- show success message -->
@@ -48,13 +43,6 @@ if ($stmt === false) {
             <!-- show error message -->
             <?php if (isset($error) && $error != "") echo DialogMessage($error) ?>
 
-            <!-- ✅ Add Button -->
-            <div class="p-6">
-                <button id="openModalBtn"
-                    class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
-                    ➕ Add New Account / Officer
-                </button>
-            </div>
             <!-- Accounts Table -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
                 <table id="accountsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
@@ -63,10 +51,8 @@ if ($stmt === false) {
                             <th class="p-2 text-left">Name</th>
                             <th class="p-2 text-left">Username</th>
                             <th class="p-2 text-left">Role</th>
-                            <th class="p-2 text-left">Position</th>
                             <th class="p-2 text-left">Status</th>
                             <th class="p-2 text-left">Created</th>
-                            <th class="p-2 text-left">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,18 +62,6 @@ if ($stmt === false) {
                                 <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
                                 <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
                                 <td class="p-2"><?= ucfirst($row['role']); ?></td>
-                                <td class="p-2">
-                                    <?php if ($row['officer_id']): ?>
-                                        <span class="text-theme-accent font-medium"><?= htmlspecialchars($row['officer_position']); ?></span>
-                                        <?php if ($row['resident_full_name']): ?>
-                                            <br><span class="text-xs text-gray-500">(<?= htmlspecialchars(trim($row['resident_full_name'])); ?>)</span>
-                                        <?php endif; ?>
-                                    <?php elseif ($row['position']): ?>
-                                        <span class="text-gray-700"><?= htmlspecialchars($row['position']); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-gray-400 italic">—</span>
-                                    <?php endif; ?>
-                                </td>
                                 <td class="p-2">
                                     <?php
                                     $statusColor = $row['status'] === 'active' 
@@ -99,25 +73,7 @@ if ($stmt === false) {
                                     </span>
                                 </td>
                                 <td class="p-2"><?= (new DateTime($row['created_at']))->format('Y-m-d') ?></td>
-                                <td class="p-2">
-                                    <button
-                                        class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition text-sm"
-                                        data-id="<?= $row['id'] ?>"
-                                        data-name="<?= htmlspecialchars($row['name']) ?>"
-                                        data-username="<?= htmlspecialchars($row['username']) ?>"
-                                        data-role="<?= htmlspecialchars($row['role']) ?>"
-                                        data-status="<?= htmlspecialchars($row['status']) ?>"
-                                        data-position="<?= htmlspecialchars($row['position'] ?? '') ?>"
-                                        data-officer-id="<?= $row['officer_id'] ?? '' ?>"
-                                        data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
-                                        data-term-start="<?= $row['term_start'] ?? '' ?>"
-                                        data-term-end="<?= $row['term_end'] ?? '' ?>"
-                                        data-officer-status="<?= htmlspecialchars($row['officer_status'] ?? '') ?>"
-                                        data-resident-id="<?= $row['resident_id'] ?? '' ?>"
-                                        data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
-                                        ✏️ Edit
-                                    </button>
-                                </td>
+                                
                             </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -130,240 +86,6 @@ if ($stmt === false) {
             </div>
         </main>
     </div>
-
-    <!-- Edit Account Dialog -->
-    <div id="editAccountDialog" title="Edit Account" class="hidden">
-        <form id="editAccountForm" method="POST" class="space-y-3">
-            <input type="hidden" name="action" value="edit_account">
-            <input type="hidden" name="id" id="editAccountId">
-            <input type="hidden" name="officer_id" id="editOfficerId">
-            <input type="hidden" name="resident_id" id="editResidentId">
-
-            <div>
-                <label class="block text-gray-700 font-medium">Full Name</label>
-                <input type="text" name="fullname" id="editFullname" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Username</label>
-                <input type="text" name="username" id="editUsername" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Role</label>
-                <select name="role" id="editRole" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="captain">Captain</option>
-                    <option value="kagawad">Kagawad</option>
-                    <option value="secretary">Secretary</option>
-                    <option value="hcnurse">hcnurse</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Status</label>
-                <select name="status" id="editStatus" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="active">Active</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Password (leave blank to keep current)</label>
-                <input type="password" name="password" id="editPassword"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <hr class="my-4">
-
-            <div>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="editIsOfficer" class="rounded">
-                    <input type="hidden" name="is_officer" id="editIsOfficerHidden" value="0">
-                    <span class="text-gray-700 font-medium">This user is an Officer</span>
-                </label>
-            </div>
-
-            <!-- Officer Fields -->
-            <div id="editOfficerFields" class="hidden space-y-3">
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="editResidentSearch" 
-                        placeholder="Search by name or address..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="editResidentSearchResults" 
-                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
-                    <div id="editSelectedResident" class="mt-2 hidden">
-                        <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                            <span class="text-sm text-gray-700">
-                                <span class="font-medium" id="editSelectedResidentName"></span>
-                            </span>
-                            <button type="button" onclick="clearEditResidentSelection()" class="text-red-600 hover:text-red-800 text-sm">
-                                ✕ Clear
-                            </button>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Leave blank if officer is not a registered resident</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
-                    <input type="text" name="officer_position" id="editOfficerPosition"
-                        placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
-                        <input type="date" name="term_start" id="editTermStart"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term End *</label>
-                        <input type="date" name="term_end" id="editTermEnd"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Officer Status</label>
-                    <select name="officer_status" id="editOfficerStatus"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Non-Officer Position Field -->
-            <div id="editPositionField" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Position (if not an officer)</label>
-                <input type="text" name="position" id="editPosition"
-                    placeholder="e.g., Clerk, Secretary, etc."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-        </form>
-    </div>
-
-
-    <!-- add account thru modal -->
-    <div id="addAccountModal" title="Add New Account / Officer" class="hidden">
-        <form method="POST" class="space-y-4" id="addAccountForm">
-            <input type="hidden" name="action" value="add_account">
-            <input type="hidden" name="resident_id" id="addResidentId" value="">
-            <?php if (isset($error)): ?>
-                <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
-            <?php endif; ?>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                <input type="text" name="fullname" placeholder="Full Name" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Username</label>
-                <input type="text" name="username" placeholder="Username" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Password</label>
-                <input type="password" name="password" placeholder="Password" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Role</label>
-                <select name="role" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <option value="staff">Staff</option>
-                    <option value="tanod">Tanod</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-
-            <hr class="my-4">
-
-            <div>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="addIsOfficer" class="rounded">
-                    <input type="hidden" name="is_officer" id="addIsOfficerHidden" value="0">
-                    <span class="text-sm font-medium text-gray-700">This user is an Officer</span>
-                </label>
-            </div>
-
-            <!-- Officer Fields -->
-            <div id="addOfficerFields" class="hidden space-y-3">
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="addResidentSearch" 
-                        placeholder="Search by name or address..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="addResidentSearchResults" 
-                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
-                    <div id="addSelectedResident" class="mt-2 hidden">
-                        <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                            <span class="text-sm text-gray-700">
-                                <span class="font-medium" id="addSelectedResidentName"></span>
-                            </span>
-                            <button type="button" onclick="clearAddResidentSelection()" class="text-red-600 hover:text-red-800 text-sm">
-                                ✕ Clear
-                            </button>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Leave blank if officer is not a registered resident</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
-                    <input type="text" name="officer_position" id="addOfficerPosition"
-                        placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
-                        <input type="date" name="term_start" id="addTermStart"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term End *</label>
-                        <input type="date" name="term_end" id="addTermEnd"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Officer Status</label>
-                    <select name="officer_status" id="addOfficerStatus"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Non-Officer Position Field -->
-            <div id="addPositionField" class="hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Position (if not an officer)</label>
-                <input type="text" name="position" id="addPosition"
-                    placeholder="e.g., Clerk, Secretary, etc."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <div class="pt-2">
-                <button type="submit"
-                    class="w-full bg-theme-secondary hover-theme-darker text-white py-2 rounded font-semibold">
-                    Add Account
-                </button>
-            </div>
-        </form>
     </div>
     <script>
         $(function() {
@@ -574,85 +296,6 @@ if ($stmt === false) {
             // Open modal when button clicked
             $("#openModalBtn").on("click", function() {
                 $("#addAccountModal").dialog("open");
-            });
-
-            $('.edit-btn').on('click', function() {
-                // Get data from button
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const username = $(this).data('username');
-                const role = $(this).data('role');
-                const status = $(this).data('status');
-                const position = $(this).data('position') || '';
-                const officerId = $(this).data('officer-id') || '';
-                const officerPosition = $(this).data('officer-position') || '';
-                const termStart = $(this).data('term-start') || '';
-                const termEnd = $(this).data('term-end') || '';
-                const officerStatus = $(this).data('officer-status') || 'Active';
-                const residentId = $(this).data('resident-id') || '';
-                const residentName = $(this).data('resident-name') || '';
-
-                // Fill form fields
-                $('#editAccountId').val(id);
-                $('#editFullname').val(name);
-                $('#editUsername').val(username);
-                $('#editRole').val(role);
-                $('#editStatus').val(status);
-                $('#editPassword').val('');
-                $('#editPosition').val(position);
-                $('#editOfficerId').val(officerId);
-                $('#editResidentId').val(residentId);
-
-                // Check if user is an officer
-                if (officerId) {
-                    $("#editIsOfficer").prop("checked", true);
-                    $("#editOfficerFields").show();
-                    $("#editPositionField").hide();
-                    $("#editOfficerPosition").val(officerPosition);
-                    $("#editTermStart").val(termStart);
-                    $("#editTermEnd").val(termEnd);
-                    $("#editOfficerStatus").val(officerStatus);
-                    if (residentId && residentName) {
-                        $("#editResidentSearch").val(residentName);
-                        $("#editSelectedResidentName").text(residentName);
-                        $("#editSelectedResident").show();
-                    } else {
-                        clearEditResidentSelection();
-                    }
-                } else {
-                    $("#editIsOfficer").prop("checked", false);
-                    $("#editOfficerFields").hide();
-                    $("#editPositionField").show();
-                    clearEditResidentSelection();
-                }
-
-                // Open dialog - Modernized
-                $("#editAccountDialog").dialog({
-                    modal: true,
-                    width: 600,
-                    resizable: true,
-                    classes: {
-                        'ui-dialog': 'rounded-lg shadow-lg',
-                        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                        'ui-dialog-title': 'font-semibold',
-                        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                    },
-                    buttons: {
-                        "Save Changes": function() {
-                            $('#editAccountForm').submit(); // submit form via POST
-                            $(this).dialog("close");
-                        },
-                        "Cancel": function() {
-                            $(this).dialog("close");
-                        }
-                    },
-                    open: function() {
-                        $(".ui-dialog-buttonpane button:contains('Save Changes')")
-                            .addClass("bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded mr-2");
-                        $(".ui-dialog-buttonpane button:contains('Cancel')")
-                            .addClass("bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded");
-                    }
-                });
             });
         });
     </script>

@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireHCNurse();
 
 $user_id = $_SESSION['user_id'];
 $success = '';

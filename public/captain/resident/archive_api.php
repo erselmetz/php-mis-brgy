@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireStaff(); // Only Staff can access
+requireSecretary(); // Only Secretary can archive/restore residents
 
 header('Content-Type: application/json');
 
@@ -212,8 +212,6 @@ function handleRestoreResident() {
     } catch (Exception $e) {
         $conn->rollback();
         echo json_encode(['success' => false, 'message' => 'Failed to restore resident: ' . $e->getMessage()]);
-    }
-        echo json_encode(['success' => false, 'message' => 'Failed to restore resident']);
     }
 }
 ?>

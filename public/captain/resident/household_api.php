@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireStaff(); // Only Staff can access
+requireSecretary(); // Only Secretary can manage households
 
 header('Content-Type: application/json');
 

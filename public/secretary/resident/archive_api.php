@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireAdmin();
+requireSecretary();
 
 header('Content-Type: application/json');
 

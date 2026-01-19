@@ -8,7 +8,7 @@
  */
 
 require_once '../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireHCNurse(); // Only HC Nurse can access
 
 // Initialize message variables
 $success = '';

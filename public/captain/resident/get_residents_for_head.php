@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireStaff(); // Only Staff can access
+requireCaptain(); // Only Staff can access
 
 header('Content-Type: application/json');
 

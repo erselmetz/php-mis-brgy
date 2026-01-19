@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireTanod(); // Only Tanod can create blotters
 
 // Initialize message variables
 $success = '';

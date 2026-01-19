@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireCaptain();
 
 // Handle form submission
 $success = '';
@@ -88,11 +88,11 @@ $result = $stmt->get_result();
     <title>Blotter Management - MIS Barangay</title>
     <?php loadAllAssets(); ?>
 </head>
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-gray-100 overflow-hidden h-screen" style="display:none;">
     <?php include '../layout/navbar.php'; ?>
     <div class="flex bg-gray-100">
         <?php include '../layout/sidebar.php'; ?>
-        <main class="p-6 w-screen">
+        <main class="overflow-y-auto h-screen pb-24 p-6 flex-1">
             <h2 class="text-2xl font-semibold mb-4">Blotter Management</h2>
             
             <?php if ($success): ?>

@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireKagawad();
 
 header('Content-Type: application/json');
 

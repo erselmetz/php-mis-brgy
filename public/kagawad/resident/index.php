@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireKagawad(); // Only Kagawad can access
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';

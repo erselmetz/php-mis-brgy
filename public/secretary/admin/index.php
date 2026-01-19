@@ -6,7 +6,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     include_once __DIR__ . '/add_account.php';
     include_once __DIR__ . '/edit_account.php';
 }
-requireAdmin();
+requireSecretary(); 
 
 // Fetch all users with their officer information and resident details
 $stmt = $conn->prepare("

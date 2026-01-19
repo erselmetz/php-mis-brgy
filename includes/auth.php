@@ -18,7 +18,7 @@
  */
 function requireLogin() {
     if (!isset($_SESSION['user_id'])) {
-        header("Location: /login/");
+        header("Location: /navigator.php");
         exit();
     }
 }
@@ -33,6 +33,54 @@ function requireAdmin() {
     
     if ($_SESSION['role'] !== 'secretary') {
         // Non-secretary users are redirected to dashboard
+        header("Location: /navigator.php");
+        exit();
+    }
+}
+
+/**
+ * Require Secretary role
+ */
+function requireSecretary() {
+    requireLogin();
+    
+    if ($_SESSION['role'] !== 'secretary') {
+        header("Location: /navigator.php");
+        exit();
+    }
+}
+
+/**
+ * Require Captain role
+ */
+function requireCaptain() {
+    requireLogin();
+
+    if ($_SESSION['role'] !== 'captain') {
+        header("Location: /navigator.php");
+        exit();
+    }
+}
+
+/**
+ * Require Kagawad role
+ */
+function requireKagawad() {
+    requireLogin();
+
+    if ($_SESSION['role'] !== 'kagawad') {
+        header("Location: /navigator.php");
+        exit();
+    }
+}
+
+/**
+ * Require HC Nurse role
+ */
+function requireHCNurse() {
+    requireLogin();
+
+    if ($_SESSION['role'] !== 'hcnurse') {
         header("Location: /navigator.php");
         exit();
     }

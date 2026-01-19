@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireKagawad(); // Only Kagawad can access
 ?>
 <!DOCTYPE html>
 <html lang="en">

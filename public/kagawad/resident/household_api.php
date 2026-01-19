@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireStaff(); // Only Staff can access
+requireKagawad(); // Only Kagawad can access
 
 header('Content-Type: application/json');
 

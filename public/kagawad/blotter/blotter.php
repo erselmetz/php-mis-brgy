@@ -8,7 +8,7 @@
  */
 
 require_once '../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireKagawad(); // Only Kagawad can access
 
 // Initialize message variables
 $success = '';

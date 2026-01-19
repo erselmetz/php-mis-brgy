@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireCaptain();
 ?>
 <!DOCTYPE html>
 <html lang="en">

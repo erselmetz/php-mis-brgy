@@ -8,7 +8,7 @@
  */
 
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireHCNurse(); // Only HC Nurse can access
 
 header('Content-Type: application/json');
 

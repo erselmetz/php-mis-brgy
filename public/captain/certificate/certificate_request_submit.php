@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireCaptain();
 header('Content-Type: application/json');
 
 // Only accept POST requests

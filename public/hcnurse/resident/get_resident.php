@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireHCNurse();
 
 header('Content-Type: application/json');
 

@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireTanod(); // Only Tanod (and admin) can access
+requireSecretary();
 
 // Initialize message variables
 $success = '';

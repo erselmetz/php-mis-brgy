@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireLogin();
+requireCaptain();
 
 if (!isset($_GET['id'])) exit;
 
@@ -114,54 +114,4 @@ $resident = $stmt->get_result()->fetch_assoc();
     </div>
 </div>
 
-<script>
-    $(document).ready(function() {
-        $("#certificateRequestForm").on("submit", function(e) {
-            e.preventDefault();
-            $.ajax({
-                url: "certificate_request_submit.php",
-                method: "POST",
-                data: $(this).serialize(),
-                dataType: "json",
-                beforeSend: function() {
-                    $("#submitBtn").prop("disabled", true).text("Submitting...");
-                },
-                success: function(response) {
-                    $("#submitBtn").prop("disabled", false).text("Submit Request");
-                    if (response.status === "success") {
-                        showDialogReload("✅ Success", response.message);
-                    } else {
-                        showDialogReload("❌ Error", response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    $("#submitBtn").prop("disabled", false).text("Submit Request");
-                    alert("AJAX error: " + error);
-                }
-            });
-        });
-    });
-
-    function printCertificate(certId, certType) {
-        // Open print window
-        const printWindow = window.open('print.php?id=' + certId, '_blank', 'width=800,height=600');
-        
-        // Update status to "Printed" after printing
-        $.ajax({
-            url: 'update_status.php',
-            method: 'POST',
-            data: {
-                id: certId,
-                status: 'Printed'
-            },
-            success: function(response) {
-                if (response.status === 'success') {
-                    // Reload the page to show updated status
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                }
-            }
-        });
-    }
-</script>
+<script src="js/load_resident_details.js"></script>

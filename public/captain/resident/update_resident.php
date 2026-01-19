@@ -16,7 +16,7 @@ while (!file_exists($configDir . '/config.php')) {
 }
 require_once $configDir . '/config.php';
 if (defined('APP_BOOT')) { require_once APP_BOOT; }
-requireLogin();
+requireSecretary(); // Only Secretary can update residents
 
 header('Content-Type: application/json');
 

@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireLogin();
+requireHCNurse();
 
 $role = $_SESSION['role'] ?? '';
 

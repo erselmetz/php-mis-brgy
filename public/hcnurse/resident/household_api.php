@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireAdmin(); // Only Admin can access
+requireHCNurse(); // Only HC Nurse can access
 
 header('Content-Type: application/json');
 

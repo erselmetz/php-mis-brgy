@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireCaptain(); // Only Staff and Admin can access
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
@@ -26,20 +26,16 @@ if ($stmt === false) {
   <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-gray-100 overflow-hidden h-screen" style="display:none;">
 
   <?php include_once '../layout/navbar.php'; ?>
 
   <div class="flex bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
-    <main class="p-6 w-screen">
+    <main class="overflow-y-auto h-screen pb-24 p-6 flex-1">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
-      <!-- ✅ Add Button -->
+      <!-- View Only - Monitoring Actions -->
       <div class="p-6 flex gap-4">
-        <button id="openResidentModalBtn"
-          class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
-          ➕ Add Resident
-        </button>
         <button id="manageHouseholdsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold">
           🏠 Manage Households
         </button>
@@ -85,12 +81,6 @@ if ($stmt === false) {
                   <div class="flex justify-center gap-1">
                     <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
                       View
-                    </button>
-                    <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
-                      Edit
-                    </button>
-                    <button type="button" class="archive-resident-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
-                      Archive
                     </button>
                   </div>
                 </td>

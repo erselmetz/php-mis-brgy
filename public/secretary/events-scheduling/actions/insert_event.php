@@ -3,7 +3,7 @@
 // Handles insertion of new events for MIS Barangay Inventory / Scheduling
 
 require_once __DIR__ . '/../../../../includes/app.php';
-requireAdmin(); // Only admins can insert events
+requireSecretary();
 header('Content-Type: application/json');
 
 $response = [

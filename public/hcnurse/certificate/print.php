@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireHCNurse(); // Only HC Nurse can access
 
 $id = intval($_GET['id'] ?? 0);
 

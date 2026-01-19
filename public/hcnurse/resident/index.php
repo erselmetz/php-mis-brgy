@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireHCNurse(); // Only HC Nurse can access
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
