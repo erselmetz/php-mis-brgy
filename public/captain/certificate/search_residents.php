@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Resident Search API
  * 

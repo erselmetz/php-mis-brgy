@@ -8,7 +8,7 @@ requireCaptain();
 <head>
     <meta charset="UTF-8">
     <title>Certificate - MIS Barangay</title>
-    <?php loadAllAssets(); 
+    <?php loadAllAssets();
     echo showDialogReloadScript(); ?>
 </head>
 
@@ -89,7 +89,7 @@ requireCaptain();
                             return;
                         }
 
-                                                const html = data.map(r => `
+                        const html = data.map(r => `
                             <div class="px-4 py-2 hover-theme-light cursor-pointer" data-id="${r.id}">
                 <div class="font-medium text-gray-800">${r.first_name} ${r.middle_name ?? ''} ${r.last_name}</div>
                 <div class="text-sm text-gray-600">${r.address}</div>
@@ -125,12 +125,12 @@ requireCaptain();
                     },
                     success: function(html) {
                         $("#residentDetails").html(html);
-                        
+
                         // Destroy existing DataTable instance if it exists
                         if ($.fn.DataTable.isDataTable('#historyTable')) {
                             $('#historyTable').DataTable().destroy();
                         }
-                        
+
                         // Wait a bit for DOM to be ready, then initialize DataTable
                         setTimeout(function() {
                             const $table = $('#historyTable');
@@ -138,7 +138,7 @@ requireCaptain();
                                 // Check if table has actual data rows (not just the "no data" row)
                                 const $rows = $table.find('tbody tr');
                                 const hasData = $rows.length > 0 && !$rows.first().find('td[colspan]').length;
-                                
+
                                 if (hasData) {
                                     // Verify all rows have the correct number of cells (5 columns)
                                     let allRowsValid = true;
@@ -149,13 +149,17 @@ requireCaptain();
                                             return false; // break
                                         }
                                     });
-                                    
+
                                     if (allRowsValid) {
                                         $table.DataTable({
                                             pageLength: 10,
-                                            order: [[3, 'desc']], // Sort by Requested At column (4th column, index 3)
-                                            columnDefs: [
-                                                { orderable: false, targets: 4 } // Disable sorting on Actions column
+                                            order: [
+                                                [3, 'desc']
+                                            ], // Sort by Requested At column (4th column, index 3)
+                                            columnDefs: [{
+                                                    orderable: false,
+                                                    targets: 4
+                                                } // Disable sorting on Actions column
                                             ]
                                         });
                                     }

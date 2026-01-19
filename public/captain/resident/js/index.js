@@ -34,86 +34,11 @@ $(function() {
       }
     });
 
-    // Initialize Edit Resident Modal
-    $("#editResidentModal").dialog({
-      autoOpen: false,
-      modal: true,
-      width: 800,
-      height: 700,
-      resizable: true,
-      classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-        'ui-dialog-buttonpane button': 'bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded'
-      },
-      show: {
-        effect: "fadeIn",
-        duration: 200
-      },
-      hide: {
-        effect: "fadeOut",
-        duration: 200
-      },
-      buttons: {
-        "Save": function() {
-          saveResidentEdits();
-        },
-        "Cancel": function() {
-          $(this).dialog("close");
-        }
-      },
-      open: function() {
-        // Button styling is now handled in the classes object above
-      }
-    });
-
-    // Initialize modal (hidden by default) - Modernized
-    $("#addResidentModal").dialog({
-      autoOpen: false,
-      modal: true,
-      width: 800,
-      height: 600,
-      resizable: true,
-      classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-        'ui-dialog-buttonpane button': 'bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded'
-      },
-      show: {
-        effect: "fadeIn",
-        duration: 200
-      },
-      hide: {
-        effect: "fadeOut",
-        duration: 200
-      },
-      open: function() {
-        // Load households for the dropdown
-        loadHouseholdsForAddModal();
-        // Button styling is now handled in the classes object above
-      }
-    });
-
     // View Resident Button Click Handler
     $(document).on("click", ".view-resident-btn", function() {
       const residentId = $(this).data("id");
       loadResidentForView(residentId);
       $("#viewResidentModal").dialog("open");
-    });
-
-    // Edit Resident Button Click Handler
-    $(document).on("click", ".edit-resident-btn", function() {
-      const residentId = $(this).data("id");
-      loadResidentForEdit(residentId);
-      $("#editResidentModal").dialog("open");
-    });
-
-    $("#openResidentModalBtn").on("click", function() {
-      $("#addResidentModal").dialog("open");
     });
 
     $("#archivedResidentsDialog").dialog({
@@ -137,238 +62,12 @@ $(function() {
       $("#archivedResidentsDialog").dialog("open");
     });
 
-    // Archive Resident Button Click Handler
-    $(document).on("click", ".archive-resident-btn", function() {
-      const residentId = $(this).data("id");
-      const residentName = $(this).data("name");
-
-      // Show confirmation dialog
-      $('<div>Are you sure you want to archive <strong>' + residentName + '</strong>?<br><br>This action can be undone later.</div>').dialog({
-        modal: true,
-        title: 'Confirm Archive',
-        width: 450,
-        buttons: {
-          "Archive": function() {
-            $(this).dialog('close');
-            archiveResident(residentId);
-          },
-          "Cancel": function() {
-            $(this).dialog('close');
-          }
-        },
-        classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-orange-500 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
-        open: function() {
-          $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
-          $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-        }
-      });
-    });
-
-    // Restore Resident Button Click Handler
-    $(document).on("click", ".restore-btn", function() {
-      const residentId = $(this).data("id");
-      const residentName = $(this).data("name");
-
-      // Show confirmation dialog
-      $('<div>Are you sure you want to restore <strong>' + residentName + '</strong>?<br><br>This will make the resident active again.</div>').dialog({
-        modal: true,
-        title: 'Confirm Restore',
-        width: 450,
-        buttons: {
-          "Restore": function() {
-            $(this).dialog('close');
-            restoreResident(residentId);
-          },
-          "Cancel": function() {
-            $(this).dialog('close');
-          }
-        },
-        classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
-        open: function() {
-          $('.ui-dialog-buttonpane button:first').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2');
-          $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-        }
-      });
-    });
-
     // Search functionality for archived residents
     $(document).on("input", "#archivedResidentsDialog input[type='text']", function() {
       const searchTerm = $(this).val();
       loadArchivedResidents(searchTerm);
     });
   });
-
-  // Function to archive a resident
-  function archiveResident(residentId) {
-    $.ajax({
-      url: 'archive_api.php',
-      type: 'POST',
-      data: {
-        action: 'archive',
-        resident_id: residentId
-      },
-      dataType: 'json',
-      success: function(response) {
-        if (response.success) {
-          // Show success message
-          $('<div>Resident archived successfully!</div>').dialog({
-            modal: true,
-            title: 'Success',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-                location.reload(); // Refresh to update the table
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-            }
-          });
-        } else {
-          // Show error message
-          $('<div>Error: ' + response.message + '</div>').dialog({
-            modal: true,
-            title: 'Archive Error',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-            }
-          });
-        }
-      },
-      error: function() {
-        // Show connection error
-        $('<div>Failed to archive resident. Please try again.</div>').dialog({
-          modal: true,
-          title: 'Connection Error',
-          width: 420,
-          buttons: {
-            Ok: function() {
-              $(this).dialog('close');
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function() {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
-        });
-      }
-    });
-  }
-
-  // Function to restore an archived resident
-  function restoreResident(residentId) {
-    $.ajax({
-      url: 'archive_api.php',
-      type: 'POST',
-      data: {
-        action: 'restore',
-        resident_id: residentId
-      },
-      dataType: 'json',
-      success: function(response) {
-        if (response.success) {
-          // Show success message
-          $('<div>Resident restored successfully!</div>').dialog({
-            modal: true,
-            title: 'Success',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-                loadArchivedResidents(); // Refresh the archive modal
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-            }
-          });
-        } else {
-          // Show error message
-          $('<div>Error: ' + response.message + '</div>').dialog({
-            modal: true,
-            title: 'Restore Error',
-            width: 420,
-            buttons: {
-              Ok: function() {
-                $(this).dialog('close');
-              }
-            },
-            classes: {
-              'ui-dialog': 'rounded-lg shadow-lg',
-              'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-              'ui-dialog-title': 'font-semibold',
-              'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-            },
-            open: function() {
-              $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-            }
-          });
-        }
-      },
-      error: function() {
-        // Show connection error
-        $('<div>Failed to restore resident. Please try again.</div>').dialog({
-          modal: true,
-          title: 'Connection Error',
-          width: 420,
-          buttons: {
-            Ok: function() {
-              $(this).dialog('close');
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function() {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
-        });
-      }
-    });
-  }
 
   // Function to load archived residents
   function loadArchivedResidents(searchTerm = '') {
@@ -857,11 +556,11 @@ $(function() {
         if (response.success) {
           renderHouseholdList(response.households);
         } else {
-          console.log('Failed to load households:', response.message);
+          console.error('Failed to load households:', response.message);
         }
       },
       error: function() {
-        console.log('Failed to load households');
+        console.error('Failed to load households');
       }
     });
   }
@@ -1031,35 +730,6 @@ $(function() {
       },
       error: function() {
         alert('Failed to save household. Please try again.');
-      }
-    });
-  }
-
-  // Function to archive household
-  function archiveHousehold(id, name) {
-    // Show confirmation dialog
-    $('<div>Are you sure you want to archive household <strong>' + name + '</strong>?<br><br>This action cannot be undone and will permanently delete the household.</div>').dialog({
-      modal: true,
-      title: 'Confirm Archive',
-      width: 450,
-      buttons: {
-        "Archive": function() {
-          $(this).dialog('close');
-          performArchiveHousehold(id);
-        },
-        "Cancel": function() {
-          $(this).dialog('close');
-        }
-      },
-      classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-      },
-      open: function() {
-        $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
-        $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
       }
     });
   }

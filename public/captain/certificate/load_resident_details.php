@@ -21,34 +21,6 @@ $resident = $stmt->get_result()->fetch_assoc();
         <p><span class="font-medium text-gray-700">Voter Status:</span> <?= htmlspecialchars($resident['voter_status']) ?></p>
         <p><span class="font-medium text-gray-700">Disability Status:</span> <?= htmlspecialchars($resident['disability_status'] ?? 'None') ?></p>
     </div>
-
-    <div class="mt-6 border-t pt-4">
-        <h4 class="text-lg font-medium mb-2 text-gray-800">Create Certificate Request</h4>
-        <form id="certificateRequestForm" method="POST" class="space-y-4">
-            <input type="hidden" name="resident_id" value="<?= $resident['id'] ?>">
-
-            <div>
-                <label class="block text-gray-700 mb-1 font-medium">Certificate Type</label>
-                <select name="certificate_type" required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary">
-                    <option value="Barangay Clearance">Barangay Clearance</option>
-                    <option value="Indigency Certificate">Indigency Certificate</option>
-                    <option value="Residency Certificate">Residency Certificate</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 mb-1 font-medium">Purpose</label>
-                <input type="text" name="purpose" placeholder="Enter purpose of certificate" required
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary">
-            </div>
-
-            <button id="submitBtn" type="submit"
-                class="bg-theme-primary text-white px-5 py-2 rounded-lg hover-theme-darker transition font-medium">
-                Submit Request
-            </button>
-        </form>
-    </div>
 </div>
 
 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -90,17 +62,10 @@ $resident = $stmt->get_result()->fetch_assoc();
                             </td>
                             <td class="p-2 text-gray-800"><?= htmlspecialchars(date('M d, Y h:i A', strtotime($row['requested_at']))) ?></td>
                             <td class="p-2">
-                                <?php if ($row['status'] === 'Pending' || $row['status'] === 'Approved'): ?>
-                                    <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
-                                        class="bg-theme-primary hover-theme-darker text-white px-3 py-1 rounded text-xs font-medium">
-                                        🖨️ Print
-                                    </button>
-                                <?php elseif ($row['status'] === 'Printed'): ?>
-                                    <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')" 
-                                        class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs font-medium">
-                                        🖨️ Re-print
-                                    </button>
-                                <?php endif; ?>
+                                <button onclick="printCertificate(<?= $row['id'] ?>, '<?= htmlspecialchars($row['certificate_type'], ENT_QUOTES) ?>')"
+                                    class="bg-theme-primary hover-theme-darker text-white px-3 py-1 rounded text-xs font-medium">
+                                    🖨️ view
+                                </button>
                             </td>
                         </tr>
                     <?php endwhile; ?>

@@ -1483,6 +1483,16 @@
     outline-style: none;
   }
 }
+.disabled\:cursor-not-allowed {
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+.disabled\:opacity-50 {
+  &:disabled {
+    opacity: 50%;
+  }
+}
 .bg-theme-primary {
   background-color: var(--theme-primary);
 }
