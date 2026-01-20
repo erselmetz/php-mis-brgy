@@ -3,3 +3,6 @@
 /markdown/
 /Goal/
 /scripts/
+.cursor
+.vscode/
+.llm-history/
