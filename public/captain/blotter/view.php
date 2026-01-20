@@ -77,11 +77,11 @@ $stmt->close();
     <title>View Blotter Case - MIS Barangay</title>
     <?php loadAllAssets(); ?>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
     <?php include '../layout/navbar.php'; ?>
-    <div class="flex bg-gray-100">
+    <div class="flex h-full bg-gray-100">
         <?php include '../layout/sidebar.php'; ?>
-        <main class="p-6 w-screen">
+        <main class="w-screen flex-1 p-6 pb-24 overflow-y-auto h-screen">
             <div class="mb-4">
                 <a href="../blotter/" class="text-theme-accent hover:underline">← Back to Blotter List</a>
             </div>
@@ -116,9 +116,9 @@ $stmt->close();
                                     <?php
                                     $statusColors = [
                                         'pending' => 'bg-yellow-100 text-yellow-800',
-                                        'under_investigation' => 'bg-theme-secondary text-theme-accent',
-                                        'resolved' => 'bg-green-100 text-green-800',
-                                        'dismissed' => 'bg-gray-100 text-gray-800'
+                                            'under_investigation' => 'bg-theme-secondary text-theme-accent',
+                                            'resolved' => 'bg-green-100 text-green-800',
+                                            'dismissed' => 'bg-gray-100 text-gray-800'
                                     ];
                                     $statusColor = $statusColors[$blotter['status']] ?? 'bg-gray-100 text-gray-800';
                                     ?>
@@ -253,7 +253,7 @@ $stmt->close();
                     </div>
                     
                     <div>
-                        <button type="submit" class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
+                        <button type="submit" class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
                             Update Status
                         </button>
                     </div>
@@ -261,6 +261,11 @@ $stmt->close();
             </div>
         </main>
     </div>
+    <script>
+        $(function() {
+            $('body').show();
+        });
+    </script>
 </body>
 </html>
 

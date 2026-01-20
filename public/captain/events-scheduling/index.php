@@ -37,10 +37,6 @@ $csrf_token = getCSRFToken();
                     <input type="text" id="searchInput"
                         placeholder="Search event…"
                         class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-48">
-                    <button id="btnNewEvent"
-                        class="bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded-xl text-sm font-semibold">
-                        + New Event
-                    </button>
                 </div>
             </div>
 

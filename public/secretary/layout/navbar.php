@@ -32,9 +32,9 @@
                 <!-- Dropdown Menu -->
                 <div id="userDropdown"
                     class="hidden absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden">
-                    <a href="/secretary/profile" class="block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link">Profile Account</a>
+                    <a href="/secretary/profile/" class="block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link">Profile Account</a>
                     <?php if ($_SESSION['role'] == "secretary") {
-                        echo "<a href='/secretary/admin' class='block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link'>Manage Account</a>";
+                        echo "<a href='/secretary/admin/' class='block px-4 py-2 hover-theme-light transition-colors duration-150 theme-link'>Manage Account</a>";
                     } ?>
                     <hr class="border-gray-200">
                     <a href="../../logout.php" class="block px-4 py-2 text-red-600 hover:bg-red-50 font-medium transition-colors duration-150">Logout</a>

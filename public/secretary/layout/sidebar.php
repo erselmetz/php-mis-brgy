@@ -1,7 +1,7 @@
 <!-- Sidebar -->
 <aside class="pb-24 w-60 bg-white shadow-md min-h-screen border-r border-gray-200 sticky top-0 overflow-y-auto">
     <nav class="p-2 space-y-2">
-        <a href="/secretary/dashboard" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+        <a href="/secretary/dashboard/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             🏠 Dashboard
         </a>
 
@@ -21,15 +21,15 @@
             📝 Blotter
         </a>
 
-        <a href="/secretary/events-scheduling" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+        <a href="/secretary/events-scheduling/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             📅 Events & Scheduling
         </a>
 
-        <a href="/secretary/inventory" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+        <a href="/secretary/inventory/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             📁 Inventory
         </a>
 
-        <a href="/secretary/profile" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+        <a href="/secretary/profile/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             ⚙️ Settings
         </a>
 

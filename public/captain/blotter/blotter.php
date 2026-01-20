@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireTanod(); // Only Tanod can create blotters
+requireCaptain();
 
 // Initialize message variables
 $success = '';
@@ -314,43 +314,7 @@ if ($stmt === false) {
         </form>
     </div>
     
-    <script>
-        $(function() {
-            $('body').show();
-            $('#blotterTable').DataTable({
-                order: [[0, 'desc']],
-                pageLength: 25
-            });
-            
-            $("#addBlotterModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 700,
-                height: 600,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded');
-                }
-            });
-            
-            $("#openBlotterModalBtn").on("click", function() {
-                $("#addBlotterModal").dialog("open");
-            });
-        });
+    <script src="js/blotter.js"></script>
     </script>
 </body>
 </html>

@@ -67,27 +67,27 @@ if ($stmt === false) {
           <tbody>
             <?php if ($result !== false): ?>
               <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td class="p-2">
-                      <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
-                  </td>
-                  <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
-                  <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                  <td class="p-2 text-center">
-                    <div class="flex justify-center gap-1">
-                      <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
-                        View
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+              <tr>
+                <td class="p-2">
+                    <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
+                </td>
+                <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
+                <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
+                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
+                <td class="p-2 text-center">
+                  <div class="flex justify-center gap-1">
+                    <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      View
+                    </button>
+                  </div>
+                </td>
+              </tr>
               <?php endwhile; ?>
             <?php else: ?>
               <tr>
@@ -153,31 +153,31 @@ if ($stmt === false) {
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
 
   <!-- archive modal -->
-    <div id="archivedResidentsDialog" title="Archived Residents" class="hidden">
+  <div id="archivedResidentsDialog" title="Archived Residents" class="hidden">
 
-      <!-- Search -->
-      <div class="p-4 border-b">
-        <div class="relative">
-          <input
-            type="text"
-            placeholder="Search archived residents..."
-            class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none" />
-          <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
-        </div>
+    <!-- Search -->
+    <div class="p-4 border-b">
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="Search archived residents..."
+          class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none" />
+        <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
       </div>
+    </div>
 
-      <!-- Table -->
-      <div class="p-4 overflow-auto max-h-[360px]">
-        <table class="w-full text-sm border-collapse">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="p-2 text-left">ID</th>
-              <th class="p-2 text-left">Full Name</th>
-              <th class="p-2 text-left">Date Archived</th>
-              <th class="p-2 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
+    <!-- Table -->
+    <div class="p-4 overflow-auto max-h-[360px]">
+      <table class="w-full text-sm border-collapse">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 text-left">ID</th>
+            <th class="p-2 text-left">Full Name</th>
+            <th class="p-2 text-left">Date Archived</th>
+            <th class="p-2 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
             <tr>
               <td class="p-2 font-semibold"></td>
               <td class="p-2"></td>
@@ -186,16 +186,16 @@ if ($stmt === false) {
                 <button class="restore-btn"></button>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Footer -->
-      <div class="px-4 py-2 text-xs text-gray-500 border-t">
-        <p>Note: loading archived residents...</p>
-      </div>
-
+        </tbody>
+      </table>
     </div>
+
+    <!-- Footer -->
+    <div class="px-4 py-2 text-xs text-gray-500 border-t">
+        <p>Note: loading archived residents...</p>
+  </div>
+
+      </div>
 
   </div>
 
