@@ -174,7 +174,6 @@ $blotter = fetchStats($conn, "
         </div>
 
       </div>
-
     </main>
   </div>
 

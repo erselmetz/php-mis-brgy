@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireStaff(); // Only Staff and Admin can access
+requireSecretary(); // Only Staff and Admin can access
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,7 +50,6 @@ requireStaff(); // Only Staff and Admin can access
             <div id="dialog-message" title="" style="display:none;">
                 <p id="dialog-text"></p>
             </div>
-
         </main>
     </div>
 

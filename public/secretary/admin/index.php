@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST'){
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     include_once __DIR__ . '/add_account.php';
     include_once __DIR__ . '/edit_account.php';
 }
-requireSecretary(); 
+requireSecretary();
 
 // Fetch all users with their officer information and resident details
 $stmt = $conn->prepare("
@@ -20,11 +20,11 @@ $stmt = $conn->prepare("
     ORDER BY u.id DESC
 ");
 if ($stmt === false) {
-  error_log('Account query error: ' . $conn->error);
-  $result = false;
+    error_log('Account query error: ' . $conn->error);
+    $result = false;
 } else {
-  $stmt->execute();
-  $result = $stmt->get_result();
+    $stmt->execute();
+    $result = $stmt->get_result();
 }
 ?>
 <!DOCTYPE html>
@@ -65,40 +65,40 @@ if ($stmt === false) {
                     <tbody>
                         <?php if ($result !== false): ?>
                             <?php while ($row = $result->fetch_assoc()): ?>
-                            <tr>
-                                <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
-                                <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
-                                <td class="p-2"><?= ucfirst($row['role']); ?></td>
-                                <td class="p-2">
-                                    <?php
-                                    $statusColor = $row['status'] === 'active' 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : 'bg-gray-100 text-gray-800';
-                                    ?>
-                                    <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
-                                        <?= ucfirst($row['status']); ?>
-                                    </span>
-                                </td>
-                                <td class="p-2"><?= (new DateTime($row['created_at']))->format('Y-m-d') ?></td>
-                                <td class="p-2">
-                                    <button
-                                        class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition text-sm"
-                                        data-id="<?= $row['id'] ?>"
-                                        data-name="<?= htmlspecialchars($row['name']) ?>"
-                                        data-username="<?= htmlspecialchars($row['username']) ?>"
-                                        data-role="<?= htmlspecialchars($row['role']) ?>"
-                                        data-status="<?= htmlspecialchars($row['status']) ?>"
-                                        data-officer-id="<?= $row['officer_id'] ?? '' ?>"
-                                        data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
-                                        data-term-start="<?= $row['term_start'] ?? '' ?>"
-                                        data-term-end="<?= $row['term_end'] ?? '' ?>"
-                                        data-officer-status="<?= htmlspecialchars($row['officer_status'] ?? '') ?>"
-                                        data-resident-id="<?= $row['resident_id'] ?? '' ?>"
-                                        data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
-                                        ✏️ Edit
-                                    </button>
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
+                                    <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
+                                    <td class="p-2"><?= ucfirst($row['role']); ?></td>
+                                    <td class="p-2">
+                                        <?php
+                                        $statusColor = $row['status'] === 'active'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-gray-100 text-gray-800';
+                                        ?>
+                                        <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
+                                            <?= ucfirst($row['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td class="p-2"><?= (new DateTime($row['created_at']))->format('Y-m-d') ?></td>
+                                    <td class="p-2">
+                                        <button
+                                            class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition text-sm"
+                                            data-id="<?= $row['id'] ?>"
+                                            data-name="<?= htmlspecialchars($row['name']) ?>"
+                                            data-username="<?= htmlspecialchars($row['username']) ?>"
+                                            data-role="<?= htmlspecialchars($row['role']) ?>"
+                                            data-status="<?= htmlspecialchars($row['status']) ?>"
+                                            data-officer-id="<?= $row['officer_id'] ?? '' ?>"
+                                            data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
+                                            data-term-start="<?= $row['term_start'] ?? '' ?>"
+                                            data-term-end="<?= $row['term_end'] ?? '' ?>"
+                                            data-officer-status="<?= htmlspecialchars($row['officer_status'] ?? '') ?>"
+                                            data-resident-id="<?= $row['resident_id'] ?? '' ?>"
+                                            data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
+                                            ✏️ Edit
+                                        </button>
+                                    </td>
+                                </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
@@ -179,10 +179,10 @@ if ($stmt === false) {
             <div id="editOfficerFields" class="hidden space-y-3">
                 <div class="relative">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="editResidentSearch" 
+                    <input type="text" id="editResidentSearch"
                         placeholder="Search by name or address..."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="editResidentSearchResults" 
+                    <div id="editResidentSearchResults"
                         class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
                     <div id="editSelectedResident" class="mt-2 hidden">
                         <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
@@ -291,10 +291,10 @@ if ($stmt === false) {
             <div id="addOfficerFields" class="hidden space-y-3">
                 <div class="relative">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="addResidentSearch" 
+                    <input type="text" id="addResidentSearch"
                         placeholder="Search by name or address..."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="addResidentSearchResults" 
+                    <div id="addResidentSearchResults"
                         class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
                     <div id="addSelectedResident" class="mt-2 hidden">
                         <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
@@ -345,7 +345,7 @@ if ($stmt === false) {
     <div id="archiveCurrentTermDialog" title="Archive Current Term" class="hidden">
         <div class="p-4">
             <p class="mb-4 text-gray-700">
-                This will archive all accounts/officers except the latest new account with role "secretary". 
+                This will archive all accounts/officers except the latest new account with role "secretary".
                 Are you sure you want to proceed?
             </p>
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
@@ -396,17 +396,16 @@ if ($stmt === false) {
         </div>
     </div>
 
+    <!-- Show success/error messages using showMessage function (PHP-specific) -->
+    <?php if (isset($success) && $success != "") {
+        echo DialogMessage($success, "Success");
+    } ?>
+
+    <?php if (isset($error) && $error != "") {
+        echo DialogMessage($error, "Error");
+    } ?>
+
     <script src="js/index.js"></script>
-    <script>
-        // Show success/error messages using showMessage function (PHP-specific)
-        <?php if (isset($success) && $success != ""): ?>
-            showMessage('Success', <?php echo json_encode($success); ?>);
-        <?php endif; ?>
-        
-        <?php if (isset($error) && $error != ""): ?>
-            showMessage('Error', <?php echo json_encode($error); ?>, true);
-        <?php endif; ?>
-    </script>
 </body>
 
 </html>

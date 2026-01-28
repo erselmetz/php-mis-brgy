@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireKagawad(); // Only Kagawad can access
+requireKagawad();
 
 header('Content-Type: application/json');
 
@@ -99,56 +99,26 @@ function handleArchiveResident() {
         return;
     }
 
-    // Start transaction for data consistency
-    $conn->begin_transaction();
+    // Check if resident exists and is not already archived
+    $checkQuery = "SELECT id FROM residents WHERE id = ? AND deleted_at IS NULL";
+    $stmt = $conn->prepare($checkQuery);
+    $stmt->bind_param('i', $residentId);
+    $stmt->execute();
 
-    try {
-        // Check if resident exists and is not already archived, get household_id
-        $checkQuery = "SELECT household_id FROM residents WHERE id = ? AND deleted_at IS NULL";
-        $stmt = $conn->prepare($checkQuery);
-        $stmt->bind_param('i', $residentId);
-        $stmt->execute();
-        $result = $stmt->get_result();
+    if ($stmt->get_result()->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Resident not found or already archived']);
+        return;
+    }
 
-        if ($result->num_rows === 0) {
-            throw new Exception('Resident not found or already archived');
-        }
+    // Archive the resident
+    $archiveQuery = "UPDATE residents SET deleted_at = NOW() WHERE id = ?";
+    $stmt = $conn->prepare($archiveQuery);
+    $stmt->bind_param('i', $residentId);
 
-        $resident = $result->fetch_assoc();
-        $householdId = $resident['household_id'];
-        $stmt->close();
-
-        // Archive the resident
-        $archiveQuery = "UPDATE residents SET deleted_at = NOW() WHERE id = ?";
-        $stmt = $conn->prepare($archiveQuery);
-        $stmt->bind_param('i', $residentId);
-
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to archive resident');
-        }
-        $stmt->close();
-
-        // Decrement household member count if resident was in a household
-        if ($householdId) {
-            $updateHouseholdStmt = $conn->prepare("
-                UPDATE households
-                SET total_members = GREATEST(total_members - 1, 0)
-                WHERE id = ?
-            ");
-            $updateHouseholdStmt->bind_param('i', $householdId);
-
-            if (!$updateHouseholdStmt->execute()) {
-                throw new Exception('Failed to update household member count');
-            }
-            $updateHouseholdStmt->close();
-        }
-
-        $conn->commit();
+    if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Resident archived successfully']);
-
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo json_encode(['success' => false, 'message' => 'Failed to archive resident: ' . $e->getMessage()]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to archive resident']);
     }
 }
 
@@ -162,57 +132,25 @@ function handleRestoreResident() {
         return;
     }
 
-    // Start transaction for data consistency
-    $conn->begin_transaction();
+    // Check if resident exists and is archived
+    $checkQuery = "SELECT id FROM residents WHERE id = ? AND deleted_at IS NOT NULL";
+    $stmt = $conn->prepare($checkQuery);
+    $stmt->bind_param('i', $residentId);
+    $stmt->execute();
 
-    try {
-        // Check if resident exists and is archived, get household_id
-        $checkQuery = "SELECT household_id FROM residents WHERE id = ? AND deleted_at IS NOT NULL";
-        $stmt = $conn->prepare($checkQuery);
-        $stmt->bind_param('i', $residentId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows === 0) {
-            throw new Exception('Resident not found or not archived');
-        }
-
-        $resident = $result->fetch_assoc();
-        $householdId = $resident['household_id'];
-        $stmt->close();
-
-        // Restore the resident
-        $restoreQuery = "UPDATE residents SET deleted_at = NULL WHERE id = ?";
-        $stmt = $conn->prepare($restoreQuery);
-        $stmt->bind_param('i', $residentId);
-
-        if (!$stmt->execute()) {
-            throw new Exception('Failed to restore resident');
-        }
-        $stmt->close();
-
-        // Increment household member count if resident was in a household
-        if ($householdId) {
-            $updateHouseholdStmt = $conn->prepare("
-                UPDATE households
-                SET total_members = total_members + 1
-                WHERE id = ?
-            ");
-            $updateHouseholdStmt->bind_param('i', $householdId);
-
-            if (!$updateHouseholdStmt->execute()) {
-                throw new Exception('Failed to update household member count');
-            }
-            $updateHouseholdStmt->close();
-        }
-
-        $conn->commit();
-        echo json_encode(['success' => true, 'message' => 'Resident restored successfully']);
-
-    } catch (Exception $e) {
-        $conn->rollback();
-        echo json_encode(['success' => false, 'message' => 'Failed to restore resident: ' . $e->getMessage()]);
+    if ($stmt->get_result()->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Resident not found or not archived']);
+        return;
     }
+
+    // Restore the resident
+    $restoreQuery = "UPDATE residents SET deleted_at = NULL WHERE id = ?";
+    $stmt = $conn->prepare($restoreQuery);
+    $stmt->bind_param('i', $residentId);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Resident restored successfully']);
+    } else {
         echo json_encode(['success' => false, 'message' => 'Failed to restore resident']);
     }
 }

@@ -1,0 +1,5 @@
+- [x] Modify index.php to add date range inputs and counts display in history modal
+- [ ] Update js/index.js to set default current month dates and pass date filters to loadHistory
+- [ ] Modify fetch_event_history.php to accept date_from/date_to and return status counts
+- [ ] Update loadHistory to display counts and filter by dates
+- [ ] Test the history modal functionality

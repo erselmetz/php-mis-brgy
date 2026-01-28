@@ -85,7 +85,6 @@ $csrf_token = getCSRFToken();
                     History
                 </button>
             </div>
-
         </main>
     </div>
 
@@ -151,10 +150,12 @@ $csrf_token = getCSRFToken();
 
     <!-- History Modal -->
     <div id="historyModal" title="Event History" class="hidden">
+        <!-- Search -->
         <div class="mb-4">
             <input type="text" id="historySearch" placeholder="Search history..."
                 class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
         </div>
+        <!-- list -->
         <div id="historyList" class="max-h-96 overflow-y-auto space-y-2">
             <div class="text-center text-gray-500 py-8">Loading history...</div>
         </div>

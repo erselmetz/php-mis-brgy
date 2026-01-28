@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireKagawad(); // Only Kagawad can access
+requireKagawad();
 
 header('Content-Type: application/json');
 

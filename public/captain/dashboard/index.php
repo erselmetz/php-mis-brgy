@@ -268,6 +268,7 @@ $blotter = fetchStats($conn, "
       ['#bdc3c7', '#f0932b', '#bdc3c7', '#76b7b2']
     );
   </script>
+  <?php loadAsset('js', 'app.js')?>
 
 </body>
 

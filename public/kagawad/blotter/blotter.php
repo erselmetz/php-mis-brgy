@@ -7,8 +7,8 @@
  * Uses prepared statements for all database operations.
  */
 
-require_once '../../includes/app.php';
-requireKagawad(); // Only Kagawad can access
+require_once __DIR__ . '/../../../includes/app.php';
+requireKagawad();
 
 // Initialize message variables
 $success = '';
@@ -188,7 +188,7 @@ if ($stmt === false) {
                             <?php while ($row = $result->fetch_assoc()): ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline font-semibold">
+                                        <a href="view?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline font-semibold">
                                             <?= htmlspecialchars($row['case_number']) ?>
                                         </a>
                                     </td>
@@ -212,7 +212,7 @@ if ($stmt === false) {
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
                                     <td class="p-2">
-                                        <a href="/blotter/view?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline">View</a>
+                                        <a href="view?id=<?= $row['id'] ?>" class="text-theme-accent hover:underline">View</a>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
@@ -314,43 +314,7 @@ if ($stmt === false) {
         </form>
     </div>
     
-    <script>
-        $(function() {
-            $('body').show();
-            $('#blotterTable').DataTable({
-                order: [[0, 'desc']],
-                pageLength: 25
-            });
-            
-            $("#addBlotterModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 700,
-                height: 600,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                open: function() {
-                    $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded');
-                }
-            });
-            
-            $("#openBlotterModalBtn").on("click", function() {
-                $("#addBlotterModal").dialog("open");
-            });
-        });
+    <script src="js/blotter.js"></script>
     </script>
 </body>
 </html>

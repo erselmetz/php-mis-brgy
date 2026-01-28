@@ -7,8 +7,8 @@
  * Returns JSON response for frontend handling.
  */
 
-require_once '../../includes/app.php';
-requireKagawad(); // Only Kagawad can access
+require_once __DIR__ . '/../../../includes/app.php';
+requireKagawad();
 
 header('Content-Type: application/json');
 
@@ -129,6 +129,8 @@ try {
     }
 
     $stmt->close();
+
+} catch (Exception $e) {
     /**
      * Catch any unexpected errors
      * Log full error details for debugging but show generic message to user

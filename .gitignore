@@ -6,3 +6,4 @@
 .cursor
 .vscode/
 .llm-history/
+.llm-chat-history/history/

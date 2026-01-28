@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireLogin();
+requireSecretary();
 
 if (!isset($_GET['id'])) exit;
 

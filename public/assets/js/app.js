@@ -30,6 +30,18 @@ $(function () {
     $(document).on('dialogopen', function () {
         setTimeout(disableAutocomplete, 100);
     });
+
+    // Add global footer
+    add_global_footer();
+
+    // Initialize jQuery UI dialog container
+    $("body").append(`
+        <div id="dialog-message" style="display:none;">
+            <p id="dialog-text"></p>
+        </div>
+    `);
+
+
 });
 
 function showDialog(title, message) {
@@ -79,25 +91,29 @@ function showDialogReload(title, message) {
 
 // Helper function to show message dialogs
 function showMessage(title, message, isError = false) {
-    const $dialog = $('<div class="p-4">' + message + '</div>');
+    const $dialog = $('<div id="message-dialog" title="' + title + '" style="display: none; ">' +
+        '<div class="p-4">' +
+        '<p class="text-gray-700">' + message + '</p>' +
+        '</div>' +
+        '</div>');
     $dialog.dialog({
         modal: true,
-        title: title,
-        width: 420,
+        width: 500,
         resizable: false,
-        buttons: {
-            Ok: function () {
-                $(this).dialog('close').remove();
-            }
-        },
         classes: {
             'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': (isError ? 'bg-red-600' : 'bg-theme-primary') + ' text-white rounded-t-lg',
+            'ui-dialog-titlebar': 'bg-green-600 text-white rounded-t-lg',
             'ui-dialog-title': 'font-semibold',
             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
         },
+        buttons: {
+            Ok: function () {
+                $(this).dialog('close');
+                $(this).remove();
+            }
+        },
         open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
+            $('.ui-dialog-buttonpane button').addClass('bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded');
         }
     });
 }
@@ -137,4 +153,46 @@ function showConfirm(title, message, onConfirm) {
             });
         }
     });
+}
+
+function add_global_footer() {
+    // Avoid adding twice
+    if ($("#mis-global-footer").length) return;
+
+    const year = new Date().getFullYear();
+
+    // Create footer using jQuery
+    const $footerWrapper = $(`
+            <div id="mis-global-footer">
+                <footer class="w-full text-center mt-10 mb-4 text-gray-500 text-sm 
+                               opacity-0 transition-all duration-500 ease-out">
+                    <div class="inline-block px-4 py-2 bg-white rounded-lg shadow-sm border">
+                        &copy; ${year} MIS Barangay. All rights reserved.
+                    </div>
+                </footer>
+            </div>
+        `);
+
+    // Append to <main>
+    const $main = $("main");
+
+    if ($main.length) {
+        $main.append($footerWrapper);
+
+        // Fade-in after slight delay
+        setTimeout(() => {
+            $footerWrapper.find("footer").removeClass("opacity-0");
+        }, 50);
+    }
+
+    // Inject animation CSS (only once)
+    const style = `
+            #mis-global-footer footer {
+                transform: translateY(10px);
+            }
+            #mis-global-footer footer:not(.opacity-0) {
+                transform: translateY(0);
+            }
+        `;
+    $("<style></style>").text(style).appendTo("head");
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Utility Functions for MIS Barangay System
  * 
@@ -77,7 +78,7 @@ function loadAllScripts()
             'jquery-ui/dist/jquery-ui.js',
             'datatables.net/js/dataTables.js',
         ],
-        'js' => ['tailwindcss.js', 'app.js','theme.js'],
+        'js' => ['tailwindcss.js', 'app.js', 'theme.js'],
     ]);
 }
 
@@ -106,7 +107,7 @@ function AlertMessage($message, $title = "Alert")
     $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $dialogId = 'dialog_' . uniqid();
-    
+
     return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
                 <div class='p-4'>
                     <p class='text-gray-700'>$safeMessage</p>
@@ -153,7 +154,7 @@ function DialogMessage($message, $title = "Message")
     $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
     $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $dialogId = 'dialog_' . uniqid();
-    
+
     return "<div id='$dialogId' title='$safeTitle' style='display:none;'>
                 <div class='p-4'>
                     <p class='text-gray-700'>$safeMessage</p>
@@ -197,7 +198,7 @@ function AutoComputeAge($birthdate)
     if (empty($birthdate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
         return 0; // Return 0 for invalid dates
     }
-    
+
     try {
         $birthDateObj = new DateTime($birthdate);
         $today = new DateTime();
@@ -275,7 +276,7 @@ function sanitizeString($input, $allowEmpty = true)
     if ($input === null) {
         return $allowEmpty ? '' : null;
     }
-    
+
     $sanitized = trim($input);
     return $allowEmpty || !empty($sanitized) ? $sanitized : null;
 }
@@ -317,12 +318,12 @@ function validateDateFormat($date)
     if (empty($date)) {
         return false;
     }
-    
+
     // Check format
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
         return false;
     }
-    
+
     // Validate actual date
     $d = DateTime::createFromFormat('Y-m-d', $date);
     return $d && $d->format('Y-m-d') === $date;
@@ -339,19 +340,19 @@ function validateDateFormat($date)
 function sanitizeInt($input, $min = null, $max = null)
 {
     $int = filter_var($input, FILTER_VALIDATE_INT);
-    
+
     if ($int === false) {
         return null;
     }
-    
+
     if ($min !== null && $int < $min) {
         return null;
     }
-    
+
     if ($max !== null && $int > $max) {
         return null;
     }
-    
+
     return $int;
 }
 
@@ -394,7 +395,7 @@ function validateCSRFToken($token)
     if (!isset($_SESSION['csrf_token'])) {
         return false;
     }
-    
+
     // Use hash_equals for timing-safe comparison
     return hash_equals($_SESSION['csrf_token'], $token);
 }
@@ -425,27 +426,27 @@ function validateUploadedFile($file, $allowedTypes = ['image/jpeg', 'image/png',
     if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
         return ['valid' => false, 'error' => 'Invalid file upload.', 'safe_filename' => null];
     }
-    
+
     // Check file size
     if ($file['size'] > $maxSize) {
         return ['valid' => false, 'error' => 'File size exceeds maximum allowed size.', 'safe_filename' => null];
     }
-    
+
     // Check file extension
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     if (!in_array($extension, $allowedExtensions)) {
         return ['valid' => false, 'error' => 'Invalid file type. Allowed: ' . implode(', ', $allowedExtensions), 'safe_filename' => null];
     }
-    
+
     // Validate MIME type using finfo (more secure than $_FILES['type'])
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mimeType = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
-    
+
     if (!in_array($mimeType, $allowedTypes)) {
         return ['valid' => false, 'error' => 'Invalid file MIME type.', 'safe_filename' => null];
     }
-    
+
     // Additional validation: Check file content for images
     if (strpos($mimeType, 'image/') === 0) {
         $imageInfo = @getimagesize($file['tmp_name']);
@@ -453,11 +454,11 @@ function validateUploadedFile($file, $allowedTypes = ['image/jpeg', 'image/png',
             return ['valid' => false, 'error' => 'File is not a valid image.', 'safe_filename' => null];
         }
     }
-    
+
     // Generate safe filename (prevent path traversal and special characters)
     $safeFilename = preg_replace('/[^a-zA-Z0-9._-]/', '_', pathinfo($file['name'], PATHINFO_FILENAME));
     $safeFilename = substr($safeFilename, 0, 100); // Limit length
     $safeFilename = $safeFilename . '_' . time() . '.' . $extension;
-    
+
     return ['valid' => true, 'error' => null, 'safe_filename' => $safeFilename];
 }

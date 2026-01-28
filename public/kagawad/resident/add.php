@@ -97,7 +97,7 @@ if ($action === 'add_resident') {
 
                     if ($sql->execute()) {
                         // Success — redirect to resident list
-                        header("Location: /resident/?success=1");
+                        header("Location: /secretary/resident/?success=1");
                         exit();
                     } else {
                         error_log('Resident Add Error: ' . $sql->error);

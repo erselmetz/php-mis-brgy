@@ -1,6 +1,6 @@
 <?php
 require_once '../../../includes/app.php';
-requireKagawad(); // Only Kagawad can access
+requireKagawad();
 
 header('Content-Type: application/json');
 
@@ -249,7 +249,7 @@ function handleArchiveHousehold() {
         return;
     }
 
-    // Check if household has residents
+    // Check if household has residents (you might want to prevent archiving households with residents)
     $residentCheckQuery = "SELECT COUNT(*) as count FROM residents WHERE household_id = ? AND deleted_at IS NULL";
     $stmt = $conn->prepare($residentCheckQuery);
     $stmt->bind_param('i', $id);
@@ -262,7 +262,7 @@ function handleArchiveHousehold() {
         return;
     }
 
-    // Archive household
+    // Archive household (you could add a deleted_at field to households table, or just delete it)
     $deleteQuery = "DELETE FROM households WHERE id = ?";
     $stmt = $conn->prepare($deleteQuery);
     $stmt->bind_param('i', $id);

@@ -169,74 +169,6 @@ $csrf_token = getCSRFToken();
                 </form>
             </div>
 
-            <!-- Add Category Modal -->
-            <div id="categoryModal" title="Add Category" class="p-0 hidden">
-                <form id="categoryForm" class="bg-gray-100 p-4">
-                    <div class="space-y-3 text-sm">
-                        <div>
-                            <label class="block font-semibold mb-1">Category Name <span class="text-red-500">*</span></label>
-                            <input name="category_name" id="categoryName" type="text" required
-                                   class="w-full border border-gray-400 px-3 py-2 rounded">
-                        </div>
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES); ?>">
-                    </div>
-                    <div class="bg-theme-primary text-center py-3 mt-4">
-                        <button type="submit" id="submitCategory" 
-                                class="text-white font-semibold text-sm">
-                            Add Category
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Assign/Return Asset Modal -->
-            <div id="assignModal" title="Assign Asset" class="p-0 hidden">
-                <form id="assignForm" class="bg-gray-100">
-                    <input type="hidden" name="id" id="assignInventoryId">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES); ?>">
-                    
-                    <div class="p-4 space-y-3 text-sm">
-                        <div>
-                            <label class="block font-semibold mb-1">Personnel Name <span class="text-red-500">*</span></label>
-                            <input name="personnel_name" id="personnelName" type="text" required
-                                   class="w-full border border-gray-400 px-3 py-2 rounded">
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1">Personnel Role</label>
-                            <input name="personnel_role" id="personnelRole" type="text"
-                                   class="w-full border border-gray-400 px-3 py-2 rounded">
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1">Location</label>
-                            <input name="location" id="assignLocation" type="text"
-                                   class="w-full border border-gray-400 px-3 py-2 rounded">
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1">Purpose</label>
-                            <textarea name="purpose" id="assignPurpose" rows="2"
-                                      class="w-full border border-gray-400 px-3 py-2 rounded"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1">Start Time</label>
-                                <input name="start_time" id="startTime" type="datetime-local"
-                                       class="w-full border border-gray-400 px-3 py-2 rounded">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1">End Time</label>
-                                <input name="end_time" id="endTime" type="datetime-local"
-                                       class="w-full border border-gray-400 px-3 py-2 rounded">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-theme-primary text-center py-3">
-                        <button type="submit" id="submitAssign" 
-                                class="text-white font-semibold text-sm">
-                            Assign Asset
-                        </button>
-                    </div>
-                </form>
-            </div>
 
             <!-- Audit Trail Modal -->
             <div id="assetAuditModal" class="hidden p-0">
@@ -289,10 +221,6 @@ $csrf_token = getCSRFToken();
                 <!-- Footer -->
                 <div class="p-5 flex items-center justify-between border-t bg-gray-50">
                     <div class="space-x-2">
-                        <button id="exportAuditBtn" 
-                                class="bg-theme-primary hover-theme-darker text-white px-5 py-2 rounded text-sm">
-                            Export Logs
-                        </button>
                         <button id="closeAuditModal" 
                                 class="border border-gray-300 px-5 py-2 rounded text-sm">
                             Close
@@ -416,9 +344,6 @@ $csrf_token = getCSRFToken();
                         { data: null, title: 'Actions', orderable: false,
                           render: function(data, type, row) {
                               return '<div class="flex space-x-1">' +
-                                  '<button class="edit-btn text-blue-600 hover:text-blue-800 text-xs px-2 py-1" data-id="' + row.id + '">Edit</button>' +
-                                  '<button class="assign-btn text-green-600 hover:text-green-800 text-xs px-2 py-1" data-id="' + row.id + '">Assign</button>' +
-                                  '<button class="delete-btn text-red-600 hover:text-red-800 text-xs px-2 py-1" data-id="' + row.id + '" data-name="' + (row.name || '') + '">Delete</button>' +
                                   '<button class="audit-btn text-purple-600 hover:text-purple-800 text-xs px-2 py-1" data-id="' + row.id + '" data-code="' + (row.asset_code || '') + '" data-name="' + (row.name || '') + '">Audit</button>' +
                                   '</div>';
                           }
@@ -538,55 +463,6 @@ $csrf_token = getCSRFToken();
                 $("#categoryModal").dialog("open");
             });
 
-            // Edit Button
-            $(document).on('click', '.edit-btn', function() {
-                const id = $(this).data('id');
-                currentEditId = id;
-                
-                $.getJSON('api/inventory_api.php?action=get&id=' + id, function(res) {
-                    if (res.status === 'ok' && res.data) {
-                        const item = res.data;
-                        $("#inventoryId").val(item.id);
-                        $("#assetName").val(item.name);
-                        $("#assetCategory").val(item.category);
-                        $("#assetQuantity").val(item.quantity);
-                        $("#assetLocation").val(item.location);
-                        $("#assetCondition").val(item.cond);
-                        $("#assetStatus").val(item.status || 'available');
-                        $("#assetDescription").val(item.description);
-                        
-                        $("#inventoryModal").dialog("option", "title", "Edit Inventory Item");
-                        $("#submitInventory").text("Update Inventory Item");
-                        $("#inventoryModal").dialog("open");
-                    }
-                });
-            });
-
-            // Delete Button
-            $(document).on('click', '.delete-btn', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                
-                showConfirm(
-                    'Confirm Delete',
-                    'Are you sure you want to delete "' + name + '"? This action cannot be undone.',
-                    function() {
-                        $.post('api/inventory_api.php?action=delete', {
-                            id: id,
-                            csrf_token: '<?php echo htmlspecialchars($csrf_token, ENT_QUOTES); ?>'
-                        }, function(resp) {
-                            const json = typeof resp === 'string' ? JSON.parse(resp) : resp;
-                            if (json.status === 'ok') {
-                                inventoryTable.ajax.reload(null, false);
-                                showMessage('Success', 'Item deleted successfully');
-                            } else {
-                                showMessage('Error', json.message || 'Failed to delete item', true);
-                            }
-                        });
-                    }
-                );
-            });
-
             // Assign Button
             $(document).on('click', '.assign-btn', function() {
                 const id = $(this).data('id');
@@ -690,99 +566,10 @@ $csrf_token = getCSRFToken();
                 }
             });
 
-            // Form Submissions
-            $('#inventoryForm').on('submit', function(e) {
-                e.preventDefault();
-                const $btn = $('#submitInventory');
-                $btn.prop('disabled', true).text('Saving...');
-                
-                const action = currentEditId ? 'update' : 'add';
-                const formData = $(this).serialize();
-                
-                $.post('api/inventory_api.php?action=' + action, formData, function(resp) {
-                    const json = typeof resp === 'string' ? JSON.parse(resp) : resp;
-                    if (json.status === 'ok') {
-                        $('#inventoryModal').dialog('close');
-                        inventoryTable.ajax.reload(null, false);
-                        showMessage('Success', json.message || 'Inventory item saved successfully');
-                        $('#inventoryForm')[0].reset();
-                    } else {
-                        showMessage('Error', json.message || 'Failed to save inventory item', true);
-                    }
-                }).fail(function() {
-                    showMessage('Error', 'Request failed. Please try again.', true);
-                }).always(function() {
-                    $btn.prop('disabled', false).text(currentEditId ? 'Update Inventory Item' : 'Add Inventory Item');
-                });
-            });
-
-            $('#categoryForm').on('submit', function(e) {
-                e.preventDefault();
-                const $btn = $('#submitCategory');
-                $btn.prop('disabled', true).text('Adding...');
-                
-                const formData = $(this).serialize();
-                console.log('Submitting category form:', formData);
-                
-                $.post('api/inventory_api.php?action=add_category', formData, function(resp) {
-                    console.log('Category API Response:', resp);
-                    let json;
-                    try {
-                        json = typeof resp === 'string' ? JSON.parse(resp) : resp;
-                    } catch (err) {
-                        console.error('JSON Parse Error:', err, resp);
-                        showMessage('Error', 'Invalid response from server. Please check console.', true);
-                        return;
-                    }
-                    
-                    if (json.status === 'ok') {
-                        $('#categoryModal').dialog('close');
-                        // Reload categories and select the new one
-                        loadCategories(json.data ? json.data.name : null);
-                        showMessage('Success', json.message || 'Category added successfully');
-                        $('#categoryForm')[0].reset();
-                    } else {
-                        showMessage('Error', json.message || 'Failed to add category', true);
-                    }
-                }).fail(function(xhr, status, error) {
-                    console.error('Category Add Error:', status, error);
-                    console.error('Response:', xhr.responseText);
-                    showMessage('Error', 'Request failed: ' + error + '. Please check console for details.', true);
-                }).always(function() {
-                    $btn.prop('disabled', false).text('Add Category');
-                });
-            });
-
-            $('#assignForm').on('submit', function(e) {
-                e.preventDefault();
-                const $btn = $('#submitAssign');
-                $btn.prop('disabled', true).text('Assigning...');
-                
-                $.post('api/inventory_api.php?action=assign', $(this).serialize(), function(resp) {
-                    const json = typeof resp === 'string' ? JSON.parse(resp) : resp;
-                    if (json.status === 'ok') {
-                        $('#assignModal').dialog('close');
-                        inventoryTable.ajax.reload(null, false);
-                        showMessage('Success', json.message || 'Asset assigned successfully');
-                        $('#assignForm')[0].reset();
-                    } else {
-                        showMessage('Error', json.message || 'Failed to assign asset', true);
-                    }
-                }).fail(function() {
-                    showMessage('Error', 'Request failed. Please try again.', true);
-                }).always(function() {
-                    $btn.prop('disabled', false).text('Assign Asset');
-                });
-            });
 
             // Close buttons
             $("#closeAuditModal").on("click", function() {
                 $("#assetAuditModal").dialog("close");
-            });
-
-            // Export Audit Trail
-            $("#exportAuditBtn").on("click", function() {
-                showMessage('Information', 'Export functionality will be implemented soon.');
             });
 
             // Initialize table

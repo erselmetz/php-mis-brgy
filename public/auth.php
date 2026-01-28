@@ -8,7 +8,7 @@
 function require_role(array $allowedRoles) {
     // 1. Check if user is logged in
     if (!isset($_SESSION['role'])) {
-        header("Location: /public/login.php?error=unauthorized");
+        header("Location: /login/?error=unauthorized");
         exit();
     }
 

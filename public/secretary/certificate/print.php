@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
-requireAdmin(); // Only Staff and Admin can access
+requireSecretary(); // Only Staff and Admin can access
 
 $id = intval($_GET['id'] ?? 0);
 

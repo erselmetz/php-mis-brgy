@@ -256,9 +256,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <!-- profile settings -->
-      <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
-      <div class="max-w-3xl bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
-
+      <div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
+        <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
         <?php if (!empty($success)): ?>
           <div class="bg-green-100 border border-green-300 text-green-700 p-3 rounded">
             <?= htmlspecialchars($success) ?>

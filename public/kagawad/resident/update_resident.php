@@ -7,7 +7,14 @@
  * Returns JSON response for frontend handling.
  */
 
-require_once '../../includes/app.php';
+// Load central config dynamically
+$configDir = __DIR__ . '/../../../includes/app.php';
+while (!file_exists($configDir)) {
+    $parent = dirname($configDir);
+    if ($parent === $configDir) break;
+    $configDir = $parent;
+}
+require_once $configDir;
 requireKagawad();
 
 header('Content-Type: application/json');

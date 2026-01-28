@@ -34,7 +34,7 @@ if ($stmt === false) {
 
   <div class="flex h-full bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
-    
+
     <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
@@ -73,7 +73,7 @@ if ($stmt === false) {
               <?php while ($row = $result->fetch_assoc()): ?>
                 <tr>
                   <td class="p-2">
-                      <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
+                    <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
                   </td>
                   <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
                   <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
@@ -106,9 +106,6 @@ if ($stmt === false) {
             <?php endif; ?>
           </tbody>
         </table>
-      </div>
-      <div class="flex justify-end mt-6">
-        <button id="archiveResidentsBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">Residence Archive</button>
       </div>
     </main>
   </div>
@@ -290,6 +287,12 @@ if ($stmt === false) {
       </div>
     </form>
   </div>
+
+  <!-- Dialog Message for success=1 -->
+  <?php if (isset($_GET['success']) && $_GET['success'] == '1'){
+    echo DialogMessage("✅ Resident added successfully!");
+  }
+  ?>
 
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
   <div id="addResidentModal" title="Add New Resident" class="hidden max-h-[50vh]">
