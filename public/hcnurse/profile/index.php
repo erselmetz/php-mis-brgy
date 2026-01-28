@@ -1,5 +1,5 @@
 <?php
-require_once '../../includes/app.php';
+require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse();
 
 $user_id = $_SESSION['user_id'];

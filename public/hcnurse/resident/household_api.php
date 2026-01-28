@@ -1,5 +1,5 @@
 <?php
-require_once '../../../includes/app.php';
+require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse(); // Only HC Nurse can access
 
 header('Content-Type: application/json');

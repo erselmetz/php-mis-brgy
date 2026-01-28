@@ -1,5 +1,5 @@
 <?php
-require_once '../../includes/app.php';
+require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse();
 
 header('Content-Type: application/json');
