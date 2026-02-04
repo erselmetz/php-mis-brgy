@@ -9,6 +9,14 @@
             👥 Residents
         </a>
 
+        <a href="/hcnurse/consultation/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+            📁 Consultation
+        </a>
+
+        <a href="/hcnurse/immunization/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
+            📁 Immunization
+        </a>
+
         <a href="/hcnurse/inventory/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
             📁 Inventory
         </a>
