@@ -76,7 +76,7 @@ if ($stmt === false) {
                 <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
                 <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['religion']); ?></td>
+                <td class="p-2"><?= $row['religion']; ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
                 <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>

@@ -17,8 +17,8 @@ $stmt = $conn->prepare("
            h.address as household_address,
            CONCAT_WS(' ', hr.first_name, hr.middle_name, hr.last_name, hr.suffix) as household_head
     FROM residents r
-    LEFT JOIN households h ON r.household_id = h.id
-    LEFT JOIN residents hr ON h.head_id = hr.id
+    LEFT JOIN households h ON r.household_id = h.household_no
+    LEFT JOIN residents hr ON h.household_no = hr.household_id
     WHERE r.id = ?
 ");
 $stmt->bind_param('i', $id);
