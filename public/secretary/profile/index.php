@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- =========================
       BACKUP & REPORTS SECTION
       ========================= -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 hidden">
 
         <!-- FILE REPORTS -->
         <div class="lg:col-span-2 bg-white border rounded-xl p-6 shadow-sm">
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <!-- BACKUP HISTORY -->
-      <div class="bg-white border rounded-xl p-6 shadow-sm mb-10">
+      <div class="bg-white border rounded-xl p-6 shadow-sm mb-10 hidden">
         <h3 class="text-sm font-semibold mb-4">BACKUP HISTORY</h3>
 
         <table class="w-full text-sm border-collapse">

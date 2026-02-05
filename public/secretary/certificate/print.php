@@ -375,7 +375,7 @@ $currentYear = date('Y');
                 <div class="signature-line">
                     <strong>Prepared by:</strong><br>
                     <?= htmlspecialchars($cert['issued_by_name'] ?? 'Staff') ?><br>
-                    <small>Barangay Staff</small>
+                    <small>Barangay Secretary</small>
                 </div>
             </div>
             <div class="signature-box">

@@ -211,6 +211,8 @@ $vaccinatedPct = ($patients['total'] > 0)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <?php loadAllStyles(); ?>
   <?= loadAsset('node_js', 'chart.js/dist/chart.umd.min.js') ?>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 </head>
 
 <body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">

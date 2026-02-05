@@ -2,11 +2,6 @@
 /**
  * Inventory Management Page
  * 
- * Complete inventory system with:
- * - Add, Edit, Delete inventory items
- * - Category management
- * - Search functionality
- * - Audit trail tracking
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
@@ -42,20 +37,6 @@ $csrf_token = getCSRFToken();
             <h1 class="text-green-600 text-2xl font-semibold mb-6">INVENTORY MANAGEMENT</h1>
 
             <!-- Action Buttons and Search -->
-            <div class="flex flex-wrap items-center justify-between mb-4 space-y-2 sm:space-y-0">
-                <div class="flex space-x-2">
-                    <button id="addInventoryBtn" type="button" class="bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded-full text-sm font-semibold">
-                        <span class="mr-1">+</span> Add Asset
-                    </button>
-                    <button id="addCategoryBtn" type="button" class="bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded-full text-sm font-semibold">
-                        <span class="mr-1">+</span> Add Category
-                    </button>
-                </div>
-                <div>
-                    <input type="text" id="searchInput" placeholder="Search assets..." 
-                           class="border border-gray-300 rounded px-3 py-2 w-48">
-                </div>
-            </div>
 
             <!-- Inventory Table -->
             <div class="overflow-x-auto bg-white rounded-lg shadow-sm p-4">

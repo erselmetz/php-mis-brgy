@@ -1,5 +1,5 @@
 <?php
-require_once '../../../includes/app.php';
+require_once __DIR__ . '/../../../includes/app.php';
 requireSecretary();
 
 header('Content-Type: application/json');
@@ -56,11 +56,11 @@ function handleGetHouseholds() {
     $where = "1=1";
     if (!empty($search)) {
         $searchTerm = $conn->real_escape_string($search);
-        $where .= " AND (household_no LIKE '%$searchTerm%' OR head_name LIKE '%$searchTerm%' OR address LIKE '%$searchTerm%')";
+        $where .= " AND (h.household_no LIKE '%$searchTerm%' OR h.address LIKE '%$searchTerm%')";
     }
 
     // Get total count
-    $countQuery = "SELECT COUNT(*) as total FROM households WHERE $where";
+    $countQuery = "SELECT COUNT(*) as total FROM households h WHERE $where";
     $countResult = $conn->query($countQuery);
     $total = $countResult->fetch_assoc()['total'];
 

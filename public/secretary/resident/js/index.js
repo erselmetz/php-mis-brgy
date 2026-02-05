@@ -850,7 +850,7 @@ function loadHouseholds(searchTerm = '') {
     type: 'GET',
     data: {
       search: searchTerm,
-      limit: 100
+      limit: 50
     },
     dataType: 'json',
     success: function (response) {
