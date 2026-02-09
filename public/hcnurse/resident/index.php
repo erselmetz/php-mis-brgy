@@ -37,7 +37,7 @@ if ($stmt === false) {
       <!-- ✅ Add Button -->
       <div class="p-6 flex gap-4">
         <button id="openResidentModalBtn"
-          class="bg-theme-secondary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
+          class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
           ➕ Add Resident
         </button>
         <button id="manageHouseholdsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold">

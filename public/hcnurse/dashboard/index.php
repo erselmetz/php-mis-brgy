@@ -17,23 +17,20 @@ function tableExists(mysqli $conn, string $table): bool
 function fetchStats(mysqli $conn, string $sql, array $defaults): array
 {
   $res = $conn->query($sql);
-
   if (!$res) {
     error_log('Dashboard SQL Error: ' . $conn->error . ' | SQL: ' . $sql);
     return $defaults;
   }
 
   $row = $res->fetch_assoc() ?: [];
-
   foreach ($defaults as $key => $value) {
     $defaults[$key] = (int)($row[$key] ?? 0);
   }
-
   return $defaults;
 }
 
 /* =========================
-   PATIENT STATS (residents is existing)
+   PATIENT STATS (residents)
 ========================= */
 $patients = fetchStats($conn, "
   SELECT
@@ -45,15 +42,14 @@ $patients = fetchStats($conn, "
   FROM residents
 ", [
   'total' => 0,
-  'infant' => 1,
-  'child' => 2,
-  'adult' => 3,
+  'infant' => 0,
+  'child' => 0,
+  'adult' => 0,
   'senior' => 0
 ]);
 
 /* =========================
-   CONSULTATION STATS (safe if table missing)
-   Uses consultation_date (more accurate)
+   CONSULTATION STATS
 ========================= */
 $consultations = ['total' => 0, 'today' => 0, 'this_month' => 0];
 if (tableExists($conn, 'consultations')) {
@@ -71,25 +67,27 @@ if (tableExists($conn, 'consultations')) {
 }
 
 /* =========================
-   IMMUNIZATION STATS (safe if table missing)
+   IMMUNIZATION STATS
 ========================= */
-$immunization = ['total' => 0, 'ytd' => 0, 'this_month' => 0];
+$immunization = ['total' => 0, 'ytd' => 0, 'this_month' => 0, 'upcoming' => 0];
 if (tableExists($conn, 'immunizations')) {
   $immunization = fetchStats($conn, "
     SELECT
       COUNT(*) total,
       SUM(YEAR(date_given) = YEAR(CURDATE())) ytd,
-      SUM(DATE_FORMAT(date_given,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m')) this_month
+      SUM(DATE_FORMAT(date_given,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m')) this_month,
+      SUM(next_schedule IS NOT NULL AND next_schedule >= CURDATE()) upcoming
     FROM immunizations
   ", [
     'total' => 0,
     'ytd' => 0,
-    'this_month' => 0
+    'this_month' => 0,
+    'upcoming' => 0
   ]);
 }
 
 /* =========================
-   INVENTORY STATS (safe if table missing)
+   INVENTORY STATS
 ========================= */
 $inventory = ['items' => 0, 'low_stock' => 0, 'ok_stock' => 0];
 if (tableExists($conn, 'medicines')) {
@@ -107,7 +105,36 @@ if (tableExists($conn, 'medicines')) {
 }
 
 /* =========================
-   VACCINATION TREND (LAST 6 MONTHS) safe
+   HEALTH METRICS (THIS MONTH)
+========================= */
+$metrics = ['this_month' => 0];
+if (tableExists($conn, 'health_metrics')) {
+  $metrics = fetchStats($conn, "
+    SELECT
+      SUM(DATE_FORMAT(recorded_at,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m')) this_month
+    FROM health_metrics
+  ", [
+    'this_month' => 0
+  ]);
+}
+
+/* =========================
+   DISPENSED THIS MONTH
+========================= */
+$dispensed = ['this_month' => 0];
+if (tableExists($conn, 'medicine_dispense')) {
+  $dispensed = fetchStats($conn, "
+    SELECT
+      COALESCE(SUM(quantity),0) this_month
+    FROM medicine_dispense
+    WHERE DATE_FORMAT(dispense_date,'%Y-%m') = DATE_FORMAT(CURDATE(),'%Y-%m')
+  ", [
+    'this_month' => 0
+  ]);
+}
+
+/* =========================
+   VACCINATION TREND (LAST 6 MONTHS)
 ========================= */
 $trendLabels = [];
 $trendData   = [];
@@ -133,15 +160,15 @@ if (tableExists($conn, 'immunizations')) {
 }
 
 if (count($trendLabels) === 0) {
-  $trendLabels = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
-  $trendData   = [40, 55, 45, 80, 95, 60];
+  // keep a sane empty UI
+  $trendLabels = ["-", "-", "-", "-", "-", "-"];
+  $trendData   = [0, 0, 0, 0, 0, 0];
 }
 
 /* =========================
-   MEDICINE LIST (RIGHT PANEL) safe
+   MEDICINE LIST (RIGHT PANEL)
 ========================= */
 $medicineRows = [];
-
 if (tableExists($conn, 'medicines')) {
   $medRes = $conn->query("
     SELECT name, stock_qty, reorder_level
@@ -156,7 +183,6 @@ if (tableExists($conn, 'medicines')) {
       $re  = (int)$r['reorder_level'];
 
       $status = 'Good';
-      // Optional: show Average if above reorder but not high
       if ($qty > $re && $qty <= ($re * 2)) $status = 'Average';
       if ($qty <= $re) $status = 'Low Stock';
 
@@ -174,16 +200,12 @@ if (tableExists($conn, 'medicines')) {
 
 if (count($medicineRows) === 0) {
   $medicineRows = [
-    ['name' => 'Paracetamol 500mg', 'pct' => 85, 'status' => 'Good'],
-    ['name' => 'Amoxicillin 500mg', 'pct' => 55, 'status' => 'Average'],
-    ['name' => 'Losartan 50mg', 'pct' => 20, 'status' => 'Low Stock'],
-    ['name' => 'Vitamin C Syrup', 'pct' => 80, 'status' => 'Good'],
-    ['name' => 'Mefenamic Acid', 'pct' => 75, 'status' => 'Good'],
-    ['name' => 'Amlodipine 10mg', 'pct' => 15, 'status' => 'Low Stock'],
+    ['name' => 'No medicines yet', 'pct' => 0, 'status' => 'Good'],
   ];
 }
+
 /* =========================
-   TOTAL MEDICINES QTY (for top card)
+   TOTAL MEDICINES QTY
 ========================= */
 $medicineTotals = ['total_qty' => 0, 'low_stock' => 0];
 if (tableExists($conn, 'medicines')) {
@@ -197,6 +219,7 @@ if (tableExists($conn, 'medicines')) {
     'low_stock' => 0
   ]);
 }
+
 $vaccinatedPct = ($patients['total'] > 0)
   ? (int) round(($immunization['ytd'] / $patients['total']) * 100)
   : 0;
@@ -212,10 +235,9 @@ $vaccinatedPct = ($patients['total'] > 0)
   <?php loadAllStyles(); ?>
   <?= loadAsset('node_js', 'chart.js/dist/chart.umd.min.js') ?>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 </head>
 
-<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
   <?php include '../layout/navbar.php'; ?>
 
   <div class="flex h-full">
@@ -242,7 +264,7 @@ $vaccinatedPct = ($patients['total'] > 0)
           <div>
             <div class="text-sm text-gray-600 font-semibold">Consultations</div>
             <div class="text-2xl font-bold mt-1"><?= number_format($consultations['this_month']) ?></div>
-            <div class="text-xs text-gray-500 mt-1">This month</div>
+            <div class="text-xs text-gray-500 mt-1">This month (<?= number_format($consultations['today']) ?> today)</div>
           </div>
           <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
             <span class="material-icons text-blue-700 text-base">assignment</span>
@@ -273,14 +295,56 @@ $vaccinatedPct = ($patients['total'] > 0)
 
       </div>
 
-      <!-- MAIN PANELS -->
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <!-- CHARTS ROW (THIS is what makes it feel “dynamic”) -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
 
-        <!-- LEFT: Vaccination Trends (wide like screenshot) -->
+        <!-- LEFT: 2x2 donut charts -->
         <div class="bg-white border rounded-xl p-5 shadow-sm xl:col-span-2">
-          <div class="text-sm font-semibold text-gray-700 mb-4">Vaccination Trends (Last 6 Months)</div>
-          <div style="height: 360px;">
-            <canvas id="trendChart"></canvas>
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-semibold text-gray-700">Quick Overview</div>
+            <div class="text-xs text-gray-500">
+              Metrics this month: <?= number_format($metrics['this_month']) ?> • Dispensed: <?= number_format($dispensed['this_month']) ?>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="border rounded-xl p-4">
+              <div class="text-xs font-semibold text-gray-600 mb-2">Patients (Age Group)</div>
+              <div style="height:220px;">
+                <canvas id="patientsChart"></canvas>
+              </div>
+            </div>
+
+            <div class="border rounded-xl p-4">
+              <div class="text-xs font-semibold text-gray-600 mb-2">Consultations (Today)</div>
+              <div style="height:220px;">
+                <canvas id="consultTodayChart"></canvas>
+              </div>
+            </div>
+
+            <div class="border rounded-xl p-4">
+              <div class="text-xs font-semibold text-gray-600 mb-2">Consultations (This Month)</div>
+              <div style="height:220px;">
+                <canvas id="consultMonthChart"></canvas>
+              </div>
+            </div>
+
+            <div class="border rounded-xl p-4">
+              <div class="text-xs font-semibold text-gray-600 mb-2">Immunizations (YTD)</div>
+              <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-500">Upcoming: <?= number_format($immunization['upcoming']) ?></div>
+              </div>
+              <div style="height:220px;">
+                <canvas id="immunChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 border rounded-xl p-4">
+            <div class="text-xs font-semibold text-gray-600 mb-2">Medicine Inventory (OK vs Low)</div>
+            <div style="height:220px;">
+              <canvas id="inventoryChart"></canvas>
+            </div>
           </div>
         </div>
 
@@ -304,14 +368,8 @@ $vaccinatedPct = ($patients['total'] > 0)
                   $bar = 'bg-green-600';
                   $txt = 'text-gray-700';
 
-                  if ($status === 'average') {
-                    $bar = 'bg-orange-500';
-                    $txt = 'text-gray-700';
-                  }
-                  if ($status === 'low stock') {
-                    $bar = 'bg-red-500';
-                    $txt = 'text-gray-700';
-                  }
+                  if ($status === 'average') $bar = 'bg-orange-500';
+                  if ($status === 'low stock') $bar = 'bg-red-500';
                   ?>
                   <tr class="border-t border-gray-100">
                     <td class="py-3 pr-2 text-gray-800"><?= htmlspecialchars($m['name']) ?></td>
@@ -330,27 +388,26 @@ $vaccinatedPct = ($patients['total'] > 0)
         </div>
       </div>
 
-    </main>
+      <!-- Vaccination Trends -->
+      <div class="bg-white border rounded-xl p-5 shadow-sm">
+        <div class="text-sm font-semibold text-gray-700 mb-4">Vaccination Trends (Last 6 Months)</div>
+        <div style="height:360px;">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
 
+    </main>
   </div>
 
   <?php loadAllScripts(); ?>
 
   <script>
-    // helpers
     function doughnut(id, labels, data, colors) {
       const el = document.getElementById(id);
       if (!el) return;
-
       return new Chart(el, {
         type: 'doughnut',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: colors
-          }]
-        },
+        data: { labels, datasets: [{ data, backgroundColor: colors }] },
         options: {
           cutout: '65%',
           maintainAspectRatio: false,
@@ -362,38 +419,21 @@ $vaccinatedPct = ($patients['total'] > 0)
     function bar(id, labels, data, colors) {
       const el = document.getElementById(id);
       if (!el) return;
-
       return new Chart(el, {
         type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: colors
-          }]
-        },
+        data: { labels, datasets: [{ data, backgroundColor: colors }] },
         options: {
           maintainAspectRatio: false,
           responsive: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
         }
       });
     }
 
-    $(window).on('load', function() {
-      // show UI first
+    $(window).on('load', function () {
       $("body").show();
 
-      // wait 1 frame so layout sizes are computed
       requestAnimationFrame(() => {
         Chart.defaults.plugins.legend.position = 'bottom';
         Chart.defaults.plugins.legend.labels.boxWidth = 12;
@@ -409,48 +449,58 @@ $vaccinatedPct = ($patients['total'] > 0)
         const themeSecondary =
           getComputedStyle(document.documentElement).getPropertyValue('--theme-secondary').trim() || '#446c3e';
 
-        const others = Math.max(0, patients.total - patients.adult - patients.senior);
-        doughnut('patientsChart', ['ADULT', 'SENIOR', 'OTHERS'], [patients.adult, patients.senior, others], [themeSecondary, '#f28e2b', '#bdc3c7']);
+        const othersAge = Math.max(0, patients.total - patients.adult - patients.senior);
 
-        doughnut('consultTodayChart', ['TODAY', 'NOT TODAY'], [consultations.today, Math.max(0, consultations.total - consultations.today)], ['#5b4bb7', '#f2d7c2']);
+        doughnut(
+          'patientsChart',
+          ['ADULT', 'SENIOR', 'OTHERS'],
+          [patients.adult, patients.senior, othersAge],
+          [themeSecondary, '#f28e2b', '#bdc3c7']
+        );
 
-        doughnut('consultMonthChart', ['THIS MONTH', 'OTHERS'], [consultations.this_month, Math.max(0, consultations.total - consultations.this_month)], ['#6ab04c', '#5d4037']);
+        doughnut(
+          'consultTodayChart',
+          ['TODAY', 'NOT TODAY'],
+          [consultations.today, Math.max(0, consultations.total - consultations.today)],
+          ['#5b4bb7', '#f2d7c2']
+        );
 
-        doughnut('immunChart', ['YTD', 'OTHERS'], [immunization.ytd, Math.max(0, immunization.total - immunization.ytd)], ['#9bb13c', '#d66bff']);
+        doughnut(
+          'consultMonthChart',
+          ['THIS MONTH', 'OTHERS'],
+          [consultations.this_month, Math.max(0, consultations.total - consultations.this_month)],
+          ['#6ab04c', '#5d4037']
+        );
 
-        bar('inventoryChart', ['OK STOCK', 'LOW STOCK'], [inventory.ok_stock, inventory.low_stock], ['#76b7b2', '#ef4444']);
+        doughnut(
+          'immunChart',
+          ['YTD', 'OTHERS'],
+          [immunization.ytd, Math.max(0, immunization.total - immunization.ytd)],
+          ['#9bb13c', '#d66bff']
+        );
+
+        bar(
+          'inventoryChart',
+          ['OK STOCK', 'LOW STOCK'],
+          [inventory.ok_stock, inventory.low_stock],
+          ['#76b7b2', '#ef4444']
+        );
 
         const el = document.getElementById('trendChart');
         if (el) {
           new Chart(el, {
             type: 'bar',
-            data: {
-              labels: trendLabels,
-              datasets: [{
-                data: trendData
-              }]
-            },
+            data: { labels: trendLabels, datasets: [{ data: trendData }] },
             options: {
               maintainAspectRatio: false,
               responsive: true,
-              plugins: {
-                legend: {
-                  display: false
-                }
-              },
-              scales: {
-                y: {
-                  beginAtZero: true
-                }
-              }
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } }
             }
           });
         }
-
       });
     });
   </script>
-
 </body>
-
 </html>
