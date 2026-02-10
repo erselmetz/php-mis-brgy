@@ -26,27 +26,18 @@ if ($stmt === false) {
   <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100" style="display:none;">
-
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
   <?php include_once '../layout/navbar.php'; ?>
-
-  <div class="flex bg-gray-100">
+  <div class="flex h-full bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
-    <main class="p-6 w-screen">
+    <main class="flex-1 p-6 pb-24 w-screen h-screen overflow-y-auto">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
-      <!-- ✅ Add Button -->
-      <div class="p-6 flex gap-4">
-        <button id="openResidentModalBtn"
-          class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
-          ➕ Add Resident
-        </button>
-        <button id="manageHouseholdsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold">
-          🏠 Manage Households
-        </button>
-        <button id="archiveResidentsBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">
-          Residence Archive
-        </button>
+      <!-- ✅ Search -->
+      <div class="flex items-center justify-end mb-4">
+        <input id="residentSearchInput" type="text" placeholder="Search"
+          class="border border-gray-300 rounded-lg px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-theme-primary">
       </div>
+
       <!-- Residents Table -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
         <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
@@ -68,30 +59,30 @@ if ($stmt === false) {
           <tbody>
             <?php if ($result !== false): ?>
               <?php while ($row = $result->fetch_assoc()): ?>
-              <tr>
-                <td class="p-2">
+                <tr>
+                  <td class="p-2">
                     <?= htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name'] . ' ' . $row['suffix']); ?>
-                </td>
-                <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
-                <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
-                <td class="p-2"><?= $row['religion']; ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
-                <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
-                <td class="p-2 text-center">
-                  <div class="flex justify-center gap-1">
-                    <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
-                      View
-                    </button>
-                    <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
-                      Edit
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <td class="p-2"><?= htmlspecialchars($row['gender']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['birthdate']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars(AutoComputeAge($row['birthdate'])); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['civil_status']); ?></td>
+                  <td class="p-2"><?= $row['religion']; ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['occupation']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['citizenship']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['contact_no']); ?></td>
+                  <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
+                  <td class="p-2 text-center">
+                    <div class="flex justify-center gap-1">
+                      <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                        View
+                      </button>
+                      <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                        Edit
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               <?php endwhile; ?>
             <?php else: ?>
               <tr>
@@ -560,7 +551,16 @@ if ($stmt === false) {
         setTimeout(disableAutocomplete, 100);
       });
 
-      $("#residentsTable").DataTable();
+      const table = $('#residentsTable').DataTable({
+        pageLength: 20,
+        lengthChange: false,
+        info: false,
+        dom: 'rt<"flex items-center justify-between mt-4"p>', // hide default search
+      });
+
+      $('#residentSearchInput').on('keyup', function() {
+        table.search(this.value).draw();
+      });
 
       // Initialize View Resident Modal
       $("#viewResidentModal").dialog({
@@ -757,7 +757,9 @@ if ($stmt === false) {
       $.ajax({
         url: 'household_api.php',
         type: 'GET',
-        data: { limit: 1000 }, // Load all households
+        data: {
+          limit: 1000
+        }, // Load all households
         dataType: 'json',
         success: function(response) {
           if (response.success) {
@@ -800,7 +802,9 @@ if ($stmt === false) {
       $.ajax({
         url: 'household_api.php',
         type: 'GET',
-        data: { limit: 1000 }, // Load all households
+        data: {
+          limit: 1000
+        }, // Load all households
         dataType: 'json',
         success: function(response) {
           if (response.success) {
@@ -900,69 +904,69 @@ if ($stmt === false) {
       $("#archivedResidentsDialog").dialog("open");
     });
 
-      // Archive Resident Button Click Handler
-      $(document).on("click", ".archive-resident-btn", function() {
-        const residentId = $(this).data("id");
-        const residentName = $(this).data("name");
+    // Archive Resident Button Click Handler
+    $(document).on("click", ".archive-resident-btn", function() {
+      const residentId = $(this).data("id");
+      const residentName = $(this).data("name");
 
-        // Show confirmation dialog
-        $('<div>Are you sure you want to archive <strong>' + residentName + '</strong>?<br><br>This action can be undone later.</div>').dialog({
-          modal: true,
-          title: 'Confirm Archive',
-          width: 450,
-          buttons: {
-            "Archive": function() {
-              $(this).dialog('close');
-              archiveResident(residentId);
-            },
-            "Cancel": function() {
-              $(this).dialog('close');
-            }
+      // Show confirmation dialog
+      $('<div>Are you sure you want to archive <strong>' + residentName + '</strong>?<br><br>This action can be undone later.</div>').dialog({
+        modal: true,
+        title: 'Confirm Archive',
+        width: 450,
+        buttons: {
+          "Archive": function() {
+            $(this).dialog('close');
+            archiveResident(residentId);
           },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-orange-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function() {
-            $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
-            $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
+          "Cancel": function() {
+            $(this).dialog('close');
           }
-        });
+        },
+        classes: {
+          'ui-dialog': 'rounded-lg shadow-lg',
+          'ui-dialog-titlebar': 'bg-orange-500 text-white rounded-t-lg',
+          'ui-dialog-title': 'font-semibold',
+          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+        },
+        open: function() {
+          $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
+          $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
+        }
       });
+    });
 
-      // Restore Resident Button Click Handler
-      $(document).on("click", ".restore-btn", function() {
-        const residentId = $(this).data("id");
-        const residentName = $(this).data("name");
+    // Restore Resident Button Click Handler
+    $(document).on("click", ".restore-btn", function() {
+      const residentId = $(this).data("id");
+      const residentName = $(this).data("name");
 
-        // Show confirmation dialog
-        $('<div>Are you sure you want to restore <strong>' + residentName + '</strong>?<br><br>This will make the resident active again.</div>').dialog({
-          modal: true,
-          title: 'Confirm Restore',
-          width: 450,
-          buttons: {
-            "Restore": function() {
-              $(this).dialog('close');
-              restoreResident(residentId);
-            },
-            "Cancel": function() {
-              $(this).dialog('close');
-            }
+      // Show confirmation dialog
+      $('<div>Are you sure you want to restore <strong>' + residentName + '</strong>?<br><br>This will make the resident active again.</div>').dialog({
+        modal: true,
+        title: 'Confirm Restore',
+        width: 450,
+        buttons: {
+          "Restore": function() {
+            $(this).dialog('close');
+            restoreResident(residentId);
           },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function() {
-            $('.ui-dialog-buttonpane button:first').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2');
-            $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
+          "Cancel": function() {
+            $(this).dialog('close');
           }
-        });
+        },
+        classes: {
+          'ui-dialog': 'rounded-lg shadow-lg',
+          'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
+          'ui-dialog-title': 'font-semibold',
+          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+        },
+        open: function() {
+          $('.ui-dialog-buttonpane button:first').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2');
+          $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
+        }
       });
+    });
 
     // Search functionality for archived residents
     $(document).on("input", "#archivedResidentsDialog input[type='text']", function() {
@@ -1493,7 +1497,9 @@ if ($stmt === false) {
       $.ajax({
         url: 'get_residents_for_head.php',
         type: 'GET',
-        data: { limit: 1000 },
+        data: {
+          limit: 1000
+        },
         dataType: 'json',
         success: function(response) {
           if (response.success) {

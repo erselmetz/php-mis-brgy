@@ -52,7 +52,16 @@ function fullNameRow($row): string
     return $name !== '' ? $name : '—';
 }
 
-$assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
+function unpackNotes(string $notes): array {
+  $out = ['time' => '', 'health_worker' => '', 'status' => '', 'remarks' => ''];
+  if (preg_match('/Time:\s*([^|]+)/i', $notes, $m)) $out['time'] = trim($m[1]);
+  if (preg_match('/Health Worker:\s*([^|]+)/i', $notes, $m)) $out['health_worker'] = trim($m[1]);
+  if (preg_match('/Status:\s*([^|]+)/i', $notes, $m)) $out['status'] = trim($m[1]);
+  if (preg_match('/Remarks:\s*(.+)$/i', $notes, $m)) $out['remarks'] = trim($m[1]);
+  return $out;
+}
+
+$assignedHealthWorker = 'HC Nurse';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,13 +72,13 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
     <?php loadAllAssets(); ?>
 </head>
 
-<body class="bg-gray-100" style="display:none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
     <?php include_once '../layout/navbar.php'; ?>
 
     <div class="flex bg-gray-100">
         <?php include_once '../layout/sidebar.php'; ?>
 
-        <main class="p-6 w-screen min-h-screen relative">
+        <main class="p-6 w-screen h-screen relative overflow-y-auto">
             <h2 class="text-2xl font-semibold mb-4">Consultation</h2>
 
             <!-- Top Controls (same as mockup) -->
@@ -96,6 +105,7 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
                             <th class="p-2 text-left">Treatment provided</th>
                             <th class="p-2 text-left">Assigned health worker</th>
                             <th class="p-2 text-left">Status</th>
+                            <th class="p-2 text-left">Action</th>
                         </tr>
                     </thead>
 
@@ -109,11 +119,12 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
                                 // No "status" column in schema -> UI status only
                                 $dateVisit = $row['consultation_date'] ?? '';
                                 $status = 'Ongoing';
+                                $extras = unpackNotes($row['notes'] ?? '');
                                 if (!empty($dateVisit) && strtotime($dateVisit) < strtotime(date('Y-m-d'))) $status = 'Dismissed';
                                 ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="#" class="text-blue-600 hover:underline view-consult-btn" data-id="<?= (int)$row['id']; ?>">
+                                        <a href="#" class="text-blue-600 hover:underline viewConsultBtn" data-id="<?= (int)$row['id']; ?>">
                                             <?= htmlspecialchars($fullname); ?>
                                         </a>
                                     </td>
@@ -122,8 +133,14 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
                                     <td class="p-2"><?= htmlspecialchars($row['complaint'] ?? ''); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['diagnosis'] ?? ''); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['treatment'] ?? ''); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($assignedHealthWorker); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($status); ?></td>
+                                    <td class="p-2"><?= htmlspecialchars($extras['health_worker'] ?? ''); ?></td>
+                                    <td class="p-2"><?= htmlspecialchars($extras['status']); ?></td>
+                                    <td class="p-2">
+                                        <button class="editConsultBtn bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded"
+                                            data-id="<?= (int)$row['id'] ?>">
+                                            Edit
+                                        </button>
+                                    </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -137,7 +154,7 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
 
             <!-- Bottom-right button (same as mockup) -->
             <button id="generateConsultReportBtn"
-                class="fixed bottom-8 right-10 bg-theme-secondary hover-theme-darker text-white font-semibold px-12 py-3 rounded shadow">
+                class="fixed bottom-8 right-10 bg-theme-primary hover-theme-darker text-white font-semibold px-12 py-3 rounded shadow">
                 Generate a Report
             </button>
 
@@ -145,11 +162,14 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
             <div id="addConsultationModal" title="Add New Consultation" class="hidden">
                 <form id="addConsultationForm" method="POST" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
                     <input type="hidden" name="action" value="add_consultation">
-                    <input type="hidden" name="resident_id" id="resident_id">
 
+                    <!-- ✅ Hidden resident_id (this is what API needs) -->
+                    <input type="hidden" name="resident_id" id="add_resident_id">
+
+                    <!-- ✅ Visible resident search (autocomplete attaches here) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Resident/Patient Name</label>
-                        <input type="text" id="resident_name" placeholder="Search or select resident..."
+                        <input type="text" id="add_resident_name" placeholder="Search or select resident..."
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
 
@@ -212,103 +232,130 @@ $assignedHealthWorker = $_SESSION['name'] ?? 'HC Nurse';
                 </form>
             </div>
 
+            <!-- View Consultation Modal -->
+            <div id="viewConsultationModal" title="View Consultation" class="hidden">
+                <div class="p-4 space-y-4 text-sm">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-gray-500">Resident</div>
+                            <div id="v_fullname" class="font-semibold text-gray-800">—</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500">Date of Visit</div>
+                            <div id="v_date" class="font-semibold text-gray-800">—</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <div class="text-gray-500">Time</div>
+                            <div id="v_time" class="font-semibold text-gray-800">—</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500">Status</div>
+                            <div id="v_status" class="font-semibold text-gray-800">—</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-500">Health Worker</div>
+                            <div id="v_worker" class="font-semibold text-gray-800">—</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Chief Complaint</div>
+                        <div id="v_complaint" class="font-semibold text-gray-800 whitespace-pre-wrap">—</div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Diagnosis</div>
+                        <div id="v_diagnosis" class="font-semibold text-gray-800 whitespace-pre-wrap">—</div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Treatment / Prescription</div>
+                        <div id="v_treatment" class="font-semibold text-gray-800 whitespace-pre-wrap">—</div>
+                    </div>
+
+                    <div>
+                        <div class="text-gray-500">Remarks</div>
+                        <div id="v_remarks" class="font-semibold text-gray-800 whitespace-pre-wrap">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Consultation Modal -->
+            <div id="editConsultationModal" title="Edit Consultation" class="hidden">
+                <form id="editConsultationForm" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
+                    <input type="hidden" name="id" id="edit_id">
+                    <input type="hidden" name="resident_id" id="edit_resident_id">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Resident/Patient Name</label>
+                        <input type="text" id="edit_resident_name" disabled
+                            class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100 text-gray-700">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="text" id="edit_consultation_date" name="consultation_date" placeholder="mm/dd/yyyy"
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Time</label>
+                            <input type="time" id="edit_consultation_time" name="consultation_time"
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Chief Complaint</label>
+                        <textarea id="edit_complaint" name="complaint" rows="3" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Diagnosis</label>
+                        <textarea id="edit_diagnosis" name="diagnosis" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Treatment</label>
+                        <textarea id="edit_treatment" name="treatment" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Attending Health Worker</label>
+                        <input id="edit_health_worker" name="health_worker" type="text"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select id="edit_status" name="status"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                            <option value="Completed">Completed</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Dismissed">Dismissed</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Remarks</label>
+                        <textarea id="edit_remarks" name="remarks" rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"></textarea>
+                    </div>
+                </form>
+            </div>
         </main>
     </div>
 
     <?php loadAllScripts(); ?>
 
-    <script>
-        $(window).on('load', function() {
-            $("body").show();
-
-            const table = $('#consultationsTable').DataTable({
-                pageLength: 100,
-                lengthChange: false,
-                info: false,
-                dom: 'rt<"flex items-center justify-between mt-4"p>', // hide default search
-            });
-
-            $('#consultSearchInput').on('keyup', function() {
-                table.search(this.value).draw();
-            });
-
-            $("#addConsultationModal").dialog({
-                autoOpen: false,
-                modal: true,
-                width: 650,
-                resizable: false
-            });
-
-            $("#openConsultationModalBtn").on("click", function() {
-                $("#addConsultationModal").dialog("open");
-            });
-
-            $("#closeConsultationModalBtn").on("click", function() {
-                $("#addConsultationModal").dialog("close");
-            });
-
-            $("#generateConsultReportBtn").on("click", function() {
-                alert("Next step: report export/print UI.");
-            });
-
-            $(document).on("click", ".view-consult-btn", function(e) {
-                e.preventDefault();
-                alert("Next step: view modal (ID: " + $(this).data("id") + ")");
-            });
-            // datepicker (same ecosystem)
-            $("#consultation_date").datepicker({
-                dateFormat: "mm/dd/yy"
-            });
-
-            $("#addConsultationModal").dialog({
-                autoOpen: false,
-                modal: true,
-                resizable: true,
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-                    'ui-dialog-buttonpane button': 'bg-theme-primary hover:bg-theme-secondary text-white px-4 py-2 rounded'
-                },
-                show: {
-                    effect: "fadeIn",
-                    duration: 200
-                },
-                hide: {
-                    effect: "fadeOut",
-                    duration: 200
-                },
-                buttons: {
-                    "Add Consultation": function() {
-                        $("#addConsultationForm").trigger("submit");
-                    },
-                    "Cancel": function() {
-                        $(this).dialog("close");
-                    }
-                }
-            });
-
-            $("#openConsultationModalBtn").on("click", function() {
-                $("#addConsultationModal").dialog("open");
-            });
-
-            // Convert mm/dd/yyyy -> yyyy-mm-dd before submit
-            $("#addConsultationForm").on("submit", function() {
-                const d = $("#consultation_date").val().trim();
-                if (d) {
-                    const parts = d.split("/");
-                    if (parts.length === 3) {
-                        const mm = parts[0].padStart(2, "0");
-                        const dd = parts[1].padStart(2, "0");
-                        const yyyy = parts[2];
-                        $("#consultation_date").val(`${yyyy}-${mm}-${dd}`);
-                    }
-                }
-                return true;
-            });
-        });
-    </script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>

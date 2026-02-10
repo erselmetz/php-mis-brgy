@@ -14,8 +14,9 @@
     '--theme-color-6': '#446c3e',
     // prefer green as primary/secondary so utilities render green by default
     '--theme-primary': 'var(--theme-color-6)',
+    '--theme-primary-dark': '#355a30', // sample darker green
     '--theme-secondary': 'var(--theme-color-6)',
-    '--theme-accent': 'var(--theme-color-3)'
+    '--theme-accent': 'var(--theme-color-3)',
   };
 
   function apply(themeObj, persist=true){

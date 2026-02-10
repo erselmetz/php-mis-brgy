@@ -6,6 +6,10 @@
   background-color: var(--theme-primary);
 }
 
+.hover-bg-theme-primary-dark:hover {
+  background-color: var(--theme-primary-dark);
+}
+
 .text-theme-primary {
   color: var(--theme-primary);
 }
