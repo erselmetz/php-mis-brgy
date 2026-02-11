@@ -287,6 +287,7 @@ $assignedHealthWorker = 'HC Nurse';
             <!-- Edit Consultation Modal -->
             <div id="editConsultationModal" title="Edit Consultation" class="hidden">
                 <form id="editConsultationForm" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
+                    <div tabindex="0" class="outline-none"></div>
                     <input type="hidden" name="id" id="edit_id">
                     <input type="hidden" name="resident_id" id="edit_resident_id">
 

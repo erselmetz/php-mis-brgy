@@ -19,16 +19,16 @@ function loadAsset($type, $path)
     $basePaths = [
         'css' => '/assets/css/',
         'js' => '/assets/js/',
-        'node_css' => '/node_modules/',
-        'node_js' => '/node_modules/',
+        'vendor_css' => '/assets/vendor/',
+        'vendor_js' => '/assets/vendor/',
     ];
 
     switch ($type) {
         case 'css':
-        case 'node_css':
+        case 'vendor_css':
             return "<link rel='stylesheet' href='{$basePaths[$type]}$path'>\n";
         case 'js':
-        case 'node_js':
+        case 'vendor_js':
             return "<script src='{$basePaths[$type]}$path'></script>\n";
         default:
             return '';
@@ -58,9 +58,9 @@ function loadAssets(array $assets)
 function loadAllStyles()
 {
     loadAssets([
-        'node_css' => [
-            'datatables.net-jqui/css/dataTables.jqueryui.css',
-            'jquery-ui/dist/themes/base/jquery-ui.css',
+        'vendor_css' => [
+            'jquery-ui/jquery-ui.css',
+            'datatables/dataTables.jqueryui.css',
         ],
         'css' => ['style.css'],
     ]);
@@ -73,10 +73,11 @@ function loadAllStyles()
 function loadAllScripts()
 {
     loadAssets([
-        'node_js' => [
-            'jquery/dist/jquery.js',
-            'jquery-ui/dist/jquery-ui.js',
-            'datatables.net/js/dataTables.js',
+        'vendor_js' => [
+            'jquery/jquery.js',
+            'jquery-ui/jquery-ui.js',
+            'datatables/dataTables.js',
+            'chartjs/chart.umd.min.js',
         ],
         'js' => ['tailwindcss.js', 'app.js', 'theme.js'],
     ]);

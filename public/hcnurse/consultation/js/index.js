@@ -61,6 +61,11 @@ $(window).on('load', function () {
             Cancel: function () {
                 $(this).dialog("close");
             }
+        },
+        open: function () {
+            $(this).find('[tabindex="0"]').focus();
+            $(this).find(':input').blur();
+
         }
     });
 
