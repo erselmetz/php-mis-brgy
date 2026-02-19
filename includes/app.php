@@ -41,3 +41,6 @@ include_once 'auth.php';
 
 // Load database connection
 include_once 'db.php';
+
+// Load meta helper functions for encoding/decoding metadata
+include_once 'meta_helper.php';
