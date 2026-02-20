@@ -52,13 +52,14 @@ function fullNameRow($row): string
     return $name !== '' ? $name : '—';
 }
 
-function unpackNotes(string $notes): array {
-  $out = ['time' => '', 'health_worker' => '', 'status' => '', 'remarks' => ''];
-  if (preg_match('/Time:\s*([^|]+)/i', $notes, $m)) $out['time'] = trim($m[1]);
-  if (preg_match('/Health Worker:\s*([^|]+)/i', $notes, $m)) $out['health_worker'] = trim($m[1]);
-  if (preg_match('/Status:\s*([^|]+)/i', $notes, $m)) $out['status'] = trim($m[1]);
-  if (preg_match('/Remarks:\s*(.+)$/i', $notes, $m)) $out['remarks'] = trim($m[1]);
-  return $out;
+function unpackNotes(string $notes): array
+{
+    $out = ['time' => '', 'health_worker' => '', 'status' => '', 'remarks' => ''];
+    if (preg_match('/Time:\s*([^|]+)/i', $notes, $m)) $out['time'] = trim($m[1]);
+    if (preg_match('/Health Worker:\s*([^|]+)/i', $notes, $m)) $out['health_worker'] = trim($m[1]);
+    if (preg_match('/Status:\s*([^|]+)/i', $notes, $m)) $out['status'] = trim($m[1]);
+    if (preg_match('/Remarks:\s*(.+)$/i', $notes, $m)) $out['remarks'] = trim($m[1]);
+    return $out;
 }
 
 $assignedHealthWorker = 'HC Nurse';
@@ -162,75 +163,106 @@ $assignedHealthWorker = 'HC Nurse';
             <div id="addConsultationModal" title="Add New Consultation" class="hidden">
                 <form id="addConsultationForm" method="POST" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
                     <input type="hidden" name="action" value="add_consultation">
-
-                    <!-- ✅ Hidden resident_id (this is what API needs) -->
                     <input type="hidden" name="resident_id" id="add_resident_id">
 
-                    <!-- ✅ Visible resident search (autocomplete attaches here) -->
+                    <!-- Patient -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Resident/Patient Name</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Resident/Patient Name</label>
                         <input type="text" id="add_resident_name" placeholder="Search or select resident..."
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-theme-primary">
+                        <p class="text-xs text-gray-400 mt-1">Select a resident from the list to avoid errors.</p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2">
+                    <!-- Date + Time -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                             <input type="text" id="consultation_date" name="consultation_date" placeholder="mm/dd/yyyy"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Time</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
                             <input type="time" name="consultation_time"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary">
                         </div>
                     </div>
 
+                    <!-- Consultation Type + Subtype -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Consultation Type</label>
+                            <select name="consultation_type" id="consultation_type" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-theme-primary">
+                                <option value="immunization">Immunization</option>
+                                <option value="maternal">Maternal</option>
+                                <option value="family_planning">Family Planning</option>
+                                <option value="prenatal">Prenatal</option>
+                                <option value="postnatal">Postnatal</option>
+                                <option value="child_nutrition">Child Nutrition</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sub Type (Optional)</label>
+                            <input type="text" name="sub_type" id="sub_type" placeholder="e.g., BCG / pills / mother_only"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary">
+                        </div>
+                    </div>
+
+                    <!-- Complaint -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Reason for Consultation / Chief Complaint</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Reason / Chief Complaint</label>
                         <textarea name="complaint" rows="3" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary resize-none"
                             placeholder="Enter details..."></textarea>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Diagnosis</label>
-                        <textarea name="diagnosis" rows="2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"
-                            placeholder="Enter diagnosis..."></textarea>
+                    <!-- Diagnosis + Treatment -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Diagnosis</label>
+                            <textarea name="diagnosis" rows="3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary resize-none"
+                                placeholder="Enter diagnosis..."></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Treatment / Prescription</label>
+                            <textarea name="treatment" rows="3"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary resize-none"
+                                placeholder="Enter treatment details..."></textarea>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Treatment / Prescription</label>
-                        <textarea name="treatment" rows="2"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"
-                            placeholder="Enter treatment details..."></textarea>
+                    <!-- Worker + Status -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Attending Health Worker</label>
+                            <input type="text" name="health_worker" placeholder="Enter name..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select name="status"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-theme-primary">
+                                <option value="Completed" selected>Completed</option>
+                                <option value="Ongoing">Ongoing</option>
+                                <option value="Dismissed">Dismissed</option>
+                            </select>
+                        </div>
                     </div>
 
+                    <!-- Remarks -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Attending Health Worker</label>
-                        <input type="text" name="health_worker" placeholder="Select or enter name..."
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <select name="status"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
-                            <option value="Completed" selected>Completed</option>
-                            <option value="Ongoing">Ongoing</option>
-                            <option value="Dismissed">Dismissed</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Remarks</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
                         <textarea name="remarks" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary resize-none"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary resize-none"
                             placeholder="Additional notes..."></textarea>
                     </div>
                 </form>
             </div>
+
 
             <!-- View Consultation Modal -->
             <div id="viewConsultationModal" title="View Consultation" class="hidden">

@@ -4,20 +4,6 @@ requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
 
-function respond($ok, $msg, $extra = []) {
-  echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
-  exit;
-}
-
-function packNotes(string $time, string $worker, string $status, string $remarks): string {
-  $parts = [];
-  if ($time !== '') $parts[] = "Time: {$time}";
-  if ($worker !== '') $parts[] = "Health Worker: {$worker}";
-  if ($status !== '') $parts[] = "Status: {$status}";
-  if ($remarks !== '') $parts[] = "Remarks: {$remarks}";
-  return implode(" | ", $parts);
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'Invalid request');
 
 $id = (int)($_POST['id'] ?? 0);
@@ -47,7 +33,12 @@ if ($resident_id <= 0) respond(false, 'Resident is required.');
 if ($consultation_date === '') respond(false, 'Date is required.');
 if ($complaint === '') respond(false, 'Chief complaint is required.');
 
-$notes = packNotes($time, $health_worker, $status, $remarks);
+$notes = meta_encode([
+  'time' => $time,
+  'health_worker' => $health_worker,
+  'status' => $status,
+  'remarks' => $remarks
+]);
 
 $sql = "
   UPDATE consultations

@@ -85,3 +85,21 @@ function meta_set(?string $raw, string $key, $value): string
     $data[$key] = $value;
     return meta_encode($data);
 }
+
+function json_ok(array $payload = []): void
+{
+  echo json_encode(['status' => 'ok'] + $payload);
+  exit;
+}
+
+function json_err(string $message, int $code = 400, array $extra = []): void
+{
+  http_response_code($code);
+  echo json_encode(['status' => 'error', 'message' => $message] + $extra);
+  exit;
+}
+
+function respond($ok, $msg, $extra = []) {
+  echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
+  exit;
+}

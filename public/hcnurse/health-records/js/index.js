@@ -37,6 +37,64 @@ const SUBTYPE_OPTIONS = {
     ],
 };
 
+// dialog init
+$("#editConsultationModal").dialog({
+    autoOpen: false,
+    modal: true,
+    width: 800,
+    resizable: true,
+    classes: {
+        'ui-dialog': 'rounded-lg shadow-lg',
+        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
+        'ui-dialog-title': 'font-semibold',
+        'ui-dialog-buttonpane': 'text-white rounded-b-lg'
+    },
+    show: { effect: "fadeIn", duration: 200 },
+    hide: { effect: "fadeOut", duration: 200 },
+    buttons: {
+        "Save Changes": function () {
+            $("#editConsultationForm").trigger("submit");
+        },
+        Cancel: function () {
+            $(this).dialog("close");
+        }
+    },
+    open: function () {
+        $(this).find('[tabindex="0"]').focus();
+        $(this).find(':input').blur();
+
+    }
+});
+
+// submit form
+$("#editConsultationForm").on("submit", function (e) {
+    e.preventDefault();
+
+    const id = $("#edit_id").val(); // hidden input; set this when edit modal opens
+    const payload = $(this).serialize() + "&id=" + encodeURIComponent(id);
+    console.log("Submitting update:", payload);
+
+    $.ajax({
+        url: "api/health_records_api.php?id="+id+"&action=update&type=" + encodeURIComponent(HEALTH_RECORD_TYPE),
+        type: "POST",
+        data: payload,
+        dataType: "json",
+        success: function (res) {
+            if (res.status !== "ok") {
+                showDialog("Message", res.message || "Update failed");
+                return;
+            }
+            $("#editConsultationModal").dialog("close");
+            showDialog("Message", "Update successful");
+            loadRecords(); // refresh table
+        },
+        error: function (xhr) {
+            console.log(xhr.responseText);
+            alert("Server error");
+        }
+    });
+});
+
 // ---------- UI init ----------
 function setActivePeriod(period) {
     document.querySelectorAll(".periodBtn").forEach(btn => {
@@ -95,6 +153,59 @@ function updateUrlAndReload() {
     }
 }
 
+function openViewModal(id) {
+
+    $.getJSON("api/health_records_api.php", {
+        type: HEALTH_RECORD_TYPE,
+        id: id
+    }, function (res) {
+
+        const record = res.data.find(r => r.id == id);
+        if (!record) return;
+
+        alert(
+            "Resident: " + record.resident_name +
+            "\nDate: " + record.consultation_date +
+            "\nComplaint: " + record.complaint +
+            "\nStatus: " + (record.meta.status || '')
+        );
+    });
+}
+
+function openEditModal(id) {
+    $.getJSON("api/health_records_api.php", {
+        action: "get",
+        type: HEALTH_RECORD_TYPE,
+        id: id
+    }).done(function (res) {
+        if (res.status !== "ok") return;
+
+        const record = res.data;
+
+        // fill your form
+        $("#edit_id").val(record.id);
+        $("#edit_resident_id").val(record.resident_id);
+        $("#edit_resident_name").val(record.resident_name);
+        $("#consultation_date").val(record.consultation_date);
+
+        $("textarea[name='complaint']").val(record.complaint || "");
+        $("textarea[name='diagnosis']").val(record.diagnosis || "");
+        $("textarea[name='treatment']").val(record.treatment || "");
+        $("textarea[name='remarks']").val(record.meta.remarks || "");
+
+        $("input[name='consultation_time']").val(record.meta.time || "");
+        $("input[name='health_worker']").val(record.meta.health_worker || "");
+        $("select[name='status']").val(record.meta.status || "Completed");
+
+        $("select[name='consultation_type']").val(record.meta.program || HEALTH_RECORD_TYPE);
+        $("#sub_type").val(record.meta.sub_type || "all");
+
+        $("#editConsultationModal").dialog("open");
+    }).fail(function (xhr) {
+        console.log("Edit load failed:", xhr.status, xhr.responseText);
+    });
+}
+
 // ---------- events ----------
 window.__period = INIT_FILTERS.period || "all";
 
@@ -129,6 +240,18 @@ document.getElementById("clearFiltersBtn").addEventListener("click", () => {
 
 document.getElementById("printRecordsBtn").addEventListener("click", () => {
     window.open(`/hcnurse/health-records/print.php${window.location.search}`, "_blank");
+});
+
+// VIEW BUTTON
+$(document).on("click", ".viewBtn", function () {
+    const id = $(this).data("id");
+    openViewModal(id);
+});
+
+// EDIT BUTTON
+$(document).on("click", ".editBtn", function () {
+    const id = $(this).data("id");
+    openEditModal(id);
 });
 
 // init
