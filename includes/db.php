@@ -1,30 +1,34 @@
 <?php
 /**
- * Database Connection Handler
- * 
- * This file establishes and configures the MySQL database connection.
- * It uses mysqli with prepared statements for security.
- * 
- * IMPORTANT: Never manually close this connection using $conn->close()
- * as it's shared across the application. Let PHP handle cleanup.
+ * Database Connection Handler (Safe)
+ *
+ * - Does NOT die/exit on failure
+ * - Exposes:
+ *    $conn (mysqli|null)
+ *    $db_error (string|null)
  */
 
 include_once __DIR__ . '/../config.php';
 
-// Create database connection
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+// IMPORTANT: set mysqli reporting BEFORE creating connection
+// OFF = no exceptions, we'll handle connect_errno ourselves
+mysqli_report(MYSQLI_REPORT_OFF);
 
-// Check connection and handle errors gracefully
-if ($conn->connect_error) {
-    // Log error for debugging (don't expose credentials)
-    error_log("Database connection failed: " . $conn->connect_error);
-    // Show user-friendly error message
-    die("Database connection failed. Please contact the administrator.");
+$conn = null;
+$db_error = null;
+
+try {
+    $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+
+    if ($conn->connect_errno) {
+        $db_error = $conn->connect_error;
+        error_log("Database connection failed: " . $db_error);
+        $conn = null;
+    } else {
+        $conn->set_charset("utf8mb4");
+    }
+} catch (Throwable $e) {
+    $db_error = $e->getMessage();
+    error_log("Database connection exception: " . $db_error);
+    $conn = null;
 }
-
-// Set charset to UTF-8 to prevent character encoding issues
-// utf8mb4 supports full Unicode including emojis
-$conn->set_charset("utf8mb4");
-
-// Enable error reporting for mysqli (useful for debugging)
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
