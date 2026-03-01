@@ -10,7 +10,7 @@
         </a>
 
         <a href="/captain/admin/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">
-            🧑‍💼 Official & Staff
+            🧑 Official & Staff
         </a>
 
         <a href="/captain/certificate/" class="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200">

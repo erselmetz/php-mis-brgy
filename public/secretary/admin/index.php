@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
 
+// Helper: build full name from residents table
+include_once __DIR__ . '/helper.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     include_once __DIR__ . '/add_account.php';
@@ -83,8 +86,7 @@ if ($stmt === false) {
                                     <td class="p-2">
                                         <button
                                             class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition text-sm"
-                                            data-id="<?= $row['id'] ?>"
-                                            data-name="<?= htmlspecialchars($row['name']) ?>"
+                                            data-id="<?= $row['id'] ?>" data-name="<?= htmlspecialchars($row['name']) ?>"
                                             data-username="<?= htmlspecialchars($row['username']) ?>"
                                             data-role="<?= htmlspecialchars($row['role']) ?>"
                                             data-status="<?= htmlspecialchars($row['status']) ?>"
@@ -102,17 +104,20 @@ if ($stmt === false) {
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="7" class="p-4 text-center text-gray-500">Error loading accounts. Please try again later.</td>
+                                <td colspan="7" class="p-4 text-center text-gray-500">Error loading accounts. Please try
+                                    again later.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
             <div class="flex justify-end mt-6 space-x-2">
-                <button id="archiveCurrentTermBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
+                <button id="archiveCurrentTermBtn"
+                    class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
                     📦 Archive Current Term
                 </button>
-                <button id="termHistoryBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
+                <button id="termHistoryBtn"
+                    class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
                     📋 Term History
                 </button>
             </div>
@@ -121,82 +126,97 @@ if ($stmt === false) {
 
     <!-- Edit Account Dialog -->
     <div id="editAccountDialog" title="Edit Account" class="hidden">
-        <form id="editAccountForm" method="POST" class="space-y-3">
+        <form id="editAccountForm" method="POST" class="space-y-4 p-2">
             <input type="hidden" name="action" value="edit_account">
             <input type="hidden" name="id" id="editAccountId">
             <input type="hidden" name="officer_id" id="editOfficerId">
-            <input type="hidden" name="resident_id" id="editResidentId">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Full Name</label>
-                <input type="text" name="fullname" id="editFullname" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
+            <!-- Always officer -->
+            <input type="hidden" name="is_officer" id="editIsOfficerHidden" value="1">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Username</label>
-                <input type="text" name="username" id="editUsername" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
+            <!-- Resident link (kept for DB) -->
+            <input type="hidden" name="resident_id" id="editResidentId" value="">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Role</label>
-                <select name="role" id="editRole" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="captain">Captain</option>
-                    <option value="kagawad">Kagawad</option>
-                    <option value="secretary">Secretary</option>
-                    <option value="hcnurse">hcnurse</option>
-                </select>
-            </div>
+            <!-- Full name kept for DB compatibility (auto from Resident) -->
+            <input type="hidden" name="fullname" id="editFullname" value="">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Status</label>
-                <select name="status" id="editStatus" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="active">Active</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </div>
+            <!-- =========================
+            RESIDENT (PRIMARY FIELD)
+            ========================== -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Required)</label>
+                <input type="text" id="editResidentSearch" placeholder="Search resident by name or address..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Password (leave blank to keep current)</label>
-                <input type="password" name="password" id="editPassword"
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <hr class="my-4">
-
-            <div>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="editIsOfficer" class="rounded">
-                    <input type="hidden" name="is_officer" id="editIsOfficerHidden" value="0">
-                    <span class="text-gray-700 font-medium">This user is an Officer</span>
-                </label>
-            </div>
-
-            <!-- Officer Fields -->
-            <div id="editOfficerFields" class="hidden space-y-3">
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="editResidentSearch"
-                        placeholder="Search by name or address..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="editResidentSearchResults"
-                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
-                    <div id="editSelectedResident" class="mt-2 hidden">
-                        <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                            <span class="text-sm text-gray-700">
-                                <span class="font-medium" id="editSelectedResidentName"></span>
-                            </span>
-                            <button type="button" onclick="clearEditResidentSelection()" class="text-red-600 hover:text-red-800 text-sm">
-                                ✕ Clear
-                            </button>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Leave blank if officer is not a registered resident</p>
+                <div id="editResidentSearchResults"
+                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
                 </div>
 
+                <div id="editSelectedResident" class="mt-2 hidden">
+                    <div
+                        class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
+                        <span class="text-sm text-gray-700">
+                            <span class="font-medium" id="editSelectedResidentName"></span>
+                        </span>
+                        <button type="button" onclick="clearEditResidentSelection()"
+                            class="text-red-600 hover:text-red-800 text-sm">
+                            ✕ Clear
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    Selecting a resident will automatically set the account name.
+                </p>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- =========================
+            ACCOUNT FIELDS
+            ========================== -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 font-medium">Username</label>
+                    <input type="text" name="username" id="editUsername" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-medium">Role</label>
+                    <select name="role" id="editRole" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                        <option value="captain">Captain</option>
+                        <option value="kagawad">Kagawad</option>
+                        <option value="secretary">Secretary</option>
+                        <option value="hcnurse">hcnurse</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 font-medium">Status</label>
+                    <select name="status" id="editStatus" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                        <option value="active">Active</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-medium">Password (optional)</label>
+                    <input type="password" name="password" id="editPassword" placeholder="Leave blank to keep current"
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                </div>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- =========================
+            OFFICER FIELDS (ALWAYS)
+            ========================== -->
+            <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
                     <input type="text" name="officer_position" id="editOfficerPosition"
@@ -204,7 +224,7 @@ if ($stmt === false) {
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
                         <input type="date" name="term_start" id="editTermStart"
@@ -216,99 +236,107 @@ if ($stmt === false) {
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Officer Status</label>
-                    <select name="officer_status" id="editOfficerStatus"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
             </div>
+
         </form>
     </div>
 
 
-    <!-- add account thru modal -->
+    <!-- Add Account Modal -->
     <div id="addAccountModal" title="Add New Account / Officer" class="hidden">
-        <form method="POST" class="space-y-3" id="addAccountForm">
+        <form method="POST" class="space-y-4 p-2" id="addAccountForm">
             <input type="hidden" name="action" value="add_account">
+
+            <!-- Always officer -->
+            <input type="hidden" name="is_officer" id="addIsOfficerHidden" value="1">
+
+            <!-- Resident link (kept for DB) -->
             <input type="hidden" name="resident_id" id="addResidentId" value="">
+
+            <!-- Full name kept for DB compatibility (auto from Resident) -->
+            <input type="hidden" name="fullname" id="addFullname" value="">
+
             <?php if (isset($error)): ?>
                 <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
             <?php endif; ?>
 
-            <div>
-                <label class="block text-gray-700 font-medium">Full Name</label>
-                <input type="text" name="fullname" id="addFullname" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
+            <!-- =========================
+            RESIDENT (PRIMARY FIELD)
+            ========================== -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Required)</label>
+                <input type="text" id="addResidentSearch" placeholder="Search resident by name or address..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
 
-            <div>
-                <label class="block text-gray-700 font-medium">Username</label>
-                <input type="text" name="username" id="addUsername" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Role</label>
-                <select name="role" id="addRole" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="captain">Captain</option>
-                    <option value="kagawad">Kagawad</option>
-                    <option value="secretary">Secretary</option>
-                    <option value="hcnurse">hcnurse</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Status</label>
-                <select name="status" id="addStatus" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                    <option value="active">Active</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-gray-700 font-medium">Password</label>
-                <input type="password" name="password" id="addPassword" required
-                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-            </div>
-
-            <hr class="my-4">
-
-            <div>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" id="addIsOfficer" class="rounded">
-                    <input type="hidden" name="is_officer" id="addIsOfficerHidden" value="0">
-                    <span class="text-gray-700 font-medium">This user is an Officer</span>
-                </label>
-            </div>
-
-            <!-- Officer Fields -->
-            <div id="addOfficerFields" class="hidden space-y-3">
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Optional)</label>
-                    <input type="text" id="addResidentSearch"
-                        placeholder="Search by name or address..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    <div id="addResidentSearchResults"
-                        class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
-                    <div id="addSelectedResident" class="mt-2 hidden">
-                        <div class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                            <span class="text-sm text-gray-700">
-                                <span class="font-medium" id="addSelectedResidentName"></span>
-                            </span>
-                            <button type="button" onclick="clearAddResidentSelection()" class="text-red-600 hover:text-red-800 text-sm">
-                                ✕ Clear
-                            </button>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Leave blank if officer is not a registered resident</p>
+                <div id="addResidentSearchResults"
+                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
                 </div>
 
+                <div id="addSelectedResident" class="mt-2 hidden">
+                    <div
+                        class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
+                        <span class="text-sm text-gray-700">
+                            <span class="font-medium" id="addSelectedResidentName"></span>
+                        </span>
+                        <button type="button" onclick="clearAddResidentSelection()"
+                            class="text-red-600 hover:text-red-800 text-sm">
+                            ✕ Clear
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    Selecting a resident will automatically set the account name.
+                </p>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- =========================
+             ACCOUNT FIELDS
+             ========================== -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 font-medium">Username</label>
+                    <input type="text" name="username" id="addUsername" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-medium">Role</label>
+                    <select name="role" id="addRole" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                        <option value="captain">Captain</option>
+                        <option value="kagawad">Kagawad</option>
+                        <option value="secretary">Secretary</option>
+                        <option value="hcnurse">hcnurse</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 font-medium">Status</label>
+                    <select name="status" id="addStatus" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                        <option value="active">Active</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 font-medium">Password</label>
+                    <input type="password" name="password" id="addPassword" required
+                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
+                </div>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- =========================
+            OFFICER FIELDS (ALWAYS)
+            ========================== -->
+            <div class="space-y-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
                     <input type="text" name="officer_position" id="addOfficerPosition"
@@ -316,7 +344,7 @@ if ($stmt === false) {
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
                         <input type="date" name="term_start" id="addTermStart"
@@ -328,16 +356,8 @@ if ($stmt === false) {
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Officer Status</label>
-                    <select name="officer_status" id="addOfficerStatus"
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
             </div>
+
         </form>
     </div>
 
@@ -350,7 +370,8 @@ if ($stmt === false) {
             </p>
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p class="text-sm text-yellow-800">
-                    <strong>⚠️ Warning:</strong> This action cannot be undone. All archived records will be moved to the archive.
+                    <strong>⚠️ Warning:</strong> This action cannot be undone. All archived records will be moved to the
+                    archive.
                 </p>
             </div>
         </div>
@@ -361,17 +382,14 @@ if ($stmt === false) {
         <!-- Search -->
         <div class="p-4 border-b">
             <div class="relative">
-                <input
-                    type="text"
-                    id="termHistorySearchInput"
-                    placeholder="Search by officer name or position..."
+                <input type="text" id="termHistorySearchInput" placeholder="Search by officer name or position..."
                     class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1" />
                 <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
             </div>
         </div>
 
         <!-- Table -->
-        <div class="p-4 overflow-auto max-h-[400px]">
+        <div class="p-4">
             <table class="w-full text-sm border-collapse">
                 <thead class="bg-gray-100 text-left">
                     <tr>
