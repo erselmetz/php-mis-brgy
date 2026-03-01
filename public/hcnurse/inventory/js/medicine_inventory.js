@@ -218,6 +218,20 @@ $(function () {
     loadCategories();
     initTable();
 
+    $("#medicineReportPreviewModal").dialog({
+        autoOpen: false,
+        modal: true,
+        width: 980,
+        resizable: false,
+        draggable: true,
+        classes: {
+            "ui-dialog": "rounded-lg shadow-lg",
+            "ui-dialog-titlebar": "bg-theme-primary text-white",
+            "ui-dialog-title": "font-semibold",
+            "ui-dialog-titlebar-close": "text-white"
+        }
+    });
+
     // ===== Medicine Report Modal =====
     $("#medicineReportModal").dialog({
         autoOpen: false,
@@ -256,24 +270,66 @@ $(function () {
 
     // Preview (show in your table area if you want)
     $("#previewMedicineReportBtn").on("click", function () {
+
         const qs = buildReportQS();
-        $.getJSON('api/medicine_inventory_api.php?action=report&' + qs, function (res) {
+
+        $("#medSummary").html("Loading...");
+        $("#medicineReportTbody").html(
+            `<tr><td colspan="8" class="p-3 text-gray-400">Loading...</td></tr>`
+        );
+
+        $.getJSON('./api/medicine_inventory_api.php?action=report&' + qs, function (res) {
+
             if (!res || res.status !== 'ok') {
                 showMessage('Error', (res && res.message) ? res.message : 'Failed to load report', true);
                 return;
             }
 
-            // Example: put counts somewhere (optional)
-            const s = res.data.summary || {};
+            // ✅ unified payload (new or legacy)
+            const payload = res.data ? res.data : res;
+
+            const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+            // ✅ If backend doesn't return summary, compute it here (works always)
+            const summary = payload.summary ? payload.summary : computeMedicineSummary(rows);
+
             $("#medSummary").html(
-                `Total: ${s.total || 0} | Out: ${s.out_of_stock || 0} | Critical: ${s.critical || 0} | OK: ${s.ok_items || 0} | Expiring: ${s.expiring_soon || 0}`
+                `Total: ${summary.total || 0} | Out: ${summary.out_of_stock || 0} | Critical: ${summary.critical || 0} | OK: ${summary.ok_items || 0} | Expiring: ${summary.expiring_soon || 0}`
             );
 
-            // If you already have a DataTable for medicines list, you can reload it using these filters.
-            // Or you can render into a table body manually.
-            renderMedicineReportRows(res.data.rows || []);
+            renderMedicineReportRows(rows);
+
+            // ✅ open dialog after render
+            $("#medicineReportPreviewModal").dialog("open");
+
+        }).fail(function (xhr) {
+            console.log("HTTP:", xhr.status, xhr.statusText);
+            console.log("Tried URL:", this.url);
+            showMessage("Error", `HTTP ${xhr.status} ${xhr.statusText}`, true);
         });
+
     });
+
+    function computeMedicineSummary(rows) {
+        const s = {
+            total: rows.length,
+            out_of_stock: 0,
+            critical: 0,
+            ok_items: 0,
+            expiring_soon: 0
+        };
+
+        rows.forEach(r => {
+            const status = String(r.stock_status || '').toUpperCase();
+            if (status === 'OUT_OF_STOCK') s.out_of_stock++;
+            else if (status === 'CRITICAL') s.critical++;
+            else if (status === 'OK') s.ok_items++;
+
+            if (parseInt(r.is_expiring_soon, 10) === 1) s.expiring_soon++;
+        });
+
+        return s;
+    }
 
     // Print - uses hidden iframe so hindi “blank tab”
     $("#printMedicineReportBtn").on("click", function () {
@@ -292,31 +348,42 @@ $(function () {
 
     // Minimal renderer (you can upgrade to DataTable if you want)
     function renderMedicineReportRows(rows) {
+
         let html = '';
+
         rows.forEach(function (r) {
+
             const badge =
                 (r.stock_status === 'OUT_OF_STOCK') ? 'bg-red-100 text-red-800' :
                     (r.stock_status === 'CRITICAL') ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800';
 
-            const exp = (parseInt(r.is_expiring_soon, 10) === 1)
-                ? '<span class="text-red-600 font-semibold">YES</span>'
-                : 'NO';
+            const exp =
+                parseInt(r.is_expiring_soon, 10) === 1
+                    ? '<span class="text-red-600 font-semibold">YES</span>'
+                    : 'NO';
 
             html += `
-        <tr class="hover:bg-gray-50">
-            <td class="p-2">${escapeHtml(r.name || '')}</td>
-            <td class="p-2">${escapeHtml(r.category_name || '-')}</td>
-            <td class="p-2">${r.stock_qty}</td>
-            <td class="p-2">${r.reorder_level}</td>
-            <td class="p-2">${escapeHtml(r.unit || 'pcs')}</td>
-            <td class="p-2">${escapeHtml(r.expiration_date || '-')}</td>
-            <td class="p-2"><span class="px-2 py-1 rounded text-xs ${badge}">${r.stock_status}</span></td>
-            <td class="p-2">${exp}</td>
-        </tr>
-        `;
+      <tr class="border-b hover:bg-gray-50">
+        <td class="p-2">${escapeHtml(r.name || '')}</td>
+        <td class="p-2">${escapeHtml(r.category_name || '-')}</td>
+        <td class="p-2">${r.stock_qty}</td>
+        <td class="p-2">${r.reorder_level}</td>
+        <td class="p-2">${escapeHtml(r.unit || 'pcs')}</td>
+        <td class="p-2">${escapeHtml(r.expiration_date || '-')}</td>
+        <td class="p-2">
+          <span class="px-2 py-1 rounded text-xs ${badge}">
+            ${r.stock_status}
+          </span>
+        </td>
+        <td class="p-2">${exp}</td>
+      </tr>
+    `;
         });
-        $("#medicineReportTbody").html(html || '<tr><td class="p-3 text-gray-500" colspan="8">No data</td></tr>');
+
+        $("#medicineReportTbody").html(
+            html || `<tr><td colspan="8" class="p-3 text-gray-500">No data found</td></tr>`
+        );
     }
 
     function escapeHtml(str) {

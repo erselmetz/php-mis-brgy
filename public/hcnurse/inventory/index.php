@@ -66,6 +66,30 @@ $csrf_token = getCSRFToken();
             <div class="mt-3">
                 <table id="medicineTable" class="display w-full"></table>
             </div>
+            <!-- Preview Report Dialog -->
+            <div id="medicineReportPreviewModal" title="Medicine Inventory Report Preview" class="hidden">
+                <div class="p-3">
+                    <div id="medSummary" class="text-sm text-gray-700 mb-2"></div>
+
+                    <div class="max-h-[60vh] overflow-auto border rounded">
+                        <table id="medicinePreviewTable" class="w-full text-sm">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="p-2 text-left">Medicine</th>
+                                    <th class="p-2 text-left">Category</th>
+                                    <th class="p-2 text-left">Stock</th>
+                                    <th class="p-2 text-left">Reorder</th>
+                                    <th class="p-2 text-left">Unit</th>
+                                    <th class="p-2 text-left">Expiration</th>
+                                    <th class="p-2 text-left">Status</th>
+                                    <th class="p-2 text-left">Expiring Soon</th>
+                                </tr>
+                            </thead>
+                            <tbody id="medicineReportTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <div class="mt-8 flex justify-end">
                 <button id="openMedicineReportBtn" class="bg-theme-primary text-white px-3 py-2 rounded">
@@ -74,11 +98,11 @@ $csrf_token = getCSRFToken();
 
                 <div id="medicineReportModal" title="Generate Medicine Inventory Report" class="hidden">
                     <form id="medicineReportForm" class="space-y-3 p-3">
-                        <div>
+                        <!-- <div>
                             <label class="block text-sm font-medium text-gray-700">Search</label>
                             <input type="text" name="search" id="medReportSearch"
                                 class="w-full px-3 py-2 border rounded">
-                        </div>
+                        </div> -->
 
                         <div class="grid grid-cols-2 gap-2">
                             <div>
