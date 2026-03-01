@@ -67,25 +67,6 @@ $csrf_token = getCSRFToken();
                 <table id="medicineTable" class="display w-full"></table>
             </div>
 
-            <div class="mt-4">
-                <div id="medSummary" class="text-sm text-gray-700 mb-2"></div>
-                <table class="w-full text-sm border">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="p-2 text-left">Medicine</th>
-                            <th class="p-2 text-left">Category</th>
-                            <th class="p-2 text-left">Stock</th>
-                            <th class="p-2 text-left">Reorder</th>
-                            <th class="p-2 text-left">Unit</th>
-                            <th class="p-2 text-left">Expiration</th>
-                            <th class="p-2 text-left">Status</th>
-                            <th class="p-2 text-left">Expiring Soon</th>
-                        </tr>
-                    </thead>
-                    <tbody id="medicineReportTbody"></tbody>
-                </table>
-            </div>
-
             <div class="mt-8 flex justify-end">
                 <button id="openMedicineReportBtn" class="bg-theme-primary text-white px-3 py-2 rounded">
                     Generate Medicine Report

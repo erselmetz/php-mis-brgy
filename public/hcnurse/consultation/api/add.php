@@ -4,12 +4,6 @@ requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
 
-function respond($ok, $msg, $extra = [])
-{
-  echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
-  exit;
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'Invalid request');
 
 $resident_id = (int)($_POST['resident_id'] ?? 0);

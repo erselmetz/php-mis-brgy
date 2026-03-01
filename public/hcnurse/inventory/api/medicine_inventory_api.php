@@ -7,10 +7,6 @@ requireHCNurse(); // Only HC Nurse can access
 
 require_once __DIR__ . '/helpers.php';
 
-// optional: protect role (if meron ka nang requireHCNurse())
-// require_once __DIR__ . '/../includes/app.php';
-// requireHCNurse();
-
 $action = $_GET['action'] ?? '';
 
 try {
@@ -23,7 +19,7 @@ try {
       $res = $conn->query("SELECT id, name FROM medicine_categories ORDER BY name ASC");
       $rows = [];
       while ($r = $res->fetch_assoc()) $rows[] = $r;
-      json_ok($rows);
+      json_ok_data($rows);
     }
 
     case 'add_category': {
@@ -38,7 +34,7 @@ try {
         if ($conn->errno === 1062) json_err('Category already exists', 409);
         json_err('Failed to add category');
       }
-      json_ok(['id' => $stmt->insert_id, 'name' => $name], 'Category added');
+      json_ok_data(['id' => $stmt->insert_id, 'name' => $name], 'Category added');
     }
 
     /* =========================
@@ -89,7 +85,7 @@ try {
         $rows[] = $r;
       }
 
-      json_ok($rows);
+      json_ok_data($rows);
     }
 
     case 'get': {
@@ -106,7 +102,7 @@ try {
       $row = $res->fetch_assoc();
       if (!$row) json_err('Not found', 404);
 
-      json_ok($row);
+      json_ok_data($row);
     }
 
     case 'add': {
@@ -147,7 +143,7 @@ try {
         json_err('Failed to add medicine');
       }
 
-      json_ok(['id' => $stmt->insert_id], 'Medicine added');
+      json_ok_data(['id' => $stmt->insert_id], 'Medicine added');
     }
 
     case 'update': {
@@ -189,7 +185,7 @@ try {
       );
 
       if (!$stmt->execute()) json_err('Failed to update medicine');
-      json_ok(null, 'Medicine updated');
+      json_ok_data(null, 'Medicine updated');
     }
 
     /* =========================
@@ -231,7 +227,7 @@ try {
       if (!$stmt->execute()) { $conn->rollback(); json_err('Failed to save dispense record'); }
 
       $conn->commit();
-      json_ok(null, 'Dispensed successfully');
+      json_ok_data(null, 'Dispensed successfully');
     }
 
     default:

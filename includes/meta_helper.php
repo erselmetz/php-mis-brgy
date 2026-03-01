@@ -1,14 +1,16 @@
 <?php
 function meta_decode(?string $raw): array
 {
-    if (!$raw) return [];
+    if (!$raw)
+        return [];
 
     $raw = trim($raw);
 
     // If JSON
     if ($raw !== '' && $raw[0] === '{') {
         $decoded = json_decode($raw, true);
-        if (is_array($decoded)) return $decoded;
+        if (is_array($decoded))
+            return $decoded;
     }
 
     // Fallback: parse old pipe format
@@ -32,8 +34,10 @@ function meta_encode(array $data): string
     $clean = [];
 
     foreach ($data as $k => $v) {
-        if ($v === null) continue;
-        if ($v === '') continue;
+        if ($v === null)
+            continue;
+        if ($v === '')
+            continue;
         $clean[$k] = $v;
     }
 
@@ -53,7 +57,8 @@ function meta_normalize(array $meta): array
                 $allow = ['status', 'time', 'health_worker', 'worker', 'remarks', 'note'];
 
                 foreach ($decoded as $k => $v) {
-                    if (!in_array($k, $allow, true)) continue;
+                    if (!in_array($k, $allow, true))
+                        continue;
 
                     // only fill if missing/empty
                     if (!isset($meta[$k]) || $meta[$k] === '' || $meta[$k] === null) {
@@ -65,8 +70,10 @@ function meta_normalize(array $meta): array
     }
 
     // Make sure program/sub_type are strings if present
-    if (isset($meta['program']) && !is_string($meta['program'])) $meta['program'] = (string)$meta['program'];
-    if (isset($meta['sub_type']) && !is_string($meta['sub_type'])) $meta['sub_type'] = (string)$meta['sub_type'];
+    if (isset($meta['program']) && !is_string($meta['program']))
+        $meta['program'] = (string) $meta['program'];
+    if (isset($meta['sub_type']) && !is_string($meta['sub_type']))
+        $meta['sub_type'] = (string) $meta['sub_type'];
 
     return $meta;
 }
@@ -96,50 +103,72 @@ function meta_set(?string $raw, string $key, $value): string
 
 function json_ok(array $payload = []): void
 {
-  echo json_encode(['status' => 'ok'] + $payload);
-  exit;
+    echo json_encode(['status' => 'ok'] + $payload);
+    exit;
 }
 
 function json_fail($message = 'error', $code = 400)
 {
-  http_response_code($code);
-  echo json_encode(['status' => 'error', 'message' => $message]);
-  exit;
+    http_response_code($code);
+    echo json_encode(['status' => 'error', 'message' => $message]);
+    exit;
 }
 function json_err(string $message, int $code = 400, array $extra = []): void
 {
-  http_response_code($code);
-  echo json_encode(['status' => 'error', 'message' => $message] + $extra);
-  exit;
+    http_response_code($code);
+    echo json_encode(['status' => 'error', 'message' => $message] + $extra);
+    exit;
 }
 
 /**
  * New Standard API response helpers
  */
 
-function respond($ok, $msg, $extra = []) {
-  echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
-  exit;
+// NEW (standard response: status + data + message)
+function json_ok_data($data = [], string $message = 'ok', array $extra = []): void
+{
+    echo json_encode(array_merge([
+        'status' => 'ok',
+        'message' => $message,
+        'data' => $data,
+    ], $extra));
+    exit;
+}
+
+function json_fail_data(string $message = 'error', int $code = 400, array $extra = []): void
+{
+    http_response_code($code);
+    echo json_encode(array_merge([
+        'status' => 'error',
+        'message' => $message,
+    ], $extra));
+    exit;
+}
+
+function respond($ok, $msg, $extra = [])
+{
+    echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
+    exit;
 }
 
 function respond_ok(array $payload = []): void
 {
-  header('Content-Type: application/json');
-  echo json_encode([
-    'status' => 'ok',
-    'data' => $payload
-  ]);
-  exit;
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'ok',
+        'data' => $payload
+    ]);
+    exit;
 }
 
 function respond_err(string $message, int $code = 400, array $extra = []): void
 {
-  http_response_code($code);
-  header('Content-Type: application/json');
-  echo json_encode([
-    'status' => 'error',
-    'message' => $message,
-    'data' => $extra
-  ]);
-  exit;
+    http_response_code($code);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'error',
+        'message' => $message,
+        'data' => $extra
+    ]);
+    exit;
 }

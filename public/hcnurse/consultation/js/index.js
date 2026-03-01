@@ -188,7 +188,7 @@ $(window).on('load', function () {
     $(document).on("click", ".viewConsultBtn", function () {
         const id = $(this).data("id");
 
-        $.getJSON("api/get.php", { id }, function (res) {
+        $.getJSON("api/view.php", { id }, function (res) {
             if (!res.success) return alert(res.message || "Not found");
 
             const d = res.data;
