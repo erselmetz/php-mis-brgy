@@ -8,8 +8,8 @@ $type = $_GET['type'] ?? 'maternal';
 $mainTitles = [
     'maternal' => 'Maternal & Child Records',
     'family_planning' => 'Family Planning Records',
-    'prenatal' => 'Prenatal & Postnatal Records',
-    'postnatal' => 'Prenatal & Postnatal Records',
+    'prenatal' => 'Prenatal Records',
+    'postnatal' => 'Postnatal Records',
     'child_nutrition' => 'Child Nutrition Records',
     'immunization' => 'Immunization Records',
 ];
@@ -17,9 +17,9 @@ $pageTitle = $mainTitles[$type] ?? 'Health Records';
 
 // filters (persist via URL)
 $period = $_GET['period'] ?? 'all';      // all|daily|weekly|monthly
-$month  = $_GET['month'] ?? date('Y-m'); // YYYY-MM
-$q      = $_GET['q'] ?? '';
-$sub    = $_GET['sub'] ?? 'all';         // subtype
+$month = $_GET['month'] ?? date('Y-m'); // YYYY-MM
+$q = $_GET['q'] ?? '';
+$sub = $_GET['sub'] ?? 'all';         // subtype
 $totalRecords = 0; // TODO: replace later after AJAX loads (or server-side count)
 $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
 ?>
@@ -65,10 +65,13 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
                 </div>
 
                 <div class="mt-5 flex items-center justify-between">
-                    <div class="inline-flex items-center gap-2 bg-gray-50 border rounded-lg px-4 py-3 text-theme-primary">
-                        📄 <span class="font-bold"><span id="totalRecordsLabel"><?= (int)$totalRecords; ?></span> Total Record(s)</span>
+                    <div
+                        class="inline-flex items-center gap-2 bg-gray-50 border rounded-lg px-4 py-3 text-theme-primary">
+                        📄 <span class="font-bold"><span id="totalRecordsLabel"><?= (int) $totalRecords; ?></span> Total
+                            Record(s)</span>
                         <span class="text-gray-400">|</span>
-                        <span class="font-semibold">Type: <span id="currentSubTypeLabel"><?= htmlspecialchars($currentTypeLabel); ?></span></span>
+                        <span class="font-semibold">Type: <span
+                                id="currentSubTypeLabel"><?= htmlspecialchars($currentTypeLabel); ?></span></span>
                     </div>
                     <div></div>
                 </div>
@@ -81,23 +84,19 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
                 </div>
 
                 <div class="flex flex-wrap gap-2 mb-4">
-                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2"
-                        data-period="all">
+                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2" data-period="all">
                         📅 All Time
                     </button>
 
-                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2"
-                        data-period="daily">
+                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2" data-period="daily">
                         🗓️ Daily
                     </button>
 
-                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2"
-                        data-period="weekly">
+                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2" data-period="weekly">
                         🗓️ Weekly
                     </button>
 
-                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2"
-                        data-period="monthly">
+                    <button class="periodBtn px-4 py-2 rounded-lg border flex items-center gap-2" data-period="monthly">
                         🗓️ Monthly
                     </button>
                 </div>
@@ -131,8 +130,7 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
                     <div class="md:col-span-2">
                         <div class="flex items-center gap-2 border rounded-full px-4 py-3 bg-white">
                             🔎
-                            <input type="text" id="searchInput"
-                                class="w-full outline-none text-sm"
+                            <input type="text" id="searchInput" class="w-full outline-none text-sm"
                                 placeholder="Search patient, BP, complications, notes..."
                                 value="<?= htmlspecialchars($q); ?>">
                         </div>
@@ -204,28 +202,86 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Resident</label>
-                    <input type="text" id="resident_name"
-                        class="w-full px-3 py-2 border rounded"
+                    <input type="text" id="resident_name" class="w-full px-3 py-2 border rounded"
                         placeholder="Search resident...">
                     <input type="hidden" name="resident_id" id="resident_id">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Details (JSON)</label>
-                    <textarea name="details_json" id="details_json"
-                        class="w-full px-3 py-2 border rounded"
-                        rows="4"
+                    <textarea name="details_json" id="details_json" class="w-full px-3 py-2 border rounded" rows="4"
                         placeholder='{"example_key":"value"}'></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Notes</label>
-                    <textarea name="notes" id="notes"
-                        class="w-full px-3 py-2 border rounded"
-                        rows="3"></textarea>
+                    <textarea name="notes" id="notes" class="w-full px-3 py-2 border rounded" rows="3"></textarea>
                 </div>
 
             </form>
+        </div>
+        <!-- View Consultation Modal -->
+        <!-- View Consultation Modal -->
+        <div id="viewConsultationModal" title="View Consultation" class="hidden">
+            <div class="space-y-4 p-4 text-sm">
+
+                <div>
+                    <span class="font-semibold text-gray-600">Resident:</span>
+                    <div id="view_resident" class="mt-1 text-gray-800"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <span class="font-semibold text-gray-600">Date:</span>
+                        <div id="view_date" class="mt-1"></div>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-600">Time:</span>
+                        <div id="view_time" class="mt-1"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Consultation Type:</span>
+                    <div id="view_type" class="mt-1"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Sub Type:</span>
+                    <div id="view_sub_type" class="mt-1"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Complaint:</span>
+                    <div id="view_complaint" class="mt-1 whitespace-pre-line"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Diagnosis:</span>
+                    <div id="view_diagnosis" class="mt-1 whitespace-pre-line"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Treatment:</span>
+                    <div id="view_treatment" class="mt-1 whitespace-pre-line"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Health Worker:</span>
+                    <div id="view_worker" class="mt-1"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Status:</span>
+                    <div id="view_status" class="mt-1"></div>
+                </div>
+
+                <div>
+                    <span class="font-semibold text-gray-600">Remarks:</span>
+                    <div id="view_remarks" class="mt-1 whitespace-pre-line"></div>
+                </div>
+
+            </div>
         </div>
         <!-- Edit Consultation Modal -->
         <div id="editConsultationModal" title="Edit Consultation" class="hidden">
@@ -330,6 +386,8 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
             </form>
         </div>
     </div>
+    
+    <div id="printContainer" class="hidden"></div>
 
     <?php loadAllScripts(); ?>
 
@@ -355,7 +413,7 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
             };
 
             $.getJSON("api/health_records_api.php", params)
-                .done(function(res) {
+                .done(function (res) {
                     if (res.status !== "ok") return;
 
                     $("#totalRecordsLabel").text(res.total);
@@ -414,7 +472,7 @@ $currentTypeLabel = 'Mother'; // TODO: replace based on subtype mapping
                     });
 
                 })
-                .fail(function(xhr) {
+                .fail(function (xhr) {
                     console.log("AJAX failed:", xhr.status, xhr.responseText);
                 });
         }

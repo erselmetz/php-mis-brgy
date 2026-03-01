@@ -42,12 +42,13 @@ try {
     echo json_encode($response);
 }
 
-function handleGetArchivedResidents() {
+function handleGetArchivedResidents()
+{
     global $conn;
 
     $search = $_GET['search'] ?? '';
-    $limit = (int)($_GET['limit'] ?? 50);
-    $offset = (int)($_GET['offset'] ?? 0);
+    $limit = (int) ($_GET['limit'] ?? 50);
+    $offset = (int) ($_GET['offset'] ?? 0);
 
     // Build query
     $where = "deleted_at IS NOT NULL";
@@ -89,10 +90,11 @@ function handleGetArchivedResidents() {
     ]);
 }
 
-function handleArchiveResident() {
+function handleArchiveResident()
+{
     global $conn;
 
-    $residentId = (int)($_POST['resident_id'] ?? 0);
+    $residentId = (int) ($_POST['resident_id'] ?? 0);
 
     if (!$residentId) {
         echo json_encode(['success' => false, 'message' => 'Resident ID is required']);
@@ -152,10 +154,11 @@ function handleArchiveResident() {
     }
 }
 
-function handleRestoreResident() {
+function handleRestoreResident()
+{
     global $conn;
 
-    $residentId = (int)($_POST['resident_id'] ?? 0);
+    $residentId = (int) ($_POST['resident_id'] ?? 0);
 
     if (!$residentId) {
         echo json_encode(['success' => false, 'message' => 'Resident ID is required']);
@@ -213,7 +216,6 @@ function handleRestoreResident() {
         $conn->rollback();
         echo json_encode(['success' => false, 'message' => 'Failed to restore resident: ' . $e->getMessage()]);
     }
-        echo json_encode(['success' => false, 'message' => 'Failed to restore resident']);
-    }
+    echo json_encode(['success' => false, 'message' => 'Failed to restore resident']);
 }
 ?>

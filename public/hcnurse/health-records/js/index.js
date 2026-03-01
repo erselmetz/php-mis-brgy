@@ -22,11 +22,9 @@ const SUBTYPE_OPTIONS = {
     prenatal: [
         { value: "all", label: "All" },
         { value: "prenatal", label: "Prenatal" },
-        { value: "postnatal", label: "Postnatal" }
     ],
     postnatal: [
         { value: "all", label: "All" },
-        { value: "prenatal", label: "Prenatal" },
         { value: "postnatal", label: "Postnatal" }
     ],
     child_nutrition: [
@@ -37,7 +35,16 @@ const SUBTYPE_OPTIONS = {
     ],
 };
 
-// dialog init
+/**
+ * Initialize modal dialog (jQuery UI)
+ * You can customize the form fields and buttons as needed.
+ */
+$("#viewConsultationModal").dialog({
+    autoOpen: false,
+    modal: true,
+    width: 600,
+    resizable: false
+});
 $("#editConsultationModal").dialog({
     autoOpen: false,
     modal: true,
@@ -75,7 +82,7 @@ $("#editConsultationForm").on("submit", function (e) {
     console.log("Submitting update:", payload);
 
     $.ajax({
-        url: "api/health_records_api.php?id="+id+"&action=update&type=" + encodeURIComponent(HEALTH_RECORD_TYPE),
+        url: "api/health_records_api.php?id=" + id + "&action=update&type=" + encodeURIComponent(HEALTH_RECORD_TYPE),
         type: "POST",
         data: payload,
         dataType: "json",
@@ -95,7 +102,11 @@ $("#editConsultationForm").on("submit", function (e) {
     });
 });
 
-// ---------- UI init ----------
+/**
+ * UI initialization and event handlers
+ * These handlers manage the filter buttons, search input, and dynamically generated view/edit buttons in the records table.
+ * @param {*} period 
+ */
 function setActivePeriod(period) {
     document.querySelectorAll(".periodBtn").forEach(btn => {
         const isActive = btn.dataset.period === period;
@@ -156,19 +167,32 @@ function updateUrlAndReload() {
 function openViewModal(id) {
 
     $.getJSON("api/health_records_api.php", {
+        action: "get",
         type: HEALTH_RECORD_TYPE,
         id: id
-    }, function (res) {
+    }).done(function (res) {
 
-        const record = res.data.find(r => r.id == id);
-        if (!record) return;
+        if (res.status !== "ok") return;
 
-        alert(
-            "Resident: " + record.resident_name +
-            "\nDate: " + record.consultation_date +
-            "\nComplaint: " + record.complaint +
-            "\nStatus: " + (record.meta.status || '')
-        );
+        const record = res.data;
+        const meta = record.meta || {};
+
+        $("#view_resident").text(record.resident_name || '');
+        $("#view_date").text(record.consultation_date || '');
+        $("#view_time").text(meta.time || '-');
+        $("#view_type").text(meta.program || '');
+        $("#view_sub_type").text(meta.sub_type || '-');
+        $("#view_complaint").text(record.complaint || '');
+        $("#view_diagnosis").text(record.diagnosis || '-');
+        $("#view_treatment").text(record.treatment || '-');
+        $("#view_worker").text(meta.health_worker || '-');
+        $("#view_status").html(formatStatusBadge(meta.status));
+        $("#view_remarks").text(meta.remarks || '-');
+
+        $("#viewConsultationModal").dialog("open");
+
+    }).fail(function (xhr) {
+        console.log(xhr.responseText);
     });
 }
 
@@ -206,7 +230,10 @@ function openEditModal(id) {
     });
 }
 
-// ---------- events ----------
+/**
+ * Initial filter values are set from the server-rendered INIT_FILTERS object.
+ * This ensures that when the page loads, the UI reflects the current filter state. 
+ */
 window.__period = INIT_FILTERS.period || "all";
 
 document.querySelectorAll(".periodBtn").forEach(btn => {
@@ -238,10 +265,76 @@ document.getElementById("clearFiltersBtn").addEventListener("click", () => {
     window.location.href = base.toString();
 });
 
-document.getElementById("printRecordsBtn").addEventListener("click", () => {
-    window.open(`/hcnurse/health-records/print.php${window.location.search}`, "_blank");
+$("#printRecordsBtn").on("click", function () {
+
+    const params = {
+        type: HEALTH_RECORD_TYPE,
+        period: window.__period || "all",
+        month: $("#monthPicker").val() || "",
+        search: $("#searchInput").val() || "",
+        sub: $("#subTypeSelect").val() || "all"
+    };
+
+    $.getJSON("api/health_records_api.php", params, function (res) {
+
+        if (res.status !== "ok") return;
+
+        const records = res.data || [];
+
+        let html = `
+      <div style="font-family: Arial; font-size:12px;">
+        <h2>Health Records - ${params.type.replace("_", " ").toUpperCase()}</h2>
+        <p>
+          Period: ${res.filters.period} |
+          Date Range: ${res.filters.from} to ${res.filters.to}
+        </p>
+        <table border="1" width="100%" cellspacing="0" cellpadding="5">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Resident</th>
+              <th>Sub Type</th>
+              <th>Status</th>
+              <th>Complaint</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+        records.forEach(r => {
+            html += `
+        <tr>
+          <td>${r.consultation_date}</td>
+          <td>${r.resident_name}</td>
+          <td>${r.meta.sub_type || '-'}</td>
+          <td>${r.meta.status || '-'}</td>
+          <td>${r.complaint}</td>
+        </tr>
+      `;
+        });
+
+        html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+        const original = $("body").html();
+
+        $("body").html(html);
+        window.print();
+        $("body").html(original);
+
+        // Re-bind scripts after restoring DOM
+        location.reload(); // safest way para hindi masira events
+    });
+
 });
 
+/**
+ * Delegated event handlers for dynamically generated buttons in the records table.
+ * These buttons are created when the records are loaded, so we use event delegation.
+ */
 // VIEW BUTTON
 $(document).on("click", ".viewBtn", function () {
     const id = $(this).data("id");
@@ -254,8 +347,39 @@ $(document).on("click", ".editBtn", function () {
     openEditModal(id);
 });
 
-// init
+/**
+ * initialize sub-type options based on main type, and set initial filter values
+ * This runs on page load to ensure the UI reflects the current filters.
+ */
 fillSubTypes();
 document.getElementById("searchInput").value = INIT_FILTERS.q || "";
 document.getElementById("monthPicker").value = INIT_FILTERS.month || "";
 setActivePeriod(window.__period);
+
+/**
+ * Helper function to format status badges in the view modal.
+ * You can customize the badge styles and status values as needed.
+ * This function returns HTML strings that are injected into the modal.
+ */
+function formatStatusBadge(status) {
+
+    if (!status) return '-';
+
+    if (status === "Completed") {
+        return '<span class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">Completed</span>';
+    }
+
+    if (status === "Ongoing") {
+        return '<span class="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700">Ongoing</span>';
+    }
+
+    if (status === "Dismissed") {
+        return '<span class="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Dismissed</span>';
+    }
+
+    if (status === "Follow-up") {
+        return '<span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">Follow-up</span>';
+    }
+
+    return status;
+}

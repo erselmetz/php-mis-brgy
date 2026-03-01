@@ -67,11 +67,75 @@ $csrf_token = getCSRFToken();
                 <table id="medicineTable" class="display w-full"></table>
             </div>
 
+            <div class="mt-4">
+                <div id="medSummary" class="text-sm text-gray-700 mb-2"></div>
+                <table class="w-full text-sm border">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="p-2 text-left">Medicine</th>
+                            <th class="p-2 text-left">Category</th>
+                            <th class="p-2 text-left">Stock</th>
+                            <th class="p-2 text-left">Reorder</th>
+                            <th class="p-2 text-left">Unit</th>
+                            <th class="p-2 text-left">Expiration</th>
+                            <th class="p-2 text-left">Status</th>
+                            <th class="p-2 text-left">Expiring Soon</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medicineReportTbody"></tbody>
+                </table>
+            </div>
+
             <div class="mt-8 flex justify-end">
-                <button id="generateReportBtn"
-                    class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded">
-                    Generate Report
+                <button id="openMedicineReportBtn" class="bg-theme-primary text-white px-3 py-2 rounded">
+                    Generate Medicine Report
                 </button>
+
+                <div id="medicineReportModal" title="Generate Medicine Inventory Report" class="hidden">
+                    <form id="medicineReportForm" class="space-y-3 p-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Search</label>
+                            <input type="text" name="search" id="medReportSearch"
+                                class="w-full px-3 py-2 border rounded">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Category</label>
+                                <select name="category_id" id="medReportCategory"
+                                    class="w-full px-3 py-2 border rounded">
+                                    <option value="0">All</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Status</label>
+                                <select name="status" id="medReportStatus" class="w-full px-3 py-2 border rounded">
+                                    <option value="ALL">All</option>
+                                    <option value="OUT_OF_STOCK">Out of Stock</option>
+                                    <option value="CRITICAL">Critical</option>
+                                    <option value="OK">Ok</option>
+                                    <option value="EXPIRING_SOON">Expiring Soon</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Expiring soon days</label>
+                                <input type="number" name="exp_days" id="medReportExpDays" value="30" min="1" max="365"
+                                    class="w-full px-3 py-2 border rounded">
+                            </div>
+
+                            <div class="flex items-end gap-2">
+                                <button type="button" id="previewMedicineReportBtn"
+                                    class="bg-blue-600 text-white px-3 py-2 rounded">Preview</button>
+                                <button type="button" id="printMedicineReportBtn"
+                                    class="bg-green-600 text-white px-3 py-2 rounded">Print</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Add/Edit Medicine Modal -->
@@ -82,7 +146,8 @@ $csrf_token = getCSRFToken();
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Item Name</label>
                         <input type="text" name="name" id="medicineName"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary" required>
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"
+                            required>
                     </div>
 
                     <div>
@@ -97,12 +162,14 @@ $csrf_token = getCSRFToken();
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Stock</label>
                             <input type="number" name="stock_qty" id="stock_qty" min="0"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary" required>
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"
+                                required>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Reorder Level</label>
                             <input type="number" name="reorder_level" id="reorder_level" min="0"
-                                class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary" required>
+                                class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"
+                                required>
                         </div>
                     </div>
 
@@ -140,7 +207,8 @@ $csrf_token = getCSRFToken();
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Category Name</label>
                         <input type="text" name="name"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary" required>
+                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary"
+                            required>
                     </div>
 
                     <button id="submitCategory" type="submit"

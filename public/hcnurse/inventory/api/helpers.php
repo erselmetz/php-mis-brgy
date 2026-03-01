@@ -2,19 +2,6 @@
 // api/helpers.php
 declare(strict_types=1);
 
-function json_ok($data = null, string $message = 'ok'): void {
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode(['status' => 'ok', 'message' => $message, 'data' => $data], JSON_UNESCAPED_UNICODE);
-  exit;
-}
-
-function json_err(string $message = 'error', int $code = 400): void {
-  http_response_code($code);
-  header('Content-Type: application/json; charset=utf-8');
-  echo json_encode(['status' => 'error', 'message' => $message], JSON_UNESCAPED_UNICODE);
-  exit;
-}
-
 function req_str(string $key, int $maxLen = 255, bool $required = true): ?string {
   $val = isset($_POST[$key]) ? trim((string)$_POST[$key]) : null;
   if ($required && ($val === null || $val === '')) return null;

@@ -74,10 +74,10 @@ if ($stmt === false) {
                   <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
                   <td class="p-2 text-center">
                     <div class="flex justify-center gap-1">
-                      <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="view-resident-btn px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200" data-id="<?= $row['id']; ?>">
                         View
                       </button>
-                      <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="edit-resident-btn px-2 py-1 text-xs rounded bg-green-100 text-green-700 hover:bg-green-200" data-id="<?= $row['id']; ?>">
                         Edit
                       </button>
                     </div>

@@ -55,10 +55,14 @@ function fullNameRow($row): string
 function unpackNotes(string $notes): array
 {
     $out = ['time' => '', 'health_worker' => '', 'status' => '', 'remarks' => ''];
-    if (preg_match('/Time:\s*([^|]+)/i', $notes, $m)) $out['time'] = trim($m[1]);
-    if (preg_match('/Health Worker:\s*([^|]+)/i', $notes, $m)) $out['health_worker'] = trim($m[1]);
-    if (preg_match('/Status:\s*([^|]+)/i', $notes, $m)) $out['status'] = trim($m[1]);
-    if (preg_match('/Remarks:\s*(.+)$/i', $notes, $m)) $out['remarks'] = trim($m[1]);
+    if (preg_match('/Time:\s*([^|]+)/i', $notes, $m))
+        $out['time'] = trim($m[1]);
+    if (preg_match('/Health Worker:\s*([^|]+)/i', $notes, $m))
+        $out['health_worker'] = trim($m[1]);
+    if (preg_match('/Status:\s*([^|]+)/i', $notes, $m))
+        $out['status'] = trim($m[1]);
+    if (preg_match('/Remarks:\s*(.+)$/i', $notes, $m))
+        $out['remarks'] = trim($m[1]);
     return $out;
 }
 
@@ -121,15 +125,17 @@ $assignedHealthWorker = 'HC Nurse';
                                 $dateVisit = $row['consultation_date'] ?? '';
                                 $status = 'Ongoing';
                                 $extras = unpackNotes($row['notes'] ?? '');
-                                if (!empty($dateVisit) && strtotime($dateVisit) < strtotime(date('Y-m-d'))) $status = 'Dismissed';
+                                if (!empty($dateVisit) && strtotime($dateVisit) < strtotime(date('Y-m-d')))
+                                    $status = 'Dismissed';
                                 ?>
                                 <tr>
                                     <td class="p-2">
-                                        <a href="#" class="text-blue-600 hover:underline viewConsultBtn" data-id="<?= (int)$row['id']; ?>">
+                                        <a href="#" class="text-blue-600 hover:underline viewConsultBtn"
+                                            data-id="<?= (int) $row['id']; ?>">
                                             <?= htmlspecialchars($fullname); ?>
                                         </a>
                                     </td>
-                                    <td class="p-2"><?= htmlspecialchars((string)$age); ?></td>
+                                    <td class="p-2"><?= htmlspecialchars((string) $age); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($dateVisit); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['complaint'] ?? ''); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['diagnosis'] ?? ''); ?></td>
@@ -137,16 +143,28 @@ $assignedHealthWorker = 'HC Nurse';
                                     <td class="p-2"><?= htmlspecialchars($extras['health_worker'] ?? ''); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($extras['status']); ?></td>
                                     <td class="p-2">
-                                        <button class="editConsultBtn bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded"
-                                            data-id="<?= (int)$row['id'] ?>">
+                                        <button
+                                            class="viewConsultBtn px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            data-id="<?= (int) $row['id'] ?>">
+                                            View
+                                        </button>
+                                        <button
+                                            class="editConsultBtn px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                                            data-id="<?= (int) $row['id'] ?>">
                                             Edit
+                                        </button>
+                                        <button
+                                            class="generateBtnResident px-2 py-1 text-xs rounded bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                            data-resident-id="<?= (int) $row['id'] ?>">
+                                            Generate
                                         </button>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="p-4 text-center text-gray-500">Error loading consultations. Please try again later.</td>
+                                <td colspan="8" class="p-4 text-center text-gray-500">Error loading consultations. Please
+                                    try again later.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -204,7 +222,8 @@ $assignedHealthWorker = 'HC Nurse';
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Sub Type (Optional)</label>
-                            <input type="text" name="sub_type" id="sub_type" placeholder="e.g., BCG / pills / mother_only"
+                            <input type="text" name="sub_type" id="sub_type"
+                                placeholder="e.g., BCG / pills / mother_only"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-theme-primary">
                         </div>
                     </div>
@@ -332,7 +351,8 @@ $assignedHealthWorker = 'HC Nurse';
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Date</label>
-                            <input type="text" id="edit_consultation_date" name="consultation_date" placeholder="mm/dd/yyyy"
+                            <input type="text" id="edit_consultation_date" name="consultation_date"
+                                placeholder="mm/dd/yyyy"
                                 class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-theme-primary">
                         </div>
                         <div>
@@ -384,6 +404,48 @@ $assignedHealthWorker = 'HC Nurse';
                 </form>
             </div>
         </main>
+    </div>
+
+    <!-- generate dialog per resident -->
+    <div id="generateDialog" title="Generate Document" class="hidden">
+        <form id="generateForm" class="p-4 space-y-4">
+            <input type="hidden" id="gen_resident_id" name="resident_id" value="">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+                <select id="gen_doc" name="doc"
+                    class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-theme-primary">
+                    <option value="summary">Printable Summary</option>
+                    <option value="report">Report (All Residents)</option>
+                    <option value="certificate">Certificate-like Document</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Summary & Certificate uses selected resident. Report uses all.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
+                <select id="gen_period" name="period"
+                    class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-theme-primary">
+                    <option value="daily">Daily (Today)</option>
+                    <option value="weekly">Weekly (This Week)</option>
+                    <option value="monthly" selected>Monthly (Select Month)</option>
+                </select>
+            </div>
+
+            <div id="gen_month_wrap">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Month</label>
+                <input type="month" id="gen_month" name="month"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-theme-primary"
+                    value="<?= date('Y-m'); ?>">
+            </div>
+
+            <div id="gen_purpose_wrap" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Purpose (Certificate)</label>
+                <input type="text" id="gen_purpose" name="purpose"
+                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-theme-primary"
+                    placeholder="e.g., For school requirement / Medical clearance / etc.">
+            </div>
+        </form>
     </div>
 
     <?php loadAllScripts(); ?>

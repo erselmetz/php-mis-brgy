@@ -80,10 +80,6 @@ $(window).on('load', function () {
         $("#addConsultationModal").dialog("close");
     });
 
-    $("#generateConsultReportBtn").on("click", function () {
-        alert("Next step: report export/print UI.");
-    });
-
     /**
      * Resident autocomplete for ADD modal
      */
@@ -309,5 +305,110 @@ $(window).on('load', function () {
 
             $("#editConsultationModal").dialog("open");
         });
+    });
+
+    /**
+     * Generate report button (opens generate dialog with options, then generates PDF in new tab) per resident
+     */
+    $("#generateDialogResident").dialog({
+        autoOpen: false,
+        modal: true,
+        width: 520,
+        resizable: false,
+        buttons: {
+            "Generate & Print": function () {
+                const doc = $("#gen_doc").val();
+                const period = $("#gen_period").val();
+                const month = $("#gen_month").val();
+                const residentId = $("#gen_resident_id").val();
+                const purpose = $("#gen_purpose").val();
+
+                const params = new URLSearchParams();
+                params.set("doc", doc);
+                params.set("period", period);
+                if (period === "monthly") params.set("month", month);
+                if (doc !== "report") params.set("resident_id", residentId);
+                if (doc === "certificate") params.set("purpose", purpose);
+
+                // open print page
+                window.open("api/generate.php?" + params.toString(), "_blank");
+                $(this).dialog("close");
+            },
+            Cancel: function () {
+                $(this).dialog("close");
+            }
+        }
+    });
+
+    $("#gen_period").on("change", function () {
+        const isMonthly = $(this).val() === "monthly";
+        $("#gen_month_wrap").toggleClass("hidden", !isMonthly);
+    });
+
+    $("#gen_doc").on("change", function () {
+        const isCert = $(this).val() === "certificate";
+        $("#gen_purpose_wrap").toggleClass("hidden", !isCert);
+    });
+
+    $(document).on("click", ".generateBtnResident", function () {
+        const rid = $(this).data("resident-id");
+        $("#gen_resident_id").val(rid);
+        $("#gen_doc").val("summary").trigger("change");
+        $("select[name='doc'] option[value='report']").hide();
+        $("#gen_period").val("monthly").trigger("change");
+        $("#generateDialog").dialog("open");
+    });
+
+    /**
+     * Generate report button (opens generate dialog with options, then generates PDF in new tab)
+     */
+    $("#generateDialog").dialog({
+        autoOpen: false,
+        modal: true,
+        width: 520,
+        resizable: false,
+        buttons: {
+            "Generate & Print": function () {
+                const doc = $("#gen_doc").val();
+                const period = $("#gen_period").val();
+                const month = $("#gen_month").val();
+                const residentId = $("#gen_resident_id").val();
+                const purpose = $("#gen_purpose").val();
+
+                const params = new URLSearchParams();
+                params.set("doc", doc);
+                params.set("period", period);
+                if (period === "monthly") params.set("month", month);
+                if (doc !== "report") params.set("resident_id", residentId);
+                if (doc === "certificate") params.set("purpose", purpose);
+
+                // open print page
+                window.open("api/generate.php?" + params.toString(), "_blank");
+                $(this).dialog("close");
+            },
+            Cancel: function () {
+                $(this).dialog("close");
+                $("select[name='doc'] option[value='report']").show();
+                $("#gen_doc").val("report").trigger("change").attr("disabled", false);
+            }
+        }
+    });
+
+    $("#gen_period").on("change", function () {
+        const isMonthly = $(this).val() === "monthly";
+        $("#gen_month_wrap").toggleClass("hidden", !isMonthly);
+    });
+
+    $("#gen_doc").on("change", function () {
+        const isCert = $(this).val() === "certificate";
+        $("#gen_purpose_wrap").toggleClass("hidden", !isCert);
+    });
+
+    $(document).on("click", "#generateConsultReportBtn", function () {
+        $("#gen_doc").val("summary").trigger("change");
+        $("#gen_period").val("monthly").trigger("change");
+        $("#generateDialog").dialog("open");
+
+        $("#gen_doc").val("report").trigger("change").attr("disabled", true);
     });
 });

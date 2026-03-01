@@ -86,12 +86,26 @@ function meta_set(?string $raw, string $key, $value): string
     return meta_encode($data);
 }
 
+/**
+ * Old Standard API Response Helper (deprecated, use respond_ok/respond_err instead)
+ * @param string $message
+ * @param int $code
+ * @param array $extra
+ * @return never
+ */
+
 function json_ok(array $payload = []): void
 {
   echo json_encode(['status' => 'ok'] + $payload);
   exit;
 }
 
+function json_fail($message = 'error', $code = 400)
+{
+  http_response_code($code);
+  echo json_encode(['status' => 'error', 'message' => $message]);
+  exit;
+}
 function json_err(string $message, int $code = 400, array $extra = []): void
 {
   http_response_code($code);
@@ -99,7 +113,33 @@ function json_err(string $message, int $code = 400, array $extra = []): void
   exit;
 }
 
+/**
+ * New Standard API response helpers
+ */
+
 function respond($ok, $msg, $extra = []) {
   echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
+  exit;
+}
+
+function respond_ok(array $payload = []): void
+{
+  header('Content-Type: application/json');
+  echo json_encode([
+    'status' => 'ok',
+    'data' => $payload
+  ]);
+  exit;
+}
+
+function respond_err(string $message, int $code = 400, array $extra = []): void
+{
+  http_response_code($code);
+  header('Content-Type: application/json');
+  echo json_encode([
+    'status' => 'error',
+    'message' => $message,
+    'data' => $extra
+  ]);
   exit;
 }
