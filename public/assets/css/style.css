@@ -6,6 +6,9 @@
 .pointer-events-none {
   pointer-events: none;
 }
+.\!visible {
+  visibility: visible !important;
+}
 .collapse {
   visibility: collapse;
 }
@@ -62,6 +65,9 @@
 }
 .z-50 {
   z-index: 50;
+}
+.z-100 {
+  z-index: 100;
 }
 .col-span-7 {
   grid-column: span 7 / span 7;
@@ -120,6 +126,12 @@
   -webkit-box-orient: horizontal;
   -webkit-line-clamp: unset;
 }
+.\!hidden {
+  display: none !important;
+}
+.\!inline {
+  display: inline !important;
+}
 .block {
   display: block;
 }
@@ -159,6 +171,9 @@
 .table {
   display: table;
 }
+.table\! {
+  display: table !important;
+}
 .table-caption {
   display: table-caption;
 }
@@ -186,6 +201,9 @@
 .h-\[420px\] {
   height: 420px;
 }
+.h-\[700px\] {
+  height: 700px;
+}
 .h-full {
   height: 100%;
 }
@@ -194,6 +212,9 @@
 }
 .max-h-\[50vh\] {
   max-height: 50vh;
+}
+.max-h-\[60vh\] {
+  max-height: 60vh;
 }
 .max-h-\[70vh\] {
   max-height: 70vh;
@@ -248,6 +269,9 @@
 }
 .w-\[45\%\] {
   width: 45%;
+}
+.w-\[260px\] {
+  width: 260px;
 }
 .w-full {
   width: 100%;
@@ -1201,6 +1225,9 @@
 .opacity-20 {
   opacity: 20%;
 }
+.opacity-50 {
+  opacity: 50%;
+}
 .bg-blend-color {
   background-blend-mode: color;
 }
@@ -1322,6 +1349,9 @@
 .sepia {
   --tw-sepia: sepia(100%);
   filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+}
+.\!filter {
+  filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,) !important;
 }
 .filter {
   filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
@@ -1472,6 +1502,13 @@
     }
   }
 }
+.hover\:opacity-90 {
+  &:hover {
+    @media (hover: hover) {
+      opacity: 90%;
+    }
+  }
+}
 .focus\:ring-1 {
   &:focus {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
@@ -1488,6 +1525,16 @@
   &:focus {
     --tw-outline-style: none;
     outline-style: none;
+  }
+}
+.disabled\:cursor-not-allowed {
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+.disabled\:opacity-60 {
+  &:disabled {
+    opacity: 60%;
   }
 }
 .bg-theme-primary {

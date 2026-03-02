@@ -35,7 +35,7 @@ if ($stmt === false) {
   <div class="flex h-full bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
 
-    <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
+    <main class="pb-24 overflow-y-auto p-6 relative h-screen w-screen">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
       <div class="p-6 flex gap-4">
@@ -43,16 +43,16 @@ if ($stmt === false) {
           class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
           ➕ Add Resident
         </button>
-        <button id="manageHouseholdsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold">
+        <button id="manageHouseholdsBtn" class="bg-blue-500 hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">
           🏠 Manage Households
         </button>
-        <button id="archiveResidentsBtn" class="bg-theme-primary hover:bg-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">
+        <button id="archiveResidentsBtn" class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-xl text-sm font-semibold">
           Residence Archive
         </button>
       </div>
       <!-- Residents Table -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
-        <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto p-4">
+        <table id="residentsTable" class="display text-sm border border-gray-200 rounded-lg overflow-x-auto w-full">
           <thead class="bg-gray-50 text-gray-700">
             <tr>
               <th class="p-2 text-left">Full Name</th>
@@ -86,13 +86,13 @@ if ($stmt === false) {
                   <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
                   <td class="p-2 text-center">
                     <div class="flex justify-center gap-1">
-                      <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="view-resident-btn px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200" data-id="<?= $row['id']; ?>">
                         View
                       </button>
-                      <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="edit-resident-btn px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200" data-id="<?= $row['id']; ?>">
                         Edit
                       </button>
-                      <button type="button" class="archive-resident-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
+                      <button type="button" class="archive-resident-btn px-2 py-1 text-xs rounded bg-purple-100 text-purple-700 hover:bg-purple-200" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
                         Archive
                       </button>
                     </div>
@@ -525,7 +525,7 @@ if ($stmt === false) {
     <div class="p-4">
       <!-- Action Buttons -->
       <div class="flex gap-2 mb-4">
-        <button id="createHouseholdBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+        <button id="createHouseholdBtn" class="bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded text-sm">
           ➕ Create Household
         </button>
         <div class="flex-1"></div>
@@ -545,7 +545,7 @@ if ($stmt === false) {
   </div>
 
   <!-- ✅ Create/Edit Household Modal -->
-  <div id="householdFormModal" title="Household Details" class="hidden">
+  <div id="householdFormModal" title="Household Details" class="hidden overflow-y-auto">
     <form id="householdForm" class="p-4 space-y-4">
       <input type="hidden" id="householdFormId" name="id">
 
@@ -567,7 +567,7 @@ if ($stmt === false) {
           <input type="text" id="householdFormHeadSearch" placeholder="Search residents..." required autocomplete="off"
             class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <input type="hidden" id="householdFormHeadId" name="head_resident_id">
-          <div id="householdFormHeadDropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-60 overflow-y-auto hidden">
+          <div id="householdFormHeadDropdown" class="z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-40 overflow-y-auto hidden">
             <!-- Resident options will appear here -->
           </div>
         </div>

@@ -51,7 +51,7 @@ if ($stmt === false) {
         </button>
       </div>
       <!-- Residents Table -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto w-full p-4">
         <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
           <thead class="bg-gray-50 text-gray-700">
             <tr>
@@ -86,13 +86,13 @@ if ($stmt === false) {
                   <td class="p-2"><?= htmlspecialchars($row['address']); ?></td>
                   <td class="p-2 text-center">
                     <div class="flex justify-center gap-1">
-                      <button type="button" class="view-resident-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="view-resident-btn px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200" data-id="<?= $row['id']; ?>">
                         View
                       </button>
-                      <button type="button" class="edit-resident-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>">
+                      <button type="button" class="edit-resident-btn px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200" data-id="<?= $row['id']; ?>">
                         Edit
                       </button>
-                      <button type="button" class="archive-resident-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
+                      <button type="button" class="archive-resident-btn bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded text-xs" data-id="<?= $row['id']; ?>" data-name="<?= htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>">
                         Archive
                       </button>
                     </div>
@@ -529,7 +529,7 @@ if ($stmt === false) {
     <div class="p-4">
       <!-- Action Buttons -->
       <div class="flex gap-2 mb-4">
-        <button id="createHouseholdBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm">
+        <button id="createHouseholdBtn" class="bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded text-sm">
           ➕ Create Household
         </button>
         <div class="flex-1"></div>
@@ -571,7 +571,7 @@ if ($stmt === false) {
           <input type="text" id="householdFormHeadSearch" placeholder="Search residents..." required autocomplete="off"
             class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <input type="hidden" id="householdFormHeadId" name="head_resident_id">
-          <div id="householdFormHeadDropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-60 overflow-y-auto hidden">
+          <div id="householdFormHeadDropdown" class="z-50 w-full bg-white border border-gray-300 rounded-b shadow-lg max-h-40 overflow-y-auto hidden">
             <!-- Resident options will appear here -->
           </div>
         </div>

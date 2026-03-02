@@ -118,7 +118,7 @@ $result = $stmt->get_result();
             </div>
 
             <!-- Blotter Table -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto w-full p-4">
                 <table id="blotterTable" class="display w-full text-sm border border-gray-200 rounded-lg">
                     <thead class="bg-gray-50 text-gray-700">
                         <tr>
@@ -161,7 +161,7 @@ $result = $stmt->get_result();
                                     </td>
                                     <td class="p-2"><?= htmlspecialchars($row['created_by_name'] ?? 'N/A') ?></td>
                                     <td class="p-2">
-                                        <span class="view-blotter-btn text-theme-accent hover:underline cursor-pointer" data-id="<?= $row['id'] ?>">View</span>
+                                        <span class="view-blotter-btn px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200" data-id="<?= $row['id'] ?>">View</span>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>

@@ -64,8 +64,8 @@ echo "Tables cleared\n";
 =========================== */
 for ($i = 1; $i <= 100; $i++) {
     $conn->query("
-        INSERT INTO households (household_no, address, head_name)
-        VALUES ('H-$i','Barangay Bombongan Purok " . rand(1, 7) . "', '" . fakeName($firstNames, $lastNames) . "')
+        INSERT INTO households (household_no, head_id, address, head_name)
+        VALUES ('H-$i', " . rand(1, 100) . ", 'Barangay Bombongan Purok " . rand(1, 7) . "', '" . fakeName($firstNames, $lastNames) . "')
     ");
 }
 echo "Households seeded\n";

@@ -332,18 +332,13 @@ $(function () {
             loadEvents();
         });
 
-        // Calendar date click
-        // $(document).on("click", "#calendarGrid button", function () {
-        //     const date = $(this).data("date");
-        //     if (date) {
-        //         $("#eventModal").dialog("open");
-        //         $("#eventForm")[0].reset();
-        //         $("#eventId").val('');
-        //         $("#eventDate").val(date);
-        //         currentEditId = null;
-        //         $("#eventModal").dialog("option", "title", "Add New Event");
-        //     }
-        // });
+        // Today Button
+        $("#todayBtn").on("click", function () {
+            const today = new Date();
+            currentMonth = today.getMonth() + 1;
+            currentYear = today.getFullYear();
+            loadEvents();
+        });
 
         // Event item click
         $(document).on("click", ".event-item", function (e) {

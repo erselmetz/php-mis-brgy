@@ -47,7 +47,7 @@ if ($stmt === false) {
         </button>
       </div>
       <!-- Residents Table -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto w-full p-4">
         <table id="residentsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
           <thead class="bg-gray-50 text-gray-700">
             <tr>

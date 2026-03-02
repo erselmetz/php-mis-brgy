@@ -74,7 +74,7 @@ $(function() {
             buttons.addClass('text-white px-4 py-2 rounded mr-2');
             
             // Save button - Green
-            buttons.eq(0).addClass('bg-green-500 hover:bg-green-600');
+            buttons.eq(0).addClass('bg-theme-primary hover-theme-darker');
             
             // Issue CFA button - Blue
             buttons.eq(1).addClass('bg-blue-500 hover:bg-blue-600');

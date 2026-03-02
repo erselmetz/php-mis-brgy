@@ -668,7 +668,7 @@ $("#householdFormModal").dialog({
     'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
   },
   open: function () {
-    $('.ui-dialog-buttonpane button:first').addClass('bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mr-2');
+    $('.ui-dialog-buttonpane button:first').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded mr-2');
     $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
   }
 });
