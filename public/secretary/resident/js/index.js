@@ -893,11 +893,11 @@ function renderHouseholdList(households) {
               </div>
             </div>
             <div class="flex gap-2">
-              <button class="edit-household-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+              <button class="edit-household-btn px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
                       data-id="${household.id}" data-household='${JSON.stringify(household)}'>
                 ✏️ Edit
               </button>
-              <button class="archive-household-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+              <button class="archive-household-btn px-2 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200"
                       data-id="${household.id}" data-name="${household.household_no}">
                 🗑️ Archive
               </button>
@@ -1021,12 +1021,9 @@ function saveHousehold() {
           },
           classes: {
             'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
+            'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
             'ui-dialog-title': 'font-semibold',
             'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded');
           }
         });
       } else {
