@@ -35,7 +35,7 @@ if ($stmt === false) {
   <div class="flex h-full bg-gray-100">
     <?php include_once '../layout/sidebar.php'; ?>
 
-    <main class="pb-24 overflow-y-auto p-6 relative h-screen w-screen">
+    <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
       <h2 class="text-2xl font-semibold mb-4">Resident List</h2>
       <!-- ✅ Add Button -->
       <div class="p-6 flex gap-4">
