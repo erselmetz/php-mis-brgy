@@ -160,7 +160,7 @@ if ($stmt === false) {
 
   <!-- ✅ Edit Resident Modal -->
   <div id="editResidentModal" title="Edit Resident" class="hidden">
-    <form id="editResidentForm" class="space-y-4 max-h-[70vh] overflow-y-auto p-4">
+    <form id="editResidentForm" class="space-y-4 p-4">
       <input type="hidden" id="edit-resident-id" name="id">
       <!-- Household -->
       <div>
@@ -295,8 +295,8 @@ if ($stmt === false) {
   ?>
 
   <!-- ✅ Hidden Modal (jQuery UI Dialog) -->
-  <div id="addResidentModal" title="Add New Resident" class="hidden max-h-[50vh]">
-    <form method="POST" class="space-y-3 overflow-y-scroll">
+  <div id="addResidentModal" title="Add New Resident" class="hidden">
+    <form method="POST" class="space-y-3">
       <input type="hidden" name="action" value="add_resident">
       <?php if (isset($error)): ?>
         <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>

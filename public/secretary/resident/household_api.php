@@ -46,11 +46,12 @@ try {
     echo json_encode($response);
 }
 
-function handleGetHouseholds() {
+function handleGetHouseholds()
+{
     global $conn;
 
     $search = $_GET['search'] ?? '';
-    $limit = (int)($_GET['limit'] ?? 50);
+    $limit = (int) ($_GET['limit'] ?? 50);
 
     // Build query
     $where = "1=1";
@@ -65,7 +66,7 @@ function handleGetHouseholds() {
     $total = $countResult->fetch_assoc()['total'];
 
     // Get households with dynamic member count and head name
-    $query = "SELECT h.id, h.household_no, h.address, h.created_at,
+    $query = "SELECT h.id, h.household_no, h.address, h.created_at, h.head_id,
                      CONCAT_WS(' ', hr.first_name, hr.middle_name, hr.last_name, hr.suffix) as head_name,
                      COUNT(r.id) as total_members
               FROM households h
@@ -85,7 +86,8 @@ function handleGetHouseholds() {
             'household_no' => $row['household_no'],
             'address' => $row['address'],
             'head_name' => $row['head_name'] ?: 'Unknown',
-            'total_members' => (int)$row['total_members'],
+            'head_id' => $row['head_id'] ?? null,
+            'total_members' => (int) $row['total_members'],
             'created_at' => $row['created_at']
         ];
     }
@@ -97,12 +99,13 @@ function handleGetHouseholds() {
     ]);
 }
 
-function handleCreateHousehold() {
+function handleCreateHousehold()
+{
     global $conn;
 
     $household_no = trim($_POST['household_no'] ?? '');
     $address = trim($_POST['address'] ?? '');
-    $head_resident_id = (int)($_POST['head_resident_id'] ?? 0);
+    $head_resident_id = (int) ($_POST['head_resident_id'] ?? 0);
 
     // Validation
     if (empty($household_no) || empty($address)) {
@@ -182,12 +185,14 @@ function handleCreateHousehold() {
     }
 }
 
-function handleUpdateHousehold() {
+function handleUpdateHousehold()
+{
     global $conn;
 
-    $id = (int)($_POST['id'] ?? 0);
+    $id = (int) ($_POST['id'] ?? 0);
     $household_no = trim($_POST['household_no'] ?? '');
     $address = trim($_POST['address'] ?? '');
+    $head_resident_id = (int) ($_POST['head_resident_id'] ?? 0);
 
     if (!$id || empty($household_no) || empty($address)) {
         echo json_encode(['success' => false, 'message' => 'Household ID, number, and address are required.']);
@@ -217,9 +222,9 @@ function handleUpdateHousehold() {
     }
 
     // Update household (head cannot be changed after creation)
-    $updateQuery = "UPDATE households SET household_no = ?, address = ? WHERE id = ?";
+    $updateQuery = "UPDATE households SET household_no = ?, address = ?, head_id = ? WHERE id = ?";
     $stmt = $conn->prepare($updateQuery);
-    $stmt->bind_param('ssi', $household_no, $address, $id);
+    $stmt->bind_param('ssii', $household_no, $address, $head_resident_id, $id);
 
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Household updated successfully.']);
@@ -228,10 +233,11 @@ function handleUpdateHousehold() {
     }
 }
 
-function handleArchiveHousehold() {
+function handleArchiveHousehold()
+{
     global $conn;
 
-    $id = (int)($_POST['id'] ?? 0);
+    $id = (int) ($_POST['id'] ?? 0);
 
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Household ID is required.']);

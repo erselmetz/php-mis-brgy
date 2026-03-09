@@ -912,6 +912,7 @@ function renderHouseholdList(households) {
   $('.edit-household-btn').on('click', function () {
     const household = JSON.parse($(this).attr('data-household'));
     editHousehold(household);
+    loadResidentsForHeadSelection();
   });
 
   $('.archive-household-btn').on('click', function () {
@@ -971,9 +972,8 @@ function editHousehold(household) {
   $('#householdFormId').val(household.id);
   $('#householdFormNo').val(household.household_no);
   $('#householdFormAddress').val(household.address);
-  // Note: Head cannot be changed after household creation
-  $('#householdFormHeadContainer').hide();
-  $('#householdFormHeadSearch').prop('required', false);
+  $('#householdFormHeadId').val(household.head_id);
+  $('#householdFormHeadSearch').val(household.head_name);
 
   $("#householdFormModal").dialog("option", "title", "Edit Household");
   $("#householdFormModal").dialog("open");
@@ -984,19 +984,7 @@ function saveHousehold() {
   const formData = new FormData(document.getElementById('householdForm'));
   const data = Object.fromEntries(formData.entries());
   const isEdit = data.id ? true : false;
-
-  // Validate required fields
-  if (!data.household_no || !data.address) {
-    alert('Please fill in all required fields.');
-    return;
-  }
-
-  // For creation, head_resident_id is required
-  if (!isEdit && !data.head_resident_id) {
-    alert('Please select a head of household.');
-    return;
-  }
-
+  
   const action = isEdit ? 'update' : 'create';
   data.action = action;
 
