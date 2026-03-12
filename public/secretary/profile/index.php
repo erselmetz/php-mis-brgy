@@ -119,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <title>Profile Account - MIS Barangay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<?= htmlspecialchars(getCSRFToken()) ?>">
   <?php loadAllAssets(); ?>
 </head>
 
@@ -130,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <!-- =========================
       BACKUP & REPORTS SECTION
       ========================= -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
         <!-- FILE REPORTS -->
         <div class="lg:col-span-2 bg-white border rounded-xl p-6 shadow-sm">
@@ -211,45 +212,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
           </div>
 
-          <button class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm">
-            BACK UP DATA
-          </button>
+          <div class="w-full space-y-3">
+            <input type="text" id="backupDescription" placeholder="Description (optional)"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-theme-primary focus:border-theme-primary">
+            <button id="backupBtn" onclick="triggerBackup()"
+              class="w-full bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              BACK UP DATA
+            </button>
+          </div>
         </div>
 
       </div>
 
       <!-- BACKUP HISTORY -->
-      <div class="bg-white border rounded-xl p-6 shadow-sm mb-10 hidden">
-        <h3 class="text-sm font-semibold mb-4">BACKUP HISTORY</h3>
+      <div class="bg-white border rounded-xl p-6 shadow-sm mb-10">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold">BACKUP HISTORY</h3>
+          <button onclick="loadBackupHistory()"
+            class="text-xs text-theme-primary hover:underline flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
 
         <table class="w-full text-sm border-collapse">
           <thead>
             <tr class="border-b text-gray-500">
-              <th class="text-left py-2">DATE</th>
+              <th class="text-left py-2">DATE & TIME</th>
               <th class="text-left py-2">SIZE</th>
               <th class="text-left py-2">DESCRIPTION</th>
+              <th class="text-left py-2">PERFORMED BY</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
+          <tbody id="backupHistoryBody" class="divide-y">
             <tr>
-              <td class="py-3 text-theme-primary">07-18-2025</td>
-              <td>56 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">06-05-2025</td>
-              <td>4 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">10-01-2024</td>
-              <td>104 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">01-20-2024</td>
-              <td>2.4 GB</td>
-              <td>Maintenance</td>
+              <td colspan="4" class="py-6 text-center text-gray-400 text-sm" id="backupHistoryEmpty">
+                Loading backup history...
+              </td>
             </tr>
           </tbody>
         </table>
@@ -275,8 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="flex items-center space-x-6">
             <div class="flex-shrink-0">
               <?php if (!empty($user['profile_picture']) && file_exists(__DIR__ . '/../../uploads/profiles/' . $user['profile_picture'])): ?>
-                <img src="../../uploads/profiles/<?= htmlspecialchars($user['profile_picture']) ?>"
-                  alt="Profile Picture"
+                <img src="../../uploads/profiles/<?= htmlspecialchars($user['profile_picture']) ?>" alt="Profile Picture"
                   class="w-24 h-24 rounded-xl object-cover border-4 border-gray-200">
               <?php else: ?>
                 <div class="w-24 h-24 rounded-xl bg-gray-200 flex items-center justify-center border-4 border-gray-300">
@@ -328,19 +335,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </form>
       </div>
+      <script src="js/backupScript.js"></script>
     </main>
   </div>
 
   <script>
-    $(function() {
+    $(function () {
       $("body").show();
 
       // Preview profile picture before upload
-      $('input[name="profile_picture"]').on('change', function(e) {
+      $('input[name="profile_picture"]').on('change', function (e) {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
-          reader.onload = function(e) {
+          reader.onload = function (e) {
             $('.flex-shrink-0 img, .flex-shrink-0 div').replaceWith(
               '<img src="' + e.target.result + '" alt="Profile Preview" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200">'
             );

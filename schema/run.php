@@ -53,7 +53,8 @@ $migrations = [
             'create_medicine_dispense_table.php',
             'create_health_metrics_table.php',
             'create_immunizations_table.php',
-            'create_consultations_table.php'
+            'create_consultations_table.php',
+            'create_backups_table.php',
         ]
     ],
     'Feature Additions' => [
