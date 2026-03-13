@@ -218,7 +218,7 @@ if ($stmt === false) {
             ========================== -->
             <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
                     <input type="text" name="officer_position" id="editOfficerPosition"
                         placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
@@ -338,7 +338,7 @@ if ($stmt === false) {
             ========================== -->
             <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
                     <input type="text" name="officer_position" id="addOfficerPosition"
                         placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
