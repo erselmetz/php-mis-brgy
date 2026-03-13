@@ -78,6 +78,7 @@ if ($action === 'edit_account') {
                     $error = "⚠️ Invalid date format for term dates.";
                 } else if ($isOfficer && $role === 'hcnurse' && ((!empty($termStart) && !validateDateFormat($termStart)) || (!empty($termEnd) && !validateDateFormat($termEnd)))) {
                     $error = "⚠️ Invalid date format for term dates.";
+                } else {
 
                     /**
                      * Step 5: Check duplicate username (excluding current)
