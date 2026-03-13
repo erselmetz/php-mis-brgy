@@ -74,9 +74,10 @@ if ($action === 'edit_account') {
                     $error = "⚠️ Position is required.";
                 } else if ($isOfficer && $role !== 'hcnurse' && (empty($termStart) || empty($termEnd))) {
                     $error = "⚠️ Term Start and Term End are required.";
-                } else if ($isOfficer && (!validateDateFormat($termStart) || !validateDateFormat($termEnd))) {
+                } else if ($isOfficer && $role !== 'hcnurse' && (!validateDateFormat($termStart) || !validateDateFormat($termEnd))) {
                     $error = "⚠️ Invalid date format for term dates.";
-                } else {
+                } else if ($isOfficer && $role === 'hcnurse' && ((!empty($termStart) && !validateDateFormat($termStart)) || (!empty($termEnd) && !validateDateFormat($termEnd)))) {
+                    $error = "⚠️ Invalid date format for term dates.";
 
                     /**
                      * Step 5: Check duplicate username (excluding current)
