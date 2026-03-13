@@ -226,12 +226,12 @@ if ($stmt === false) {
 
                 <div id="editTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermStartLabel">Term Start *</label>
                         <input type="date" name="term_start" id="editTermStart"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term End *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermEndLabel">Term End *</label>
                         <input type="date" name="term_end" id="editTermEnd"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
@@ -346,12 +346,12 @@ if ($stmt === false) {
 
                 <div id="addTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermStartLabel">Term Start *</label>
                         <input type="date" name="term_start" id="addTermStart"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Term End *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermEndLabel">Term End *</label>
                         <input type="date" name="term_end" id="addTermEnd"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
