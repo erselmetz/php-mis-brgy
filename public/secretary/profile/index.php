@@ -146,52 +146,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <th class="text-right py-2">ACTION</th>
               </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody id="fileReportsBody" class="divide-y">
               <tr>
-                <td class="py-3">Residence List</td>
-                <td>56 MB</td>
-                <td>2 mins ago</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Official and Staff</td>
-                <td>4 MB</td>
-                <td>8/24/25</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Blotter</td>
-                <td>104 MB</td>
-                <td>8/24/25</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Inventory</td>
-                <td>2.4 GB</td>
-                <td>1 hour ago</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
+                <td colspan="4" class="py-6 text-center text-gray-400 text-sm">
+                  Loading reports...
                 </td>
               </tr>
             </tbody>
           </table>
 
           <div class="flex justify-center mt-6">
-            <button class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm">
+            <button onclick="loadFileReports()"
+              class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
               REFRESH
             </button>
           </div>
@@ -336,6 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
       </div>
       <script src="js/backupScript.js"></script>
+      <script src="js/file_reports.js"></script>
     </main>
   </div>
 
