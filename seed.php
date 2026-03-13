@@ -13,12 +13,3 @@ $conn->query("
 ");
 
 echo "Admin created!\n";
-
-// Insert sample users
-$conn->query("
-INSERT INTO users (username, name, role, password) VALUES
-('Ana', 'Ana Reyes', 'secretary', '$hash'),
-('Juan', 'Juan Dela Cruz', 'captain', '$hash'),
-('Pedro', 'Pedro Santos', 'kagawad', '$hash'),
-('Maria', 'Maria Clara', 'hcnurse', '$hash')
-");
