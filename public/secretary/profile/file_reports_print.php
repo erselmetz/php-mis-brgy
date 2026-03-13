@@ -5,6 +5,12 @@
  * Generates a clean, printable HTML report for the requested data set.
  * Opens in a new tab and triggers window.print() automatically.
  *
+ * Table archive column reference:
+ *   residents  → deleted_at  (soft-delete, NULL = active)
+ *   officers   → archived_at (NULL = active)
+ *   blotter    → archived_at (NULL = active)
+ *   inventory  → no archive column
+ *
  * Query params:
  *   ?report=residents | officers | blotter | inventory
  *
@@ -33,11 +39,13 @@ if ($report === 'residents') {
     $title   = 'Residence List Report';
     $headers = ['#', 'Full Name', 'Gender', 'Birthdate', 'Civil Status', 'Address', 'Contact No.', 'Voter Status'];
 
+    // residents uses deleted_at (NOT archived_at)
     $res = $conn->query(
-        "SELECT id, CONCAT(first_name, ' ', COALESCE(NULLIF(middle_name,''), ''), ' ', last_name) AS full_name,
+        "SELECT id,
+                CONCAT(first_name, ' ', COALESCE(NULLIF(middle_name,''), ''), ' ', last_name) AS full_name,
                 gender, birthdate, civil_status, address, contact_no, voter_status
          FROM residents
-         WHERE archived_at IS NULL OR archived_at = '0000-00-00 00:00:00'
+         WHERE deleted_at IS NULL
          ORDER BY last_name, first_name"
     );
     if ($res) {
@@ -46,11 +54,11 @@ if ($report === 'residents') {
             $rows[] = [
                 $i++,
                 trim($row['full_name']),
-                $row['gender'] ?? '—',
-                $row['birthdate'] ? date('m/d/Y', strtotime($row['birthdate'])) : '—',
+                $row['gender']       ?? '—',
+                $row['birthdate']    ? date('m/d/Y', strtotime($row['birthdate'])) : '—',
                 $row['civil_status'] ?? '—',
-                $row['address'] ?? '—',
-                $row['contact_no'] ?? '—',
+                $row['address']      ?? '—',
+                $row['contact_no']   ?? '—',
                 $row['voter_status'] ?? '—',
             ];
         }
@@ -60,12 +68,13 @@ if ($report === 'residents') {
     $title   = 'Officials & Staff Report';
     $headers = ['#', 'Name', 'Position', 'Term Start', 'Term End', 'Status'];
 
+    // officers uses archived_at
     $res = $conn->query(
         "SELECT o.position, o.term_start, o.term_end, o.status,
                 CONCAT(r.first_name, ' ', COALESCE(NULLIF(r.middle_name,''), ''), ' ', r.last_name) AS full_name
          FROM officers o
          LEFT JOIN residents r ON o.resident_id = r.id
-         WHERE o.archived_at IS NULL OR o.archived_at = '0000-00-00 00:00:00'
+         WHERE o.archived_at IS NULL
          ORDER BY o.position"
     );
     if ($res) {
@@ -74,10 +83,10 @@ if ($report === 'residents') {
             $rows[] = [
                 $i++,
                 trim($row['full_name'] ?? 'N/A'),
-                $row['position'] ?? '—',
+                $row['position']   ?? '—',
                 $row['term_start'] ? date('m/d/Y', strtotime($row['term_start'])) : '—',
                 $row['term_end']   ? date('m/d/Y', strtotime($row['term_end']))   : '—',
-                $row['status'] ?? '—',
+                $row['status']     ?? '—',
             ];
         }
     }
@@ -86,11 +95,12 @@ if ($report === 'residents') {
     $title   = 'Blotter Report';
     $headers = ['#', 'Case No.', 'Complainant', 'Respondent', 'Incident Date', 'Location', 'Status'];
 
+    // blotter uses archived_at
     $res = $conn->query(
         "SELECT case_number, complainant_name, respondent_name,
                 incident_date, incident_location, status
          FROM blotter
-         WHERE archived_at IS NULL OR archived_at = '0000-00-00 00:00:00'
+         WHERE archived_at IS NULL
          ORDER BY incident_date DESC"
     );
     if ($res) {
@@ -98,10 +108,10 @@ if ($report === 'residents') {
         while ($row = $res->fetch_assoc()) {
             $rows[] = [
                 $i++,
-                $row['case_number'] ?? '—',
-                $row['complainant_name'] ?? '—',
-                $row['respondent_name'] ?? '—',
-                $row['incident_date'] ? date('m/d/Y', strtotime($row['incident_date'])) : '—',
+                $row['case_number']       ?? '—',
+                $row['complainant_name']  ?? '—',
+                $row['respondent_name']   ?? '—',
+                $row['incident_date']     ? date('m/d/Y', strtotime($row['incident_date'])) : '—',
                 $row['incident_location'] ?? '—',
                 ucfirst(str_replace('_', ' ', $row['status'] ?? '—')),
             ];
@@ -112,6 +122,7 @@ if ($report === 'residents') {
     $title   = 'Inventory Report';
     $headers = ['#', 'Asset Code', 'Item Name', 'Category', 'Quantity', 'Condition', 'Location', 'Status'];
 
+    // inventory has no soft-delete — fetch all
     $res = $conn->query(
         "SELECT asset_code, name, category, quantity, cond, location,
                 COALESCE(status, 'available') AS status
@@ -124,11 +135,11 @@ if ($report === 'residents') {
             $rows[] = [
                 $i++,
                 $row['asset_code'] ?? '—',
-                $row['name'] ?? '—',
-                $row['category'] ?? '—',
-                $row['quantity'] ?? '0',
-                $row['cond'] ?? '—',
-                $row['location'] ?? '—',
+                $row['name']       ?? '—',
+                $row['category']   ?? '—',
+                $row['quantity']   ?? '0',
+                $row['cond']       ?? '—',
+                $row['location']   ?? '—',
                 ucfirst($row['status'] ?? '—'),
             ];
         }
@@ -173,36 +184,34 @@ $totalRows = count($rows);
     th { background: #446c3e; color: white; padding: 7px 8px; text-align: left; font-size: 11px; }
     td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; vertical-align: top; }
     tr:nth-child(even) td { background: #f9fafb; }
-    tr:hover td { background: #f0f4ef; }
 
     .no-records { padding: 20px; text-align: center; color: #999; }
 
     @media print {
       .print-controls { display: none; }
       body { padding: 10px; }
-      tr:hover td { background: inherit; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Print Controls (hidden on actual print) -->
   <div class="print-controls">
     <button onclick="window.print()">🖨 Print / Save PDF</button>
   </div>
 
-  <!-- Report Header -->
   <div class="header">
     <h2>MIS Barangay — <?= htmlspecialchars($title) ?></h2>
-    <div class="meta">Generated: <?= htmlspecialchars($generated) ?> &nbsp;|&nbsp; Prepared by: <?= htmlspecialchars($_SESSION['name'] ?? 'Secretary') ?></div>
+    <div class="meta">
+      Generated: <?= htmlspecialchars($generated) ?>
+      &nbsp;|&nbsp;
+      Prepared by: <?= htmlspecialchars($_SESSION['name'] ?? 'Secretary') ?>
+    </div>
   </div>
 
-  <!-- Summary -->
   <div>
     <span class="summary-pill">Total Records: <?= $totalRows ?></span>
   </div>
 
-  <!-- Data Table -->
   <?php if ($totalRows === 0): ?>
     <p class="no-records">No records found.</p>
   <?php else: ?>
@@ -227,7 +236,6 @@ $totalRows = count($rows);
   <?php endif; ?>
 
   <script>
-    // Auto-print when opened from the profile page
     if (window.opener) {
       window.addEventListener('load', () => window.print());
     }
