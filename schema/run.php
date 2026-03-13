@@ -72,6 +72,7 @@ $migrations = [
         'description' => 'Major schema changes and refactoring',
         'files' => [
             'merge_staff_officers.php',
+            'make_officer_term_nullable.php',
         ]
     ]
 ];
