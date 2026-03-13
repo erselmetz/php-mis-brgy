@@ -224,7 +224,7 @@ if ($stmt === false) {
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div id="editTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
                         <input type="date" name="term_start" id="editTermStart"
@@ -344,7 +344,7 @@ if ($stmt === false) {
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div id="addTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Term Start *</label>
                         <input type="date" name="term_start" id="addTermStart"

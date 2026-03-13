@@ -37,17 +37,17 @@ if ($action === 'edit_account') {
                  * Step 3: Collect and sanitize form data
                  */
                 $username = sanitizeString($_POST['username'] ?? '', false);
-                $role     = sanitizeString($_POST['role'] ?? '');
-                $status   = sanitizeString($_POST['status'] ?? '');
+                $role = sanitizeString($_POST['role'] ?? '');
+                $status = sanitizeString($_POST['status'] ?? '');
                 $password = sanitizeString($_POST['password'] ?? '');
 
                 // Officer fields (ALWAYS OFFICER now)
                 $isOfficer = true;
 
-                $officerId       = !empty($_POST['officer_id']) ? sanitizeInt($_POST['officer_id'], 1) : null;
+                $officerId = !empty($_POST['officer_id']) ? sanitizeInt($_POST['officer_id'], 1) : null;
                 $officerPosition = sanitizeString($_POST['officer_position'] ?? '');
-                $termStart       = $_POST['term_start'] ?? '';
-                $termEnd         = $_POST['term_end'] ?? '';
+                $termStart = $_POST['term_start'] ?? '';
+                $termEnd = $_POST['term_end'] ?? '';
                 $officerStatus = mapUserStatusToOfficerStatus($status);
 
                 $residentId = !empty($_POST['resident_id']) ? sanitizeInt($_POST['resident_id'], 1) : null;
@@ -55,7 +55,7 @@ if ($action === 'edit_account') {
                 // ✅ fullname comes from resident if selected
                 $fullname = '';
                 if (!empty($residentId)) {
-                    $residentName = getResidentFullName($conn, (int)$residentId);
+                    $residentName = getResidentFullName($conn, (int) $residentId);
                     if (!empty($residentName)) {
                         $fullname = sanitizeString($residentName, false);
                     }
@@ -70,8 +70,10 @@ if ($action === 'edit_account') {
                  */
                 if (empty($fullname) || empty($username) || empty($role) || empty($status)) {
                     $error = "⚠️ All required fields must be filled.";
-                } else if ($isOfficer && (empty($officerPosition) || empty($termStart) || empty($termEnd))) {
-                    $error = "⚠️ Officer fields (Position, Term Start, Term End) are required.";
+                } else if ($isOfficer && empty($officerPosition)) {
+                    $error = "⚠️ Position is required.";
+                } else if ($isOfficer && $role !== 'hcnurse' && (empty($termStart) || empty($termEnd))) {
+                    $error = "⚠️ Term Start and Term End are required.";
                 } else if ($isOfficer && (!validateDateFormat($termStart) || !validateDateFormat($termEnd))) {
                     $error = "⚠️ Invalid date format for term dates.";
                 } else {
@@ -142,7 +144,7 @@ if ($action === 'edit_account') {
                                 if ($officerId) {
                                     // UPDATE officer
                                     if (!empty($residentId)) {
-                                        $rid = (int)$residentId;
+                                        $rid = (int) $residentId;
                                         $officerSql = $conn->prepare("
                                             UPDATE officers
                                             SET resident_id = ?, position = ?, term_start = ?, term_end = ?, status = ?
@@ -174,7 +176,7 @@ if ($action === 'edit_account') {
                                 } else {
                                     // INSERT officer (if missing)
                                     if (!empty($residentId)) {
-                                        $rid = (int)$residentId;
+                                        $rid = (int) $residentId;
                                         $officerSql = $conn->prepare("
                                             INSERT INTO officers (user_id, resident_id, position, term_start, term_end, status)
                                             VALUES (?, ?, ?, ?, ?, ?)

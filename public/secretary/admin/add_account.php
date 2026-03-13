@@ -38,9 +38,11 @@ if ($action === 'add_account') {
     // Validate required fields
     if (empty($fullname) || empty($username) || empty($password) || empty($role) || empty($status)) {
         $error = "⚠️ All required fields must be filled.";
-    } else if ($isOfficer && (empty($officerPosition) || empty($termStart) || empty($termEnd))) {
-        // since always officer, enforce officer fields too
-        $error = "⚠️ Officer fields (Position, Term Start, Term End) are required.";
+    } else if ($isOfficer && empty($officerPosition)) {
+        $error = "⚠️ Position is required.";
+    } else if ($isOfficer && $role !== 'hcnurse' && (empty($termStart) || empty($termEnd))) {
+        // hcnurse has no elected term — skip term date requirement
+        $error = "⚠️ Term Start and Term End are required.";
     } else {
 
         // Validate date format for officer term
