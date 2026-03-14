@@ -42,11 +42,11 @@ $cert = $result->fetch_assoc();
 $stmt->close();
 
 // Computed values
-$birthDate   = new DateTime($cert['birthdate']);
-$age         = $birthDate->diff(new DateTime())->y;
+$birthDate = new DateTime($cert['birthdate']);
+$age = $birthDate->diff(new DateTime())->y;
 $currentDate = date('F d, Y');
 $currentYear = date('Y');
-$fullName    = strtoupper(trim(
+$fullName = strtoupper(trim(
     $cert['first_name'] . ' ' .
     ($cert['middle_name'] ? $cert['middle_name'] . ' ' : '') .
     $cert['last_name']
@@ -62,7 +62,7 @@ $fullName    = strtoupper(trim(
 function getCertificateBody(array $cert, string $currentDate): array
 {
     $purpose = htmlspecialchars($cert['purpose']);
-    $date    = "<strong>{$currentDate}</strong>";
+    $date = "<strong>{$currentDate}</strong>";
 
     return match ($cert['certificate_type']) {
 
@@ -120,6 +120,7 @@ $certBody = getCertificateBody($cert, $currentDate);
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -132,7 +133,11 @@ $certBody = getCertificateBody($cert, $currentDate);
             margin: 0.75in;
         }
 
-        * { box-sizing: border-box; }
+        /* ↑ overridden dynamically by applyPageStyle() below */
+
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'Times New Roman', Times, serif;
@@ -151,7 +156,7 @@ $certBody = getCertificateBody($cert, $currentDate);
             border: 2px solid var(--theme-primary, #2d6a4f);
             border-radius: 10px;
             padding: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             min-width: 200px;
         }
@@ -214,7 +219,7 @@ $certBody = getCertificateBody($cert, $currentDate);
             max-width: 8.27in;
             margin: 0 auto;
             padding: 40px 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             position: relative;
 
             /* Double border effect */
@@ -344,7 +349,8 @@ $certBody = getCertificateBody($cert, $currentDate);
         }
 
         .sig-line-space {
-            height: 48px; /* space for actual signature */
+            height: 48px;
+            /* space for actual signature */
         }
 
         .sig-line {
@@ -408,11 +414,22 @@ $certBody = getCertificateBody($cert, $currentDate);
         }
     </style>
 </head>
+
 <body>
 
     <!-- ── Print Controls ──────────────────────────────────── -->
     <div class="print-controls no-print">
         <h3>🖨️ Print Options</h3>
+        <div class="control-group">
+            <label for="paperSelect">Paper Size</label>
+            <select id="paperSelect" onchange="applyPageStyle()">
+                <option value="A4">A4 (210 × 297mm)</option>
+                <option value="letter">Letter (8.5 × 11in)</option>
+                <option value="legal">Legal (8.5 × 14in)</option>
+                <option value="A5">A5 (148 × 210mm)</option>
+            </select>
+        </div>
+
         <div class="control-group">
             <label for="scaleSelect">Scale</label>
             <select id="scaleSelect" onchange="applyScale()">
@@ -442,16 +459,16 @@ $certBody = getCertificateBody($cert, $currentDate);
         <div class="cert-header">
             <?php
             // Try favicon.ico first, then favicon.png, then show placeholder
-            $logoPath  = __DIR__ . '/../../../favicon.ico';
-            $logoPath2 = __DIR__ . '/../../../favicon.png';
-            $logoSrc   = null;
+            $logoPath = __DIR__ . '/../../favicon.ico';
+            $logoPath2 = __DIR__ . '/../../favicon.png';
+            $logoSrc = null;
 
             if (file_exists($logoPath)) {
                 $logoData = base64_encode(file_get_contents($logoPath));
-                $logoSrc  = 'data:image/x-icon;base64,' . $logoData;
+                $logoSrc = 'data:image/x-icon;base64,' . $logoData;
             } elseif (file_exists($logoPath2)) {
                 $logoData = base64_encode(file_get_contents($logoPath2));
-                $logoSrc  = 'data:image/png;base64,' . $logoData;
+                $logoSrc = 'data:image/png;base64,' . $logoData;
             }
             ?>
 
@@ -539,6 +556,46 @@ $certBody = getCertificateBody($cert, $currentDate);
 
     </div><!-- /.certificate -->
 
+    <style id="pageStyle"></style>
+    <script>
+        // Paper dimensions for preview sizing
+        const PAPER_SIZES = {
+            'A4': { w: '8.27in', h: '11.69in', label: 'A4' },
+            'letter': { w: '8.5in', h: '11in', label: 'Letter' },
+            'legal': { w: '8.5in', h: '14in', label: 'Legal' },
+            'A5': { w: '5.83in', h: '8.27in', label: 'A5' },
+        };
+
+        function applyPageStyle() {
+            const paper = document.getElementById('paperSelect').value;
+            const margin = document.getElementById('marginSelect').value + 'in';
+            const size = PAPER_SIZES[paper];
+
+            // 1. Inject @page rule
+            document.getElementById('pageStyle').textContent = `
+                @page { size: ${paper}; margin: ${margin}; }
+            `;
+
+            // 2. Resize preview body to match paper width
+            document.body.style.maxWidth = size.w;
+        }
+
+        function applyScale() {
+            const scale = parseFloat(document.getElementById('scaleSelect').value);
+            document.getElementById('certificateContent').style.transform = `scale(${scale})`;
+            document.getElementById('certificateContent').style.transformOrigin = 'top center';
+        }
+
+        function applyMargins() {
+            applyPageStyle(); // margins are part of @page now
+        }
+
+        // Init on load
+        window.addEventListener('DOMContentLoaded', function () {
+            applyPageStyle();
+        });
+    </script>
     <script src="./js/print.js"></script>
 </body>
+
 </html>

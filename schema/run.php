@@ -55,6 +55,7 @@ $migrations = [
             'create_immunizations_table.php',
             'create_consultations_table.php',
             'create_backups_table.php',
+            'create_account.php',
         ]
     ],
     'Feature Additions' => [

@@ -71,7 +71,27 @@ if ($stmt === false) {
                                 <tr>
                                     <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
                                     <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
-                                    <td class="p-2"><?= ucfirst($row['role']); ?></td>
+                                    <td class="p-2">
+                                        <?php
+                                        $roleColors = [
+                                            'captain' => 'bg-blue-100 text-blue-800',
+                                            'kagawad' => 'bg-purple-100 text-purple-800',
+                                            'secretary' => 'bg-green-100 text-green-800',
+                                            'hcnurse' => 'bg-yellow-100 text-yellow-800',
+                                            'developer' => 'bg-red-100 text-red-800',
+                                        ];
+                                        $roleColor = $roleColors[$row['role']] ?? 'bg-gray-100 text-gray-800';
+                                        $roleColor = $row['id'] == 1 || $row['position'] === 'developer' ? $roleColors['developer'] : $roleColor;
+                                        ?>
+                                        <span class="px-2 py-1 rounded text-xs font-semibold <?= $roleColor ?>">
+                                            <?php if($row['id'] == 1 || $row['position'] === 'developer') {
+                                                echo 'Developer';
+                                            } else {
+                                                echo ucfirst($row['role']);
+                                            }
+                                            ?>
+                                        </span>
+                                    </td>
                                     <td class="p-2">
                                         <?php
                                         $statusColor = $row['status'] === 'active'
@@ -218,7 +238,8 @@ if ($stmt === false) {
             ========================== -->
             <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span
+                            class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
                     <input type="text" name="officer_position" id="editOfficerPosition"
                         placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
@@ -226,12 +247,14 @@ if ($stmt === false) {
 
                 <div id="editTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermStartLabel">Term Start *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermStartLabel">Term Start
+                            *</label>
                         <input type="date" name="term_start" id="editTermStart"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermEndLabel">Term End *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermEndLabel">Term End
+                            *</label>
                         <input type="date" name="term_end" id="editTermEnd"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
@@ -338,7 +361,8 @@ if ($stmt === false) {
             ========================== -->
             <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span
+                            class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
                     <input type="text" name="officer_position" id="addOfficerPosition"
                         placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
@@ -346,12 +370,14 @@ if ($stmt === false) {
 
                 <div id="addTermDatesWrapper" class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermStartLabel">Term Start *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermStartLabel">Term Start
+                            *</label>
                         <input type="date" name="term_start" id="addTermStart"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermEndLabel">Term End *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermEndLabel">Term End
+                            *</label>
                         <input type="date" name="term_end" id="addTermEnd"
                             class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
                     </div>
