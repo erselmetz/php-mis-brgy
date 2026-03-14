@@ -8,3 +8,4 @@
 .llm-history/
 .llm-chat-history/history/
 full_brgy_seed.php
+seed_all.php
