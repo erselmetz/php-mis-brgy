@@ -1,4 +1,4 @@
 @echo off
-php run.php
+php schema.php
 
 pause
