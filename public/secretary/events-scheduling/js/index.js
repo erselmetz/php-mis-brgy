@@ -221,36 +221,15 @@ $(function () {
         loadEvents();
     });
 
-    // Calendar day click → show events for that day
+    // Calendar day click → open Add New Event modal with that date pre-filled
     $('#calendarGrid').on('click', '.cal-day[data-date]', function () {
         const dateStr = $(this).data('date');
-        const dayEvts = calEvents.filter(e => e.event_date === dateStr);
-        if (dayEvts.length === 0) return;
+        if (!dateStr) return;
 
-        const dt = new Date(dateStr + 'T00:00:00');
-        const dateLabel = dt.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
-        const $list = $('#dayEventsList').empty();
-        dayEvts.forEach(e => {
-            $list.append(`
-                <div class="event-card-${e.priority || 'normal'} bg-white border rounded-xl p-3">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="font-semibold text-sm text-gray-800">${escHtml(e.title)}</p>
-                            ${e.event_time ? `<p class="text-xs text-blue-600 mt-0.5">⏰ ${fmtTime(e.event_time)}</p>` : ''}
-                            ${e.location ? `<p class="text-xs text-gray-400 mt-0.5">📍 ${escHtml(e.location)}</p>` : ''}
-                            ${e.description ? `<p class="text-xs text-gray-600 mt-1">${escHtml(e.description)}</p>` : ''}
-                        </div>
-                        ${priorityBadge[e.priority || 'normal']}
-                    </div>
-                </div>
-            `);
-        });
-
-        $('#dayEventsDialog').dialog('option', 'title', 'Events — ' + dateLabel).dialog('open');
+        resetEventForm();
+        $('#eventDate').val(dateStr);
+        $('#eventModal').dialog('option', 'title', '✨ New Event').dialog('open');
     });
-
-    $('#dayEventsDialog').dialog({ autoOpen: false, modal: true, width: 480, buttons: { 'Close': function () { $(this).dialog('close'); } } });
 
     // ── Search / Filter Reactive ─────────────────────────────────────────────
     let searchTimer;
@@ -290,6 +269,7 @@ $(function () {
             order: [[2, 'asc']],
             responsive: true,
             pageLength: 50,
+            lengthMenu: [10, 25, 50, 100],
             language: { emptyTable: 'No events found.' }
         });
     }
