@@ -289,7 +289,7 @@ $(function () {
             ],
             order: [[2, 'asc']],
             responsive: true,
-            pageLength: 15,
+            pageLength: 50,
             language: { emptyTable: 'No events found.' }
         });
     }
