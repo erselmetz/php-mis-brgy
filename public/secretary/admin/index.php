@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../includes/app.php';
 
-// Helper: build full name from residents table
 include_once __DIR__ . '/helper.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -11,445 +10,767 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 requireSecretary();
 
-// Fetch all users with their officer information and resident details
+// Fetch all users with officer + resident info
 $stmt = $conn->prepare("
-    SELECT u.*, 
-           o.id as officer_id, o.resident_id, o.position as officer_position, o.term_start, o.term_end, o.status as officer_status,
-           r.first_name, r.middle_name, r.last_name, r.suffix,
-           CONCAT(r.first_name, ' ', COALESCE(r.middle_name, ''), ' ', r.last_name, ' ', COALESCE(r.suffix, '')) as resident_full_name
+    SELECT u.*,
+           o.id as officer_id, o.resident_id, o.position as officer_position,
+           o.term_start, o.term_end, o.status as officer_status,
+           CONCAT(r.first_name, ' ', COALESCE(r.middle_name,''), ' ', r.last_name,
+                  COALESCE(CONCAT(', ', r.suffix),'')) as resident_full_name
     FROM users u
-    LEFT JOIN officers o ON u.id = o.user_id
+    LEFT JOIN officers o ON u.id = o.user_id AND o.archived_at IS NULL
     LEFT JOIN residents r ON o.resident_id = r.id
     ORDER BY u.id DESC
 ");
-if ($stmt === false) {
-    error_log('Account query error: ' . $conn->error);
-    $result = false;
-} else {
-    $stmt->execute();
-    $result = $stmt->get_result();
-}
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Role meta
+$roleMeta = [
+    'captain'   => ['label' => 'Barangay Captain',   'code' => 'CPT'],
+    'kagawad'   => ['label' => 'Kagawad',             'code' => 'KGW'],
+    'secretary' => ['label' => 'Barangay Secretary',  'code' => 'SEC'],
+    'hcnurse'   => ['label' => 'HC Nurse',            'code' => 'HCN'],
+    'admin'     => ['label' => 'Administrator',       'code' => 'ADM'],
+];
 ?>
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>Accounts Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officials &amp; Staff — MIS Barangay</title>
     <?php loadAllAssets(); ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+    /* ═══ TOKENS ═══════════════════════════════════════════ */
+    :root {
+        --paper:     #fdfcf9; --paper-lt: #f9f7f3; --paper-dk: #f0ede6;
+        --ink:       #1a1a1a; --ink-muted: #5a5a5a; --ink-faint: #a0a0a0;
+        --rule:      #d8d4cc; --rule-dk:   #b8b4ac;
+        --bg:        #edeae4;
+        --accent:    var(--theme-primary, #2d5a27);
+        --accent-lt: color-mix(in srgb, var(--accent)  8%, white);
+        --accent-md: color-mix(in srgb, var(--accent) 18%, white);
+        --accent-dk: color-mix(in srgb, var(--accent) 65%, black);
+        --ok-bg:  #edfaf3; --ok-fg:  #1a5c35;
+        --warn-bg:#fef9ec; --warn-fg:#7a5700;
+        --err-bg: #fdeeed; --err-fg: #7a1f1a;
+        --info-bg:#edf3fa; --info-fg:#1a3a5c;
+        --f-serif:'Source Serif 4', Georgia, serif;
+        --f-sans: 'Source Sans 3', 'Segoe UI', sans-serif;
+        --f-mono: 'Source Code Pro', 'Courier New', monospace;
+        --shadow: 0 1px 2px rgba(0,0,0,.07), 0 3px 12px rgba(0,0,0,.04);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body, input, button, select, textarea { font-family: var(--f-sans); }
+
+    /* ═══ PAGE ══════════════════════════════════════════════ */
+    .adm-page { background: var(--bg); min-height: 100%; padding-bottom: 56px; }
+
+    /* ── Document Header ── */
+    .doc-header { background: var(--paper); border-bottom: 1px solid var(--rule); }
+    .doc-header-inner {
+        padding: 20px 28px 18px;
+        display: flex; align-items: flex-end;
+        justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    }
+    .doc-eyebrow {
+        font-size: 8.5px; font-weight: 700; letter-spacing: 1.8px;
+        text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .doc-eyebrow::before { content:''; display:inline-block; width:18px; height:2px; background:var(--accent); }
+    .doc-title { font-family:var(--f-serif); font-size:22px; font-weight:700; color:var(--ink); letter-spacing:-.2px; margin-bottom:3px; }
+    .doc-sub   { font-size:12px; color:var(--ink-faint); font-style:italic; }
+    .header-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+    /* ── Toolbar ── */
+    .adm-toolbar {
+        background: var(--paper-lt); border-bottom: 3px solid var(--accent);
+        padding: 12px 28px;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .toolbar-left  { display:flex; gap:8px; align-items:center; }
+    .toolbar-right { font-family:var(--f-mono); font-size:10px; color:var(--ink-faint); letter-spacing:.5px; }
+
+    /* ── Buttons ── */
+    .btn {
+        display:inline-flex; align-items:center; gap:6px;
+        padding:7px 16px; border-radius:2px;
+        font-family:var(--f-sans); font-size:11.5px; font-weight:700;
+        letter-spacing:.4px; text-transform:uppercase;
+        cursor:pointer; border:1.5px solid; transition:all .14s;
+        white-space:nowrap; text-decoration:none;
+    }
+    .btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .btn-primary:hover { filter:brightness(1.1); }
+    .btn-ghost   { background:#fff; border-color:var(--rule-dk); color:var(--ink-muted); }
+    .btn-ghost:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-lt); }
+    .btn-sm { padding:5px 11px; font-size:10px; }
+
+    /* ── Search ── */
+    .adm-search {
+        padding:7px 12px; border:1.5px solid var(--rule-dk); border-radius:2px;
+        font-family:var(--f-sans); font-size:13px; color:var(--ink); background:#fff;
+        outline:none; width:220px; transition:border-color .15s, box-shadow .15s;
+    }
+    .adm-search:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent); }
+    .adm-search::placeholder { color:var(--ink-faint); font-style:italic; font-size:12px; }
+
+    /* ═══ TABLE ═════════════════════════════════════════════ */
+    .adm-table-wrap {
+        margin: 22px 28px;
+        background: var(--paper);
+        border: 1px solid var(--rule); border-top: 3px solid var(--accent);
+        border-radius: 2px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .adm-table-wrap .dataTables_wrapper { padding:0; font-family:var(--f-sans); }
+    .adm-table-wrap .dataTables_filter,
+    .adm-table-wrap .dataTables_length  { display:none; }
+    .adm-table-wrap .dataTables_info {
+        padding:10px 18px; font-size:11px; color:var(--ink-faint);
+        font-family:var(--f-mono); letter-spacing:.3px;
+        border-top:1px solid var(--rule); background:var(--paper-lt);
+    }
+    .adm-table-wrap .dataTables_paginate {
+        padding:10px 18px; border-top:1px solid var(--rule); background:var(--paper-lt);
+    }
+    .adm-table-wrap .paginate_button {
+        display:inline-flex; align-items:center; justify-content:center;
+        min-width:30px; height:28px; padding:0 8px;
+        border:1.5px solid var(--rule-dk) !important; border-radius:2px;
+        font-size:11px; font-weight:600; color:var(--ink-muted) !important;
+        background:#fff !important; cursor:pointer; margin:0 2px; transition:all .13s;
+    }
+    .adm-table-wrap .paginate_button:hover { border-color:var(--accent) !important; color:var(--accent) !important; background:var(--accent-lt) !important; }
+    .adm-table-wrap .paginate_button.current { background:var(--accent) !important; border-color:var(--accent) !important; color:#fff !important; }
+    .adm-table-wrap .paginate_button.disabled { opacity:.35 !important; cursor:not-allowed; }
+
+    #accountsTable { width:100% !important; border-collapse:collapse; }
+    #accountsTable thead th {
+        padding:10px 14px; background:var(--paper-lt);
+        text-align:left; font-size:8.5px; font-weight:700;
+        letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-muted);
+        border-bottom:1px solid var(--rule-dk); white-space:nowrap; cursor:pointer; user-select:none;
+    }
+    #accountsTable thead th:hover { color:var(--accent); }
+    #accountsTable tbody tr { border-bottom:1px solid #f0ede8; transition:background .1s; }
+    #accountsTable tbody tr:last-child { border-bottom:none; }
+    #accountsTable tbody tr:hover { background:var(--accent-lt); }
+    #accountsTable td { padding:10px 14px; font-size:12.5px; color:var(--ink); vertical-align:middle; }
+
+    /* Name cell */
+    .td-name    { font-weight:600; font-size:13px; margin-bottom:2px; }
+    .td-user    { font-family:var(--f-mono); font-size:9.5px; color:var(--ink-faint); letter-spacing:.5px; }
+
+    /* Role badge */
+    .role-badge {
+        display:inline-flex; align-items:center; gap:5px;
+        padding:3px 9px; border-radius:2px;
+        font-size:9px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; border:1px solid;
+    }
+    .role-code { font-family:var(--f-mono); }
+    .rb-captain   { background:var(--info-bg); color:var(--info-fg); border-color:color-mix(in srgb,var(--info-fg) 25%,transparent); }
+    .rb-kagawad   { background:#f3e8ff; color:#6b21a8; border-color:color-mix(in srgb,#6b21a8 25%,transparent); }
+    .rb-secretary { background:var(--ok-bg); color:var(--ok-fg); border-color:color-mix(in srgb,var(--ok-fg) 25%,transparent); }
+    .rb-hcnurse   { background:var(--warn-bg); color:var(--warn-fg); border-color:color-mix(in srgb,var(--warn-fg) 25%,transparent); }
+    .rb-admin     { background:var(--err-bg); color:var(--err-fg); border-color:color-mix(in srgb,var(--err-fg) 25%,transparent); }
+    .rb-dev       { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+
+    /* Status dot */
+    .status-dot {
+        display:inline-flex; align-items:center; gap:5px;
+        font-size:11px; color:var(--ink-muted);
+    }
+    .status-dot::before {
+        content:''; width:7px; height:7px; border-radius:50%; flex-shrink:0;
+    }
+    .status-active::before   { background:var(--ok-fg); }
+    .status-disabled::before { background:var(--rule-dk); }
+
+    /* Term date */
+    .term-range {
+        font-family:var(--f-mono); font-size:10.5px; color:var(--ink-muted);
+        white-space:nowrap;
+    }
+    .term-expiring { color:var(--warn-fg); }
+    .term-expired  { color:var(--err-fg); }
+
+    /* Position */
+    .td-position { font-size:12px; color:var(--ink); }
+
+    /* Action buttons */
+    .td-actions { display:flex; gap:5px; align-items:center; }
+    .act-btn {
+        display:inline-flex; align-items:center; gap:4px;
+        padding:4px 10px; border-radius:2px; font-size:9.5px;
+        font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+        cursor:pointer; border:1.5px solid; font-family:var(--f-sans);
+        transition:all .13s; white-space:nowrap;
+    }
+    .act-edit    { background:#fff; border-color:var(--rule-dk); color:var(--ink-muted); }
+    .act-edit:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-lt); }
+
+    /* ═══ DIALOG OVERRIDES ══════════════════════════════════ */
+    .ui-dialog { border:1px solid var(--rule-dk) !important; border-radius:2px !important; box-shadow:0 8px 48px rgba(0,0,0,.18) !important; padding:0 !important; font-family:var(--f-sans) !important; }
+    .ui-dialog-titlebar { background:var(--accent) !important; border:none !important; border-radius:0 !important; padding:12px 16px !important; }
+    .ui-dialog-title { font-family:var(--f-sans) !important; font-size:11px !important; font-weight:700 !important; letter-spacing:1px !important; text-transform:uppercase !important; color:#fff !important; }
+    .ui-dialog-titlebar-close { background:rgba(255,255,255,.15) !important; border:1px solid rgba(255,255,255,.25) !important; border-radius:2px !important; color:#fff !important; width:24px !important; height:24px !important; top:50% !important; transform:translateY(-50%) !important; }
+    .ui-dialog-content { padding:0 !important; }
+    .ui-dialog-buttonpane { background:var(--paper-lt) !important; border-top:1px solid var(--rule) !important; padding:12px 16px !important; margin:0 !important; }
+    .ui-dialog-buttonpane .ui-button { font-family:var(--f-sans) !important; font-size:11px !important; font-weight:700 !important; letter-spacing:.5px !important; text-transform:uppercase !important; padding:7px 18px !important; border-radius:2px !important; border:1.5px solid var(--accent) !important; background:var(--accent) !important; color:#fff !important; cursor:pointer !important; transition:filter .13s !important; }
+    .ui-dialog-buttonpane .ui-button:hover { filter:brightness(1.1) !important; }
+    .ui-dialog-buttonpane .ui-button:last-child { background:#fff !important; border-color:var(--rule-dk) !important; color:var(--ink-muted) !important; }
+    .ui-dialog-buttonpane .ui-button:last-child:hover { border-color:var(--ink-muted) !important; color:var(--ink) !important; }
+
+    /* ═══ FORM INSIDE MODALS ════════════════════════════════ */
+    .modal-form { max-height:70vh; overflow-y:auto; }
+    .form-section { padding:14px 18px 0; border-top:1px solid var(--rule); margin-top:4px; }
+    .form-section:first-child { border-top:none; padding-top:18px; }
+    .form-section-lbl {
+        font-size:8px; font-weight:700; letter-spacing:1.6px;
+        text-transform:uppercase; color:var(--ink-faint); margin-bottom:12px;
+        display:flex; align-items:center; gap:8px;
+    }
+    .form-section-lbl::after { content:''; flex:1; height:1px; background:var(--rule); }
+    .form-section-body { padding-bottom:14px; }
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .fg { margin-bottom:12px; }
+    .fg-label { display:block; font-size:8.5px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-muted); margin-bottom:5px; }
+    .fg-label .req { color:var(--err-fg); margin-left:2px; }
+    .fg-input, .fg-select {
+        width:100%; padding:9px 12px; border:1.5px solid var(--rule-dk); border-radius:2px;
+        font-family:var(--f-sans); font-size:13px; color:var(--ink); background:#fff;
+        outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    .fg-input:focus, .fg-select:focus { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent); }
+    .fg-input::placeholder { color:var(--ink-faint); font-style:italic; font-size:12px; }
+
+    /* Info note */
+    .fg-note { font-size:10px; color:var(--ink-faint); margin-top:4px; font-style:italic; }
+
+    /* hcnurse term note */
+    .hcnurse-note {
+        display:none; padding:9px 13px; background:var(--info-bg);
+        border:1px solid color-mix(in srgb,var(--info-fg) 20%,transparent);
+        border-radius:2px; font-size:11px; color:var(--info-fg);
+        margin-bottom:12px;
+    }
+
+    /* ═══ RESIDENT SEARCH IN FORM ══════════════════════════ */
+    .res-search-wrap { position:relative; }
+    .res-search-dd {
+        position:absolute; top:calc(100% + 4px); left:0; right:0;
+        background:#fff; border:1.5px solid var(--rule-dk); border-radius:2px;
+        box-shadow:0 4px 20px rgba(0,0,0,.12); max-height:200px; overflow-y:auto;
+        z-index:9999; display:none;
+    }
+    .res-search-dd.open { display:block; }
+    .rsd-row {
+        display:grid; grid-template-columns:36px 1fr;
+        align-items:center; gap:10px; padding:9px 12px;
+        cursor:pointer; border-bottom:1px solid #f0ede8; transition:background .1s;
+    }
+    .rsd-row:last-child { border-bottom:none; }
+    .rsd-row:hover { background:var(--accent-lt); }
+    .rsd-id { font-family:var(--f-mono); font-size:9.5px; font-weight:700; color:var(--ink-faint); }
+    .rsd-name { font-size:12.5px; font-weight:600; color:var(--ink); margin-bottom:1px; }
+    .rsd-addr { font-size:10.5px; color:var(--ink-faint); }
+    .res-selected-tag {
+        display:flex; align-items:center; justify-content:space-between;
+        padding:8px 12px; margin-top:6px;
+        background:var(--accent-lt); border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);
+        border-radius:2px; font-size:12px; font-weight:600; color:var(--accent);
+    }
+    .res-clear-btn {
+        background:none; border:none; cursor:pointer; font-size:12px;
+        color:var(--err-fg); padding:0 4px; font-weight:700;
+    }
+
+    /* ═══ ARCHIVE REGISTRY DIALOG ══════════════════════════ */
+    .arc-tab-bar { display:flex; background:var(--paper-lt); border-bottom:1px solid var(--rule); }
+    .arc-tab {
+        display:flex; align-items:center; gap:7px; padding:12px 22px;
+        font-family:var(--f-sans); font-size:10px; font-weight:700;
+        letter-spacing:1px; text-transform:uppercase;
+        color:var(--ink-faint); background:none; border:none;
+        border-bottom:2px solid transparent; cursor:pointer;
+        transition:all .14s; margin-bottom:-1px;
+    }
+    .arc-tab:hover { color:var(--ink-muted); }
+    .arc-tab.active { color:var(--accent); border-bottom-color:var(--accent); background:var(--paper); }
+    .arc-tab-count {
+        display:inline-flex; align-items:center; justify-content:center;
+        min-width:20px; height:16px; padding:0 5px;
+        background:var(--rule); border-radius:2px;
+        font-family:var(--f-mono); font-size:9px; font-weight:700;
+        color:var(--ink-muted); transition:all .14s;
+    }
+    .arc-tab.active .arc-tab-count { background:var(--accent-md); color:var(--accent); }
+    .arc-pane { display:none; }
+    .arc-pane.active { display:block; }
+
+    /* Stats row */
+    .arc-stats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--rule); }
+    .arc-stat-cell { padding:13px 18px; border-right:1px solid var(--rule); text-align:center; }
+    .arc-stat-cell:last-child { border-right:none; }
+    .arc-stat-val { font-family:var(--f-mono); font-size:24px; font-weight:600; color:var(--ink); line-height:1; margin-bottom:5px; }
+    .arc-stat-lbl { font-size:8px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-faint); }
+
+    .arc-search-bar { padding:11px 16px; border-bottom:1px solid var(--rule); background:var(--paper-lt); }
+    .arc-table-scroll { overflow-y:auto; max-height:288px; }
+
+    /* Archive table */
+    .arc-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .arc-table thead th {
+        padding:9px 15px; background:var(--paper-lt);
+        text-align:left; font-size:8.5px; font-weight:700;
+        letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-muted);
+        border-bottom:1px solid var(--rule-dk); white-space:nowrap;
+    }
+    .arc-table tbody tr { border-bottom:1px solid #f0ede8; transition:background .1s; }
+    .arc-table tbody tr:last-child { border-bottom:none; }
+    .arc-table tbody tr:hover { background:var(--paper-lt); }
+    .arc-table td { padding:10px 15px; color:var(--ink); vertical-align:middle; }
+    .arc-empty { padding:36px; text-align:center; color:var(--ink-faint); font-style:italic; font-size:12px; }
+    .arc-footer {
+        padding:8px 16px; border-top:1px solid var(--rule); background:var(--paper-lt);
+        font-family:var(--f-mono); font-size:9px; color:var(--ink-faint); letter-spacing:.5px;
+    }
+
+    /* ═══ TERM HISTORY DIALOG ═══════════════════════════════ */
+    .hist-search-bar { padding:11px 16px; border-bottom:1px solid var(--rule); background:var(--paper-lt); }
+    .hist-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .hist-table thead th {
+        padding:9px 14px; background:var(--paper-lt);
+        text-align:left; font-size:8.5px; font-weight:700;
+        letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-muted);
+        border-bottom:1px solid var(--rule-dk); white-space:nowrap;
+    }
+    .hist-table tbody tr { border-bottom:1px solid #f0ede8; transition:background .1s; }
+    .hist-table tbody tr:hover { background:var(--paper-lt); }
+    .hist-table td { padding:9px 14px; color:var(--ink); vertical-align:middle; }
+    .hist-footer { padding:8px 16px; border-top:1px solid var(--rule); background:var(--paper-lt); font-family:var(--f-mono); font-size:9px; color:var(--ink-faint); }
+
+    /* Action type badge */
+    .action-badge {
+        display:inline-block; padding:2px 8px; border-radius:2px;
+        font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; border:1px solid;
+    }
+    .ab-archived  { background:var(--warn-bg); color:var(--warn-fg); border-color:color-mix(in srgb,var(--warn-fg) 20%,transparent); }
+    .ab-restored  { background:var(--ok-bg);   color:var(--ok-fg);   border-color:color-mix(in srgb,var(--ok-fg)   20%,transparent); }
+    .ab-created   { background:var(--info-bg); color:var(--info-fg); border-color:color-mix(in srgb,var(--info-fg) 20%,transparent); }
+    .ab-changed   { background:var(--paper-dk); color:var(--ink-muted); border-color:var(--rule); }
+    </style>
 </head>
-
-<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
     <?php include '../layout/navbar.php'; ?>
-    <div class="flex h-full bg-gray-100">
+    <div class="flex h-full" style="background:var(--bg);">
         <?php include '../layout/sidebar.php'; ?>
-        <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
-            <h2 class="text-2xl font-semibold mb-4">Staff & Officers Management</h2>
 
-            <!-- ✅ Add Button -->
-            <div class="p-6">
-                <button id="openModalBtn"
-                    class="bg-theme-primary hover-theme-darker text-white font-semibold px-4 py-2 rounded shadow">
-                    ➕ Add New Account / Officer
-                </button>
+        <main class="flex-1 h-screen overflow-y-auto adm-page">
+
+            <!-- ── Document Header ── -->
+            <div class="doc-header">
+                <div class="doc-header-inner">
+                    <div>
+                        <div class="doc-eyebrow">Barangay Bombongan — Personnel Records</div>
+                        <div class="doc-title">Officials &amp; Staff</div>
+                        <div class="doc-sub">Registered barangay officers, kagawads, and health center personnel</div>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-ghost" id="btnTermHistory">▤ Term History</button>
+                        <button class="btn btn-ghost" id="btnArchiveTerm">⊟ Archive Current Term</button>
+                        <button class="btn btn-ghost" id="btnViewArchive">◫ Archive Registry</button>
+                        <button class="btn btn-primary" id="btnAddAccount">+ Add Officer</button>
+                    </div>
+                </div>
+                <div class="adm-toolbar">
+                    <div class="toolbar-left">
+                        <input type="text" class="adm-search" id="admTableSearch" placeholder="Search by name, position, role…">
+                    </div>
+                    <div class="toolbar-right">
+                        <?php
+                        $cnt = $conn->query("SELECT COUNT(*) as c FROM users u LEFT JOIN officers o ON u.id=o.user_id WHERE o.archived_at IS NULL OR o.id IS NULL");
+                        $total = $cnt->fetch_assoc()['c'] ?? 0;
+                        echo number_format($total) . ' ACTIVE PERSONNEL';
+                        ?>
+                    </div>
+                </div>
             </div>
-            <!-- Accounts Table -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
-                <table id="accountsTable" class="display w-full text-sm border border-gray-200 rounded-lg">
-                    <thead class="bg-gray-50 text-gray-700">
+
+            <!-- ── Accounts Table ── -->
+            <div class="adm-table-wrap" style="margin:22px 28px;">
+                <table id="accountsTable" class="display" style="width:100%;">
+                    <thead>
                         <tr>
-                            <th class="p-2 text-left">Name</th>
-                            <th class="p-2 text-left">Username</th>
-                            <th class="p-2 text-left">Role</th>
-                            <th class="p-2 text-left">Status</th>
-                            <th class="p-2 text-left">Created</th>
-                            <th class="p-2 text-left">Actions</th>
+                            <th>Name / Username</th>
+                            <th>Role</th>
+                            <th>Position</th>
+                            <th>Term Period</th>
+                            <th>Status</th>
+                            <th>Since</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if ($result !== false): ?>
-                            <?php while ($row = $result->fetch_assoc()): ?>
-                                <tr>
-                                    <td class="p-2"><?= htmlspecialchars($row['name']); ?></td>
-                                    <td class="p-2"><?= htmlspecialchars($row['username']); ?></td>
-                                    <td class="p-2">
-                                        <?php
-                                        $roleColors = [
-                                            'captain' => 'bg-blue-100 text-blue-800',
-                                            'kagawad' => 'bg-purple-100 text-purple-800',
-                                            'secretary' => 'bg-green-100 text-green-800',
-                                            'hcnurse' => 'bg-yellow-100 text-yellow-800',
-                                            'developer' => 'bg-red-100 text-red-800',
-                                        ];
-                                        $roleColor = $roleColors[$row['role']] ?? 'bg-gray-100 text-gray-800';
-                                        $roleColor = $row['id'] == 1 || $row['position'] === 'developer' ? $roleColors['developer'] : $roleColor;
-                                        ?>
-                                        <span class="px-2 py-1 rounded text-xs font-semibold <?= $roleColor ?>">
-                                            <?php if($row['id'] == 1 || $row['position'] === 'developer') {
-                                                echo 'Developer';
-                                            } else {
-                                                echo ucfirst($row['role']);
-                                            }
-                                            ?>
-                                        </span>
-                                    </td>
-                                    <td class="p-2">
-                                        <?php
-                                        $statusColor = $row['status'] === 'active'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-100 text-gray-800';
-                                        ?>
-                                        <span class="px-2 py-1 rounded text-xs font-semibold <?= $statusColor ?>">
-                                            <?= ucfirst($row['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td class="p-2"><?= (new DateTime($row['created_at']))->format('Y-m-d') ?></td>
-                                    <td class="p-2">
-                                        <button
-                                            class="edit-btn bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition text-sm"
-                                            data-id="<?= $row['id'] ?>" data-name="<?= htmlspecialchars($row['name']) ?>"
-                                            data-username="<?= htmlspecialchars($row['username']) ?>"
-                                            data-role="<?= htmlspecialchars($row['role']) ?>"
-                                            data-status="<?= htmlspecialchars($row['status']) ?>"
-                                            data-officer-id="<?= $row['officer_id'] ?? '' ?>"
-                                            data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
-                                            data-term-start="<?= $row['term_start'] ?? '' ?>"
-                                            data-term-end="<?= $row['term_end'] ?? '' ?>"
-                                            data-officer-status="<?= htmlspecialchars($row['officer_status'] ?? '') ?>"
-                                            data-resident-id="<?= $row['resident_id'] ?? '' ?>"
-                                            data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
-                                            ✏️ Edit
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="7" class="p-4 text-center text-gray-500">Error loading accounts. Please try
-                                    again later.</td>
-                            </tr>
-                        <?php endif; ?>
+                    <?php while ($row = $result->fetch_assoc()):
+                        //$isDev = ($row['id'] == 1 || $row['position'] === 'developer');
+                        $isDev = false; // Disable dev badge for now since we have multiple seeded accounts
+                        $role  = $isDev ? 'admin' : ($row['role'] ?? '');
+                        $rm    = $roleMeta[$role] ?? ['label' => ucfirst($role), 'code' => strtoupper(substr($role,0,3))];
+
+                        $rbClass = $isDev ? 'rb-dev' : ('rb-' . $role);
+                        $roleLabel = $isDev ? 'Developer' : $rm['label'];
+                        $roleCode  = $isDev ? 'DEV' : $rm['code'];
+
+                        // Term dates
+                        $termStart = $row['term_start'] ?? '';
+                        $termEnd   = $row['term_end']   ?? '';
+                        $termClass = '';
+                        if ($termEnd) {
+                            $daysLeft = (strtotime($termEnd) - time()) / 86400;
+                            if ($daysLeft < 0)   $termClass = 'term-expired';
+                            elseif ($daysLeft < 60) $termClass = 'term-expiring';
+                        }
+                        $termDisplay = ($termStart && $termEnd)
+                            ? date('M Y', strtotime($termStart)) . ' — ' . date('M Y', strtotime($termEnd))
+                            : ($row['role'] === 'hcnurse' ? 'Permanent Post' : '—');
+
+                        $statusClass = $row['status'] === 'active' ? 'status-active' : 'status-disabled';
+                    ?>
+                        <tr>
+                            <td>
+                                <div class="td-name"><?= htmlspecialchars($row['name']) ?></div>
+                                <div class="td-user">@<?= htmlspecialchars($row['username']) ?></div>
+                            </td>
+                            <td>
+                                <span class="role-badge <?= $rbClass ?>">
+                                    <span class="role-code"><?= $roleCode ?></span>
+                                    <?= $roleLabel ?>
+                                </span>
+                            </td>
+                            <td class="td-position"><?= htmlspecialchars($row['officer_position'] ?? '—') ?></td>
+                            <td><span class="term-range <?= $termClass ?>"><?= htmlspecialchars($termDisplay) ?></span></td>
+                            <td><span class="status-dot <?= $statusClass ?>"><?= ucfirst($row['status']) ?></span></td>
+                            <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-faint);"><?= date('M Y', strtotime($row['created_at'])) ?></td>
+                            <td>
+                                <div class="td-actions">
+                                    <button class="act-btn act-edit edit-btn"
+                                        data-id="<?= $row['id'] ?>"
+                                        data-name="<?= htmlspecialchars($row['name']) ?>"
+                                        data-username="<?= htmlspecialchars($row['username']) ?>"
+                                        data-role="<?= htmlspecialchars($row['role']) ?>"
+                                        data-status="<?= htmlspecialchars($row['status']) ?>"
+                                        data-officer-id="<?= $row['officer_id'] ?? '' ?>"
+                                        data-officer-position="<?= htmlspecialchars($row['officer_position'] ?? '') ?>"
+                                        data-term-start="<?= $row['term_start'] ?? '' ?>"
+                                        data-term-end="<?= $row['term_end'] ?? '' ?>"
+                                        data-resident-id="<?= $row['resident_id'] ?? '' ?>"
+                                        data-resident-name="<?= htmlspecialchars(trim($row['resident_full_name'] ?? '')) ?>">
+                                        Edit
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
                     </tbody>
                 </table>
             </div>
-            <div class="flex justify-end mt-6 space-x-2">
-                <button id="archiveCurrentTermBtn"
-                    class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
-                    📦 Archive Current Term
-                </button>
-                <button id="termHistoryBtn"
-                    class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm font-semibold shadow-md transition">
-                    📋 Term History
-                </button>
-            </div>
+
         </main>
     </div>
 
-    <!-- Edit Account Dialog -->
-    <div id="editAccountDialog" title="Edit Account" class="hidden">
-        <form id="editAccountForm" method="POST" class="space-y-4 p-2">
-            <input type="hidden" name="action" value="edit_account">
-            <input type="hidden" name="id" id="editAccountId">
-            <input type="hidden" name="officer_id" id="editOfficerId">
-
-            <!-- Always officer -->
-            <input type="hidden" name="is_officer" id="editIsOfficerHidden" value="1">
-
-            <!-- Resident link (kept for DB) -->
-            <input type="hidden" name="resident_id" id="editResidentId" value="">
-
-            <!-- Full name kept for DB compatibility (auto from Resident) -->
-            <input type="hidden" name="fullname" id="editFullname" value="">
-
-            <!-- =========================
-            RESIDENT (PRIMARY FIELD)
-            ========================== -->
-            <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Required)</label>
-                <input type="text" id="editResidentSearch" placeholder="Search resident by name or address..."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-
-                <div id="editResidentSearchResults"
-                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
-                </div>
-
-                <div id="editSelectedResident" class="mt-2 hidden">
-                    <div
-                        class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                        <span class="text-sm text-gray-700">
-                            <span class="font-medium" id="editSelectedResidentName"></span>
-                        </span>
-                        <button type="button" onclick="clearEditResidentSelection()"
-                            class="text-red-600 hover:text-red-800 text-sm">
-                            ✕ Clear
-                        </button>
-                    </div>
-                </div>
-
-                <p class="text-xs text-gray-500 mt-1">
-                    Selecting a resident will automatically set the account name.
-                </p>
-            </div>
-
-            <hr class="my-2">
-
-            <!-- =========================
-            ACCOUNT FIELDS
-            ========================== -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-gray-700 font-medium">Username</label>
-                    <input type="text" name="username" id="editUsername" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 font-medium">Role</label>
-                    <select name="role" id="editRole" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                        <option value="captain">Captain</option>
-                        <option value="kagawad">Kagawad</option>
-                        <option value="secretary">Secretary</option>
-                        <option value="hcnurse">hcnurse</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-gray-700 font-medium">Status</label>
-                    <select name="status" id="editStatus" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                        <option value="active">Active</option>
-                        <option value="disabled">Disabled</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 font-medium">Password (optional)</label>
-                    <input type="password" name="password" id="editPassword" placeholder="Leave blank to keep current"
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                </div>
-            </div>
-
-            <hr class="my-2">
-
-            <!-- =========================
-            OFFICER FIELDS (ALWAYS)
-            ========================== -->
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span
-                            class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
-                    <input type="text" name="officer_position" id="editOfficerPosition"
-                        placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                </div>
-
-                <div id="editTermDatesWrapper" class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermStartLabel">Term Start
-                            *</label>
-                        <input type="date" name="term_start" id="editTermStart"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="editTermEndLabel">Term End
-                            *</label>
-                        <input type="date" name="term_end" id="editTermEnd"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                </div>
-            </div>
-
-        </form>
-    </div>
-
-
-    <!-- Add Account Modal -->
-    <div id="addAccountModal" title="Add New Account / Officer" class="hidden">
-        <form method="POST" class="space-y-4 p-2" id="addAccountForm">
+    <!-- ════════════════════════════════════════════
+         MODAL: ADD OFFICER / ACCOUNT
+    ════════════════════════════════════════════ -->
+    <div id="addAccountModal" title="New Officer Record" class="hidden">
+        <form method="POST" id="addAccountForm" class="modal-form">
             <input type="hidden" name="action" value="add_account">
-
-            <!-- Always officer -->
-            <input type="hidden" name="is_officer" id="addIsOfficerHidden" value="1">
-
-            <!-- Resident link (kept for DB) -->
-            <input type="hidden" name="resident_id" id="addResidentId" value="">
-
-            <!-- Full name kept for DB compatibility (auto from Resident) -->
-            <input type="hidden" name="fullname" id="addFullname" value="">
+            <input type="hidden" name="is_officer" value="1">
+            <input type="hidden" name="resident_id" id="addResidentId">
+            <input type="hidden" name="fullname"    id="addFullname">
 
             <?php if (isset($error)): ?>
-                <p class='text-red-600 font-medium'><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+            <div style="padding:10px 18px;background:var(--err-bg);color:var(--err-fg);font-size:12px;border-bottom:1px solid color-mix(in srgb,var(--err-fg) 20%,transparent);">
+                ⚠ <?= htmlspecialchars($error) ?>
+            </div>
             <?php endif; ?>
 
-            <!-- =========================
-            RESIDENT (PRIMARY FIELD)
-            ========================== -->
-            <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Resident (Required)</label>
-                <input type="text" id="addResidentSearch" placeholder="Search resident by name or address..."
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-
-                <div id="addResidentSearchResults"
-                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
-                </div>
-
-                <div id="addSelectedResident" class="mt-2 hidden">
-                    <div
-                        class="flex items-center justify-between bg-theme-secondary border border-theme-secondary rounded px-3 py-2">
-                        <span class="text-sm text-gray-700">
-                            <span class="font-medium" id="addSelectedResidentName"></span>
-                        </span>
-                        <button type="button" onclick="clearAddResidentSelection()"
-                            class="text-red-600 hover:text-red-800 text-sm">
-                            ✕ Clear
-                        </button>
-                    </div>
-                </div>
-
-                <p class="text-xs text-gray-500 mt-1">
-                    Selecting a resident will automatically set the account name.
-                </p>
-            </div>
-
-            <hr class="my-2">
-
-            <!-- =========================
-             ACCOUNT FIELDS
-             ========================== -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-gray-700 font-medium">Username</label>
-                    <input type="text" name="username" id="addUsername" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 font-medium">Role</label>
-                    <select name="role" id="addRole" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                        <option value="captain">Captain</option>
-                        <option value="kagawad">Kagawad</option>
-                        <option value="secretary">Secretary</option>
-                        <option value="hcnurse">hcnurse</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-gray-700 font-medium">Status</label>
-                    <select name="status" id="addStatus" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                        <option value="active">Active</option>
-                        <option value="disabled">Disabled</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-gray-700 font-medium">Password</label>
-                    <input type="password" name="password" id="addPassword" required
-                        class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-theme-primary focus:outline-none">
-                </div>
-            </div>
-
-            <hr class="my-2">
-
-            <!-- =========================
-            OFFICER FIELDS (ALWAYS)
-            ========================== -->
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position <span
-                            class="ml-1 text-xs font-normal text-red-500 bg-red-50 px-1.5 py-0.5 rounded">(required)</span></label>
-                    <input type="text" name="officer_position" id="addOfficerPosition"
-                        placeholder="e.g., Barangay Captain, Barangay Secretary, etc."
-                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                </div>
-
-                <div id="addTermDatesWrapper" class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermStartLabel">Term Start
-                            *</label>
-                        <input type="date" name="term_start" id="addTermStart"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1" id="addTermEndLabel">Term End
-                            *</label>
-                        <input type="date" name="term_end" id="addTermEnd"
-                            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-theme-primary">
+            <!-- Resident Link -->
+            <div class="form-section">
+                <div class="form-section-lbl">Link to Resident Record</div>
+                <div class="form-section-body">
+                    <div class="fg res-search-wrap">
+                        <label class="fg-label">Search Resident <span class="req">*</span></label>
+                        <input type="text" id="addResidentSearch" class="fg-input"
+                            placeholder="Type name or address to search…" autocomplete="off">
+                        <div id="addResidentDD" class="res-search-dd"></div>
+                        <div id="addResidentSelected" class="res-selected-tag" style="display:none;">
+                            <span id="addResidentSelectedName"></span>
+                            <button type="button" class="res-clear-btn" onclick="clearResidentSelection('add')">✕</button>
+                        </div>
+                        <div class="fg-note">Selecting a resident auto-fills the account name.</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Account Credentials -->
+            <div class="form-section">
+                <div class="form-section-lbl">Account Credentials</div>
+                <div class="form-section-body">
+                    <div class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Username <span class="req">*</span></label>
+                            <input type="text" name="username" id="addUsername" class="fg-input" required autocomplete="off">
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Password <span class="req">*</span></label>
+                            <input type="password" name="password" id="addPassword" class="fg-input" required>
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Role <span class="req">*</span></label>
+                            <select name="role" id="addRole" class="fg-select" required>
+                                <option value="captain">Barangay Captain</option>
+                                <option value="kagawad">Kagawad</option>
+                                <option value="secretary">Secretary</option>
+                                <option value="hcnurse">HC Nurse</option>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Status</label>
+                            <select name="status" id="addStatus" class="fg-select">
+                                <option value="active">Active</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Officer Details -->
+            <div class="form-section">
+                <div class="form-section-lbl">Officer Details</div>
+                <div class="form-section-body">
+                    <div class="fg">
+                        <label class="fg-label">Position <span class="req">*</span></label>
+                        <input type="text" name="officer_position" id="addOfficerPosition" class="fg-input"
+                            placeholder="e.g. Barangay Captain, Kagawad, Barangay Secretary…" required autocomplete="off">
+                    </div>
+                    <div id="addHcnurseNote" class="hcnurse-note">
+                        ℹ HC Nurse is a permanent post — term dates are not required.
+                    </div>
+                    <div id="addTermDates" class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Term Start <span class="req">*</span></label>
+                            <input type="date" name="term_start" id="addTermStart" class="fg-input">
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Term End <span class="req">*</span></label>
+                            <input type="date" name="term_end" id="addTermEnd" class="fg-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
 
-    <!-- Archive Current Term Dialog -->
-    <div id="archiveCurrentTermDialog" title="Archive Current Term" class="hidden">
-        <div class="p-4">
-            <p class="mb-4 text-gray-700">
-                This will archive all accounts/officers except the latest new account with role "secretary".
-                Are you sure you want to proceed?
-            </p>
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p class="text-sm text-yellow-800">
-                    <strong>⚠️ Warning:</strong> This action cannot be undone. All archived records will be moved to the
-                    archive.
-                </p>
+    <!-- ════════════════════════════════════════════
+         MODAL: EDIT OFFICER / ACCOUNT
+    ════════════════════════════════════════════ -->
+    <div id="editAccountModal" title="Edit Officer Record" class="hidden">
+        <form id="editAccountForm" class="modal-form">
+            <input type="hidden" name="action"      value="edit_account">
+            <input type="hidden" name="id"          id="editId">
+            <input type="hidden" name="officer_id"  id="editOfficerId">
+            <input type="hidden" name="is_officer"  value="1">
+            <input type="hidden" name="resident_id" id="editResidentId">
+            <input type="hidden" name="fullname"    id="editFullname">
+
+            <!-- Resident Link -->
+            <div class="form-section">
+                <div class="form-section-lbl">Resident Link</div>
+                <div class="form-section-body">
+                    <div class="fg res-search-wrap">
+                        <label class="fg-label">Linked Resident</label>
+                        <input type="text" id="editResidentSearch" class="fg-input"
+                            placeholder="Search resident to re-link…" autocomplete="off">
+                        <div id="editResidentDD" class="res-search-dd"></div>
+                        <div id="editResidentSelected" class="res-selected-tag" style="display:none;">
+                            <span id="editResidentSelectedName"></span>
+                            <button type="button" class="res-clear-btn" onclick="clearResidentSelection('edit')">✕</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account -->
+            <div class="form-section">
+                <div class="form-section-lbl">Account Credentials</div>
+                <div class="form-section-body">
+                    <div class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Username <span class="req">*</span></label>
+                            <input type="text" name="username" id="editUsername" class="fg-input" required autocomplete="off">
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Password <span class="fg-note" style="display:inline;text-transform:none;font-weight:400;">(leave blank to keep)</span></label>
+                            <input type="password" name="password" id="editPassword" class="fg-input" placeholder="Leave blank to keep current">
+                        </div>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Role <span class="req">*</span></label>
+                            <select name="role" id="editRole" class="fg-select" required>
+                                <option value="captain">Barangay Captain</option>
+                                <option value="kagawad">Kagawad</option>
+                                <option value="secretary">Secretary</option>
+                                <option value="hcnurse">HC Nurse</option>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Status <span class="req">*</span></label>
+                            <select name="status" id="editStatus" class="fg-select" required>
+                                <option value="active">Active</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Officer Details -->
+            <div class="form-section">
+                <div class="form-section-lbl">Officer Details</div>
+                <div class="form-section-body">
+                    <div class="fg">
+                        <label class="fg-label">Position <span class="req">*</span></label>
+                        <input type="text" name="officer_position" id="editOfficerPosition" class="fg-input"
+                            placeholder="e.g. Barangay Captain, Kagawad…" required autocomplete="off">
+                    </div>
+                    <div id="editHcnurseNote" class="hcnurse-note">
+                        ℹ HC Nurse is a permanent post — term dates are not required.
+                    </div>
+                    <div id="editTermDates" class="form-grid-2">
+                        <div class="fg">
+                            <label class="fg-label">Term Start <span class="req">*</span></label>
+                            <input type="date" name="term_start" id="editTermStart" class="fg-input">
+                        </div>
+                        <div class="fg">
+                            <label class="fg-label">Term End <span class="req">*</span></label>
+                            <input type="date" name="term_end" id="editTermEnd" class="fg-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         MODAL: ARCHIVE REGISTRY
+    ════════════════════════════════════════════ -->
+    <div id="archiveRegistryDialog" title="Archive Registry" class="hidden">
+        <!-- Tab bar -->
+        <div class="arc-tab-bar">
+            <button class="arc-tab active" data-tab="officers">
+                <span style="font-size:12px;opacity:.65;">⊟</span>
+                Archived Officers
+                <span class="arc-tab-count" id="arc-off-count">—</span>
+            </button>
+        </div>
+
+        <!-- Officers pane -->
+        <div class="arc-pane active" id="arc-pane-officers">
+            <div class="arc-stats">
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-off-total">—</div>
+                    <div class="arc-stat-lbl">Total Archived</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-off-roles">—</div>
+                    <div class="arc-stat-lbl">Unique Roles</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-off-latest">—</div>
+                    <div class="arc-stat-lbl">Last Archived</div>
+                </div>
+            </div>
+            <div class="arc-search-bar">
+                <input type="text" class="adm-search" id="arcOffSearch"
+                    placeholder="Search by name, position, or role…" style="width:100%;">
+            </div>
+            <div class="arc-table-scroll">
+                <table class="arc-table">
+                    <thead><tr>
+                        <th style="width:36px;">#</th>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Role</th>
+                        <th>Term Period</th>
+                        <th>Archived</th>
+                        <th style="text-align:center;">Action</th>
+                    </tr></thead>
+                    <tbody id="arcOffBody">
+                        <tr><td colspan="7" class="arc-empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="arc-footer" id="arcOffFooter">—</div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         MODAL: ARCHIVE CURRENT TERM CONFIRM
+    ════════════════════════════════════════════ -->
+    <div id="archiveTermDialog" title="Archive Current Term" class="hidden">
+        <div style="padding:20px 20px 6px;">
+            <div style="font-size:13px;color:var(--ink);line-height:1.7;margin-bottom:14px;">
+                This will archive <strong>all active officers</strong> except the most recent Secretary account.<br>
+                Their user accounts will be set to <em>disabled</em>.
+            </div>
+            <div style="padding:10px 14px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn-fg) 25%,transparent);border-radius:2px;font-size:12px;color:var(--warn-fg);">
+                ⚠ This action affects all currently active personnel. It cannot be undone automatically — restore records individually from the Archive Registry.
             </div>
         </div>
     </div>
 
-    <!-- Term History Dialog -->
+    <!-- ════════════════════════════════════════════
+         MODAL: TERM HISTORY
+    ════════════════════════════════════════════ -->
     <div id="termHistoryDialog" title="Term History" class="hidden">
-        <!-- Search -->
-        <div class="p-4 border-b">
-            <div class="relative">
-                <input type="text" id="termHistorySearchInput" placeholder="Search by officer name or position..."
-                    class="w-full border rounded-md px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-1" />
-                <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
-            </div>
+        <div class="hist-search-bar">
+            <input type="text" class="adm-search" id="histSearch"
+                placeholder="Search by officer name or position…" style="width:100%;">
         </div>
-
-        <!-- Table -->
-        <div class="p-4">
-            <table class="w-full text-sm border-collapse">
-                <thead class="bg-gray-100 text-left">
-                    <tr>
-                        <th class="p-2 w-[15%]">Officer</th>
-                        <th class="p-2 w-[15%]">Position</th>
-                        <th class="p-2 w-[12%]">Action</th>
-                        <th class="p-2 w-[20%]">Term Period</th>
-                        <th class="p-2 w-[12%]">Status</th>
-                        <th class="p-2 w-[15%]">Changed By</th>
-                        <th class="p-2 w-[11%]">Date/Time</th>
-                    </tr>
-                </thead>
-                <tbody id="termHistoryTableBody" class="divide-y">
-                    <!-- Dynamic content will be loaded here -->
+        <div style="overflow-y:auto;max-height:460px;">
+            <table class="hist-table">
+                <thead><tr>
+                    <th>Officer</th>
+                    <th>Position</th>
+                    <th>Action</th>
+                    <th>Status Change</th>
+                    <th>Term Period</th>
+                    <th>Changed By</th>
+                    <th>Date</th>
+                </tr></thead>
+                <tbody id="histBody">
+                    <tr><td colspan="7" class="arc-empty">Loading…</td></tr>
                 </tbody>
             </table>
         </div>
-
-        <!-- Footer -->
-        <div class="px-4 py-2 text-xs text-gray-500 border-t">
-            <span id="termHistoryFooter">Loading...</span>
-        </div>
+        <div class="hist-footer" id="histFooter">—</div>
     </div>
 
-    <!-- Show success/error messages using showMessage function (PHP-specific) -->
-    <?php if (isset($success) && $success != "") {
-        echo DialogMessage($success, "Success");
-    } ?>
-
-    <?php if (isset($error) && $error != "") {
-        echo DialogMessage($error, "Error");
-    } ?>
+    <!-- Success/error from PHP POST -->
+    <?php if (isset($success) && $success): echo DialogMessage($success, 'Success'); endif; ?>
+    <?php if (isset($error)   && $error):   echo DialogMessage($error,   'Error');   endif; ?>
 
     <script src="js/index.js"></script>
 </body>
-
 </html>

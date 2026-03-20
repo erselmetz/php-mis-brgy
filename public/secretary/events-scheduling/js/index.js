@@ -1,48 +1,57 @@
 /**
- * Events & Scheduling — Redesigned JS Controller
- * Tabs: Calendar | Event List (DataTable) | History
+ * Events & Scheduling — JS Controller
+ * Replaces: public/secretary/events-scheduling/js/index.js
  */
+
+/* ─── Helpers ─── */
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmtDate(s) {
+    if (!s) return '—';
+    return new Date(s + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtTime(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hr = parseInt(h), ap = hr >= 12 ? 'PM' : 'AM';
+    return (hr % 12 || 12) + ':' + m + ' ' + ap;
+}
+function showAlert(title, msg, type) {
+    const id  = 'a_' + Date.now();
+    const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--danger-fg)' : 'var(--warn-fg)';
+    $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+        <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">${esc(msg)}</div>
+    </div>`);
+    $(`#${id}`).dialog({ autoOpen:true, modal:true, width:400, resizable:false,
+        buttons: { 'OK': function(){ $(this).dialog('close').remove(); } }
+    });
+}
+
+const PRI_CONF = {
+    normal:    { label:'Normal',    cls:'pri-normal' },
+    important: { label:'Important', cls:'pri-important' },
+    urgent:    { label:'Urgent',    cls:'pri-urgent' },
+};
+const STA_CONF = {
+    scheduled: { label:'Scheduled', cls:'es-scheduled' },
+    completed: { label:'Completed', cls:'es-completed' },
+    cancelled: { label:'Cancelled', cls:'es-cancelled' },
+};
+
 $(function () {
-    'use strict';
 
-    // ── State ────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       STATE
+    ═══════════════════════════════════════ */
     const today = new Date();
-    let currentMonth = today.getMonth() + 1;
-    let currentYear = today.getFullYear();
-    let calEvents = [];   // events for current calendar month
-    let eventsTable = null; // DataTable instance
-    let historyLoaded = false;
+    let curMonth = today.getMonth() + 1;
+    let curYear  = today.getFullYear();
+    let calEvents = [];
+    let evTable   = null;
+    let histLoaded = false;
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    function escHtml(str) {
-        const d = document.createElement('div');
-        d.textContent = str || '';
-        return d.innerHTML;
-    }
-    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-    function fmtDate(d) {
-        if (!d) return '—';
-        return new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-    function fmtTime(t) {
-        if (!t) return '';
-        const [h, m] = t.split(':');
-        const hr = parseInt(h), ap = hr >= 12 ? 'PM' : 'AM';
-        return (hr % 12 || 12) + ':' + m + ' ' + ap;
-    }
-
-    const priorityBadge = {
-        normal: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">🔵 Normal</span>',
-        important: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">🟢 Important</span>',
-        urgent: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">🔴 Urgent</span>'
-    };
-    const statusBadge = {
-        scheduled: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Scheduled</span>',
-        completed: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>',
-        cancelled: '<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cancelled</span>'
-    };
-
-    // ── Tab Switching ────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       TAB SWITCHING
+    ═══════════════════════════════════════ */
     $('.tab-btn').on('click', function () {
         const tab = $(this).data('tab');
         $('.tab-btn').removeClass('active');
@@ -50,113 +59,109 @@ $(function () {
         $('.tab-pane').removeClass('active');
         $('#tab-' + tab).addClass('active');
 
-        if (tab === 'list' && !eventsTable) initDataTable();
-        if (tab === 'history' && !historyLoaded) { historyLoaded = true; loadHistory(); }
-        if (tab === 'list' && eventsTable) reloadDataTable();
+        if (tab === 'list' && !evTable) initDataTable();
+        else if (tab === 'list' && evTable) reloadDataTable();
+        if (tab === 'history' && !histLoaded) { histLoaded = true; loadHistory(); }
     });
 
-    // ── Load Calendar Events ─────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       LOAD CALENDAR EVENTS
+    ═══════════════════════════════════════ */
     function loadEvents() {
-        renderCalendarSkeleton();
-
-        $.getJSON('actions/fetch_events.php', {
-            month: currentMonth,
-            year: currentYear,
-            status: 'scheduled'
-        }, function (res) {
+        renderSidebarSkeleton();
+        $.getJSON('actions/fetch_events.php', { month: curMonth, year: curYear, status: 'scheduled' }, function (res) {
             calEvents = (res && res.status === 'ok') ? (res.data || []) : [];
-            renderEventsList();
+            renderSidebar();
             renderCalendar();
             updateStats();
         }).fail(function () {
             calEvents = [];
-            renderEventsList();
+            renderSidebar();
             renderCalendar();
         });
     }
 
-    // ── Stats ────────────────────────────────────────────────────────────────
+    /* ── Stats ── */
     function updateStats() {
-        const total = calEvents.length;
+        const total     = calEvents.length;
         const scheduled = calEvents.filter(e => e.status === 'scheduled').length;
-        const urgent = calEvents.filter(e => e.priority === 'urgent').length;
-
-        // Upcoming next 7 days
-        const nowMs = today.getTime();
-        const in7Ms = nowMs + 7 * 86400000;
-        const upcoming = calEvents.filter(e => {
+        const urgent    = calEvents.filter(e => e.priority === 'urgent').length;
+        const nowMs     = today.getTime();
+        const in7Ms     = nowMs + 7 * 86400000;
+        const upcoming  = calEvents.filter(e => {
             const d = new Date(e.event_date + 'T00:00:00').getTime();
             return d >= nowMs && d <= in7Ms;
         }).length;
-
-        $('#statTotal').text(total);
-        $('#statScheduled').text(scheduled);
-        $('#statUrgent').text(urgent);
-        $('#statUpcoming').text(upcoming);
-        $('#upcomingCount').text(total + ' event' + (total !== 1 ? 's' : ''));
+        $('#stTotal').text(total);
+        $('#stScheduled').text(scheduled);
+        $('#stUrgent').text(urgent);
+        $('#stUpcoming').text(upcoming);
+        $('#evCount').text(total);
     }
 
-    // ── Render Upcoming Events Mini List ────────────────────────────────────
-    function renderEventsList() {
-        const $list = $('#eventsList');
-        const search = $('#globalSearch').val().toLowerCase();
-        const priority = $('#filterPriority').val();
+    /* ── Sidebar event list ── */
+    function renderSidebar() {
+        const $list    = $('#evList');
+        const search   = $('#evSearch').val().toLowerCase();
+        const priority = $('.priority-filter .pf-btn.active').data('priority');
 
         let filtered = calEvents.filter(e => {
-            const matchSearch = !search ||
-                (e.title || '').toLowerCase().includes(search) ||
-                (e.location || '').toLowerCase().includes(search);
-            const matchPriority = !priority || e.priority === priority;
-            return matchSearch && matchPriority;
+            const ms = !search || (e.title || '').toLowerCase().includes(search) || (e.location || '').toLowerCase().includes(search);
+            const mp = !priority || e.priority === priority;
+            return ms && mp;
         });
 
         $list.empty();
-
-        if (filtered.length === 0) {
-            $list.html('<div class="text-center text-gray-400 py-10 text-sm">No upcoming events this month.</div>');
+        if (!filtered.length) {
+            $list.html('<div style="padding:20px;text-align:center;color:var(--ink-faint);font-size:12px;font-style:italic;">No events found.</div>');
             return;
         }
-
-        filtered.forEach(function (ev, i) {
+        filtered.forEach(ev => {
+            const dt      = new Date(ev.event_date + 'T00:00:00');
+            const dateStr = dt.toLocaleDateString('en-PH', { month:'short', day:'numeric' });
             const timeStr = ev.event_time ? ' · ' + fmtTime(ev.event_time) : '';
-            const dt = new Date(ev.event_date + 'T00:00:00');
-            const dateStr = dt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+            const priCls  = 'priority-' + (ev.priority || 'normal');
 
-            const card = `
-                <div class="event-card-anim event-card-${ev.priority || 'normal'} bg-white border rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow group"
-                     style="animation-delay:${i * 40}ms" data-id="${ev.id}">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 mb-0.5">
-                                <span class="text-xs font-semibold text-blue-600">${dateStr}${timeStr}</span>
-                            </div>
-                            <p class="font-semibold text-sm text-gray-800 truncate">${escHtml(ev.title)}</p>
-                            ${ev.location ? `<p class="text-xs text-gray-400 mt-0.5 truncate">📍 ${escHtml(ev.location)}</p>` : ''}
-                        </div>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                            <button class="view-event-btn text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" data-id="${ev.id}">View</button>
-                            <button class="edit-event-btn text-xs px-2 py-1 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100" data-id="${ev.id}">Edit</button>
-                        </div>
+            $list.append(`
+                <div class="ev-card ${priCls}" data-id="${ev.id}">
+                    <div class="ev-card-date">${dateStr}${timeStr}</div>
+                    <div class="ev-card-title">${esc(ev.title)}</div>
+                    ${ev.location ? `<div class="ev-card-loc">📍 ${esc(ev.location)}</div>` : ''}
+                    <div class="ev-card-actions">
+                        <button class="btn btn-ghost btn-sm ev-edit-btn" data-id="${ev.id}">Edit</button>
                     </div>
                 </div>
-            `;
-            $list.append(card);
+            `);
         });
     }
+    function renderSidebarSkeleton() {
+        $('#evList').html('<div class="skel"></div><div class="skel" style="height:50px;"></div><div class="skel" style="height:66px;"></div>');
+    }
 
-    // ── Render Calendar ──────────────────────────────────────────────────────
+    /* Reactive search + priority filter */
+    let searchTimer;
+    $('#evSearch').on('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(renderSidebar, 200);
+    });
+    $('.priority-filter').on('click', '.pf-btn', function () {
+        $('.pf-btn').removeClass('active');
+        $(this).addClass('active');
+        renderSidebar();
+    });
+
+    /* ── Calendar grid ── */
     function renderCalendar() {
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        $('#calendarMonthYear').text(monthNames[currentMonth - 1] + ' ' + currentYear);
+        const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        $('#calMonthLabel').text(MONTHS[curMonth - 1] + ' ' + curYear);
 
-        const firstDay = new Date(currentYear, currentMonth - 1, 1);
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-        const startDow = firstDay.getDay();
-        const prevDays = new Date(currentYear, currentMonth - 1, 0).getDate();
+        const first      = new Date(curYear, curMonth - 1, 1);
+        const daysInMon  = new Date(curYear, curMonth, 0).getDate();
+        const startDow   = first.getDay();
+        const prevDays   = new Date(curYear, curMonth - 1, 0).getDate();
+        const todayStr   = today.toISOString().split('T')[0];
 
-        const todayStr = today.toISOString().split('T')[0];
-
-        // Index events by date
+        // Index by date
         const byDate = {};
         calEvents.forEach(e => {
             if (!byDate[e.event_date]) byDate[e.event_date] = [];
@@ -165,349 +170,313 @@ $(function () {
 
         let html = '';
 
-        // Prev month trailing days
+        // Prev month trailing
         for (let i = startDow - 1; i >= 0; i--) {
-            const d = prevDays - i;
-            html += `<div class="cal-day other-month"><span class="text-xs text-gray-300">${d}</span></div>`;
+            html += `<div class="cal-day other-month"><div class="cal-day-num">${prevDays - i}</div></div>`;
         }
 
-        // Current month days
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const dayEvents = byDate[dateStr] || [];
-            const isToday = dateStr === todayStr;
-
-            const dots = dayEvents.slice(0, 4).map(e =>
-                `<span class="cal-dot ${e.priority || 'normal'}"></span>`
+        // Current month
+        for (let d = 1; d <= daysInMon; d++) {
+            const dateStr  = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayEvs   = byDate[dateStr] || [];
+            const isToday  = dateStr === todayStr;
+            const dots     = dayEvs.slice(0, 5).map(e =>
+                `<div class="cal-dot ${e.priority || 'normal'}"></div>`
             ).join('');
-
             html += `
-                <div class="cal-day ${isToday ? 'today' : ''} cursor-pointer" data-date="${dateStr}">
-                    <div class="text-xs font-semibold ${isToday ? 'text-blue-600' : 'text-gray-700'} mb-1">${d}</div>
-                    <div class="flex flex-wrap gap-0.5">${dots}</div>
-                    ${dayEvents.length > 4 ? `<div class="text-xs text-gray-400 mt-0.5">+${dayEvents.length - 4}</div>` : ''}
-                </div>
-            `;
+                <div class="cal-day ${isToday ? 'today' : ''}" data-date="${dateStr}">
+                    <div class="cal-day-num">${d}</div>
+                    <div class="cal-dots">${dots}</div>
+                    ${dayEvs.length > 5 ? `<div style="font-size:8px;color:var(--ink-faint);margin-top:1px;">+${dayEvs.length-5}</div>` : ''}
+                </div>`;
         }
 
-        // Remaining cells
-        const cellsUsed = startDow + daysInMonth;
-        const remaining = (Math.ceil(cellsUsed / 7) * 7) - cellsUsed;
+        // Next month leading
+        const used      = startDow + daysInMon;
+        const remaining = Math.ceil(used / 7) * 7 - used;
         for (let d = 1; d <= remaining; d++) {
-            html += `<div class="cal-day other-month"><span class="text-xs text-gray-300">${d}</span></div>`;
+            html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
         }
 
-        $('#calendarGrid').html(html);
+        $('#calGrid').html(html);
     }
 
-    function renderCalendarSkeleton() {
-        $('#eventsList').html('<div class="skeleton"></div><div class="skeleton" style="height:52px"></div><div class="skeleton" style="height:62px"></div>');
-    }
-
-    // ── Calendar Navigation ──────────────────────────────────────────────────
+    /* Calendar nav */
     $('#prevMonth').on('click', function () {
-        currentMonth--;
-        if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+        curMonth--; if (curMonth < 1) { curMonth = 12; curYear--; }
         loadEvents();
     });
     $('#nextMonth').on('click', function () {
-        currentMonth++;
-        if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+        curMonth++; if (curMonth > 12) { curMonth = 1; curYear++; }
         loadEvents();
     });
     $('#todayBtn').on('click', function () {
-        currentMonth = today.getMonth() + 1;
-        currentYear = today.getFullYear();
+        curMonth = today.getMonth() + 1; curYear = today.getFullYear();
         loadEvents();
     });
 
-    // Calendar day click → open Add New Event modal with that date pre-filled
-    $('#calendarGrid').on('click', '.cal-day[data-date]', function () {
+    /* Click calendar day → pre-fill date in Add modal */
+    $('#calGrid').on('click', '.cal-day:not(.other-month)', function () {
         const dateStr = $(this).data('date');
         if (!dateStr) return;
-
         resetEventForm();
-        $('#eventDate').val(dateStr);
-        $('#eventModal').dialog('option', 'title', '✨ New Event').dialog('open');
+        $('#evDate').val(dateStr);
+        $('#eventModal').dialog('option', 'title', 'New Event').dialog('open');
     });
 
-    // ── Search / Filter Reactive ─────────────────────────────────────────────
-    let searchTimer;
-    $('#globalSearch').on('keyup', function () {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(renderEventsList, 250);
-    });
-    $('#filterPriority').on('change', renderEventsList);
-
-    // ── DataTable (Event List Tab) ────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       EVENT LIST DATATABLE
+    ═══════════════════════════════════════ */
     function initDataTable() {
-        eventsTable = $('#eventsTable').DataTable({
+        evTable = $('#eventsTable').DataTable({
             ajax: {
                 url: 'actions/fetch_events.php?status=scheduled',
-                dataSrc: function (json) {
-                    return (json && json.status === 'ok') ? json.data : [];
-                }
+                dataSrc: function (json) { return (json && json.status === 'ok') ? json.data : []; }
             },
-            columns: [
-                { data: 'event_code', title: 'Code' },
-                { data: 'title', title: 'Title' },
-                { data: 'event_date', title: 'Date', render: d => fmtDate(d) },
-                { data: 'event_time', title: 'Time', render: d => d ? fmtTime(d) : '<span class="text-gray-400">—</span>' },
-                { data: 'location', title: 'Location', defaultContent: '<span class="text-gray-400">—</span>' },
-                { data: 'priority', title: 'Priority', render: d => priorityBadge[d] || d },
-                { data: 'status', title: 'Status', render: d => statusBadge[d] || d },
-                {
-                    data: null, title: 'Actions', orderable: false,
-                    render: (d, t, row) =>
-                        `<div class="flex gap-1">
-                            <button class="view-event-btn text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100" data-id="${row.id}">View</button>
-                            <button class="edit-event-btn text-xs px-2 py-1 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100" data-id="${row.id}">Edit</button>
-                            <button class="del-event-btn text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100" data-id="${row.id}">Delete</button>
-                        </div>`
-                }
-            ],
+            dom: 'tip',
             order: [[2, 'asc']],
-            responsive: true,
             pageLength: 50,
-            lengthMenu: [10, 25, 50, 100],
-            language: { emptyTable: 'No events found.' }
+            language: { info:'Showing _START_–_END_ of _TOTAL_ events', paginate:{previous:'‹',next:'›'}, emptyTable:'No events found.' },
+            columns: [
+                { data:'event_code', render: d => `<span style="font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);">${esc(d)}</span>` },
+                { data:'title',      render: d => `<strong>${esc(d)}</strong>` },
+                { data:'event_date', render: d => `<span style="font-family:var(--f-mono);font-size:11.5px;">${fmtDate(d)}</span>` },
+                { data:'event_time', render: d => d ? `<span style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${fmtTime(d)}</span>` : '<span style="color:var(--ink-faint);">—</span>' },
+                { data:'location',   defaultContent:'<span style="color:var(--ink-faint);">—</span>', render: d => d ? esc(d) : '<span style="color:var(--ink-faint);">—</span>' },
+                { data:'priority',   render: d => { const p = PRI_CONF[d] || PRI_CONF.normal; return `<span class="pri-badge ${p.cls}">${p.label}</span>`; } },
+                { data:'status',     render: d => { const s = STA_CONF[d] || STA_CONF.scheduled; return `<span class="ev-status ${s.cls}">${s.label}</span>`; } },
+                { data:null, orderable:false, render:(d,t,row) =>
+                    `<div class="td-actions">
+                        <button class="act-btn act-edit dt-edit-btn" data-id="${row.id}">Edit</button>
+                        <button class="act-btn act-delete dt-del-btn" data-id="${row.id}" data-title="${esc(row.title)}">Delete</button>
+                    </div>`
+                },
+            ]
         });
     }
-
     function reloadDataTable() {
-        if (!eventsTable) return;
+        if (!evTable) return;
         const status = $('#listStatusFilter').val();
-        eventsTable.ajax.url('actions/fetch_events.php?status=' + status).load();
+        evTable.ajax.url(`actions/fetch_events.php?status=${status}`).load();
     }
-
     $('#listStatusFilter').on('change', reloadDataTable);
-
-    // ── History Tab ──────────────────────────────────────────────────────────
-    function loadHistory(search) {
-        const $list = $('#historyList');
-        $list.html('<div class="text-center text-gray-400 py-8 text-sm">Loading history…</div>');
-        $.getJSON('actions/fetch_event_history.php', { search: search || '', limit: 60 }, function (res) {
-            $list.empty();
-            if (!res || res.status !== 'ok' || !res.data || res.data.length === 0) {
-                $list.html('<div class="text-center text-gray-400 py-10 text-sm">No history records found.</div>');
-                return;
-            }
-            res.data.forEach(ev => {
-                const statusClass = ev.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700';
-                $list.append(`
-                    <div class="bg-white border rounded-xl p-3 flex justify-between items-start gap-3">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-0.5">
-                                <span class="text-xs font-semibold text-gray-500">${fmtDate(ev.event_date)}${ev.event_time ? ' · ' + fmtTime(ev.event_time) : ''}</span>
-                                <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusClass}">${capitalize(ev.status)}</span>
-                            </div>
-                            <p class="font-semibold text-sm text-gray-800">${escHtml(ev.title)}</p>
-                            ${ev.location ? `<p class="text-xs text-gray-400 mt-0.5">📍 ${escHtml(ev.location)}</p>` : ''}
-                            ${ev.description ? `<p class="text-xs text-gray-500 mt-1">${escHtml(ev.description)}</p>` : ''}
-                        </div>
-                        <div class="text-xs text-gray-400 text-right flex-shrink-0">
-                            ${escHtml(ev.created_by_name || '—')}<br>
-                            <span class="text-gray-300">${ev.event_code || ''}</span>
-                        </div>
-                    </div>
-                `);
-            });
-        }).fail(() => {
-            $('#historyList').html('<div class="text-center text-red-400 py-8 text-sm">Failed to load history.</div>');
-        });
-    }
-
-    let histTimer;
-    $('#historySearch').on('keyup', function () {
-        clearTimeout(histTimer);
-        histTimer = setTimeout(() => loadHistory($(this).val()), 350);
+    $('#listSearch').on('input', function () {
+        if (evTable) evTable.search($(this).val()).draw();
     });
 
-    // ── Add/Edit Event Dialog ────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       ADD / EDIT EVENT MODAL
+    ═══════════════════════════════════════ */
     $('#eventModal').dialog({
-        autoOpen: false,
-        modal: true,
-        width: 520,
+        autoOpen: false, modal: true, width: 580, resizable: false,
         buttons: {
-            'Save Event': function () { submitEventForm(); },
-            'Cancel': function () { $(this).dialog('close'); }
+            'Save Event': function () { $('#eventForm').trigger('submit'); },
+            'Cancel':     function () { $(this).dialog('close'); }
         }
     });
 
     $('#btnNewEvent').on('click', function () {
         resetEventForm();
-        $('#eventModal').dialog('option', 'title', '✨ New Event').dialog('open');
+        $('#eventModal').dialog('option', 'title', 'New Event').dialog('open');
     });
+
+    // Open edit from sidebar card
+    $(document).on('click', '.ev-edit-btn', function (e) {
+        e.stopPropagation();
+        openEditById($(this).data('id'), calEvents);
+    });
+
+    // Open edit from DataTable
+    $(document).on('click', '.dt-edit-btn', function () {
+        const rowData = evTable ? evTable.rows().data().toArray().find(r => r.id == $(this).data('id')) : null;
+        if (rowData) fillEventForm(rowData);
+        else openEditById($(this).data('id'), []);
+    });
+
+    function openEditById(id, pool) {
+        const ev = pool.find(e => e.id == id);
+        if (ev) { fillEventForm(ev); }
+        else {
+            // Fetch from API
+            $.getJSON('actions/fetch_events.php', { status: 'all' }, function (res) {
+                const found = (res.data || []).find(e => e.id == id);
+                if (found) fillEventForm(found);
+            });
+        }
+    }
+
+    function fillEventForm(ev) {
+        $('#evId').val(ev.id);
+        $('#evTitle').val(ev.title || '');
+        $('#evDate').val(ev.event_date || '');
+        $('#evTime').val(ev.event_time || '');
+        $('#evLocation').val(ev.location || '');
+        $('#evPriority').val(ev.priority || 'normal');
+        $('#evStatus').val(ev.status || 'scheduled');
+        $('#evDesc').val(ev.description || '');
+        $('#eventModal').dialog('option', 'title', 'Edit Event').dialog('open');
+    }
 
     function resetEventForm() {
-        $('#eventId').val('');
-        $('#eventTitle, #eventLocation, #eventDescription').val('');
-        $('#eventDate').val(today.toISOString().split('T')[0]);
-        $('#eventTime').val('');
-        $('#eventPriority').val('normal');
-        $('#eventStatus').val('scheduled');
+        $('#evId').val('');
+        $('#eventForm')[0].reset();
+        $('#evDate').val(today.toISOString().split('T')[0]);
+        $('#evPriority').val('normal');
+        $('#evStatus').val('scheduled');
     }
 
-    function submitEventForm() {
-        const id = $('#eventId').val();
-        const title = $.trim($('#eventTitle').val());
-        const date = $('#eventDate').val();
-
-        if (!title || !date) {
-            showMsg('Validation', 'Event Title and Date are required.', true);
-            return;
-        }
-
+    /* Submit */
+    $('#eventForm').on('submit', function (e) {
+        e.preventDefault();
+        const id  = $('#evId').val();
         const url = id ? 'actions/update_event.php' : 'actions/insert_event.php';
-        $.post(url, $('#eventForm').serialize(), function (res) {
+        $.post(url, $(this).serialize(), function (res) {
             if (res.success) {
                 $('#eventModal').dialog('close');
-                showMsg('Success', res.message);
                 loadEvents();
-                if (eventsTable) reloadDataTable();
+                if (evTable) reloadDataTable();
+                showAlert('Saved', res.message || 'Event saved.', 'success');
             } else {
-                showMsg('Error', res.message, true);
+                showAlert('Error', res.message || 'Save failed.', 'danger');
             }
-        }, 'json').fail(() => showMsg('Error', 'Request failed. Please try again.', true));
-    }
+        }, 'json').fail(() => showAlert('Error', 'Request failed.', 'danger'));
+    });
 
-    // ── View Event ───────────────────────────────────────────────────────────
-    $('#viewEventModal').dialog({ autoOpen: false, modal: true, width: 480, buttons: { 'Close': function () { $(this).dialog('close'); } } });
-
-    function openViewDialog(id) {
-        const ev = calEvents.find(e => e.id == id)
-            || (eventsTable ? eventsTable.rows().data().toArray().find(e => e.id == id) : null);
-        if (!ev) return;
-
-        $('#viewEventContent').html(`
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between border-b pb-2">
-                    <span class="font-semibold text-gray-500">Code</span>
-                    <span class="font-bold text-blue-700">${ev.event_code || '—'}</span>
-                </div>
-                <div class="flex justify-between"><span class="text-gray-500">Title</span><span class="font-semibold text-gray-800">${escHtml(ev.title)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Date</span><span>${fmtDate(ev.event_date)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Time</span><span>${ev.event_time ? fmtTime(ev.event_time) : '—'}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Location</span><span>${escHtml(ev.location || '—')}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Priority</span>${priorityBadge[ev.priority] || ev.priority}</div>
-                <div class="flex justify-between"><span class="text-gray-500">Status</span>${statusBadge[ev.status] || ev.status}</div>
-                ${ev.description ? `<div><span class="text-gray-500 block mb-1">Description</span><p class="text-gray-700 bg-gray-50 rounded-lg p-2 text-xs">${escHtml(ev.description)}</p></div>` : ''}
-                <hr>
-                <div class="text-xs text-gray-400">Created by: ${escHtml(ev.created_by_name || '—')}</div>
+    /* ═══════════════════════════════════════
+       DELETE EVENT
+    ═══════════════════════════════════════ */
+    $(document).on('click', '.dt-del-btn', function () {
+        const id    = $(this).data('id');
+        const title = $(this).data('title');
+        const dlgId = 'del_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Delete Event" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid var(--danger-fg);background:var(--paper);">
+                Delete <strong>${esc(title)}</strong>?<br>
+                <span style="font-size:11px;color:var(--ink-faint);">This cannot be undone.</span>
             </div>
-        `);
-        $('#viewEventModal').dialog('option', 'title', '📋 ' + escHtml(ev.title)).dialog('open');
-    }
-
-    // ── Edit pre-fill ────────────────────────────────────────────────────────
-    function openEditDialog(id) {
-        const ev = calEvents.find(e => e.id == id)
-            || (eventsTable ? eventsTable.rows().data().toArray().find(e => e.id == id) : null);
-        if (!ev) return;
-        $('#eventId').val(ev.id);
-        $('#eventTitle').val(ev.title);
-        $('#eventDate').val(ev.event_date);
-        $('#eventTime').val(ev.event_time || '');
-        $('#eventLocation').val(ev.location || '');
-        $('#eventDescription').val(ev.description || '');
-        $('#eventPriority').val(ev.priority || 'normal');
-        $('#eventStatus').val(ev.status || 'scheduled');
-        $('#eventModal').dialog('option', 'title', '✏️ Edit Event').dialog('open');
-    }
-
-    // ── Delete ───────────────────────────────────────────────────────────────
-    $('#deleteEventDialog').dialog({
-        autoOpen: false, modal: true, width: 400,
-        buttons: {
-            'Yes, Delete': function () {
-                const id = $('#deleteEventId').val();
-                $.post('actions/delete_event.php', { id }, function (res) {
-                    $('#deleteEventDialog').dialog('close');
-                    if (res.success) { loadEvents(); if (eventsTable) reloadDataTable(); showMsg('Deleted', res.message); }
-                    else showMsg('Error', res.message, true);
-                }, 'json');
-            },
-            'Cancel': function () { $(this).dialog('close'); }
-        }
-    });
-
-    // ── Delegated button clicks (calendar list + DataTable) ──────────────────
-    $(document).on('click', '.view-event-btn', function (e) { e.stopPropagation(); openViewDialog($(this).data('id')); });
-    $(document).on('click', '.edit-event-btn', function (e) { e.stopPropagation(); openEditDialog($(this).data('id')); });
-    $(document).on('click', '.del-event-btn', function (e) {
-        e.stopPropagation();
-        $('#deleteEventId').val($(this).data('id'));
-        $('#deleteEventDialog').dialog('open');
-    });
-
-    // ── Print ────────────────────────────────────────────────────────────────
-    $('#btnPrintEvents').on('click', function () {
-        const search = $('#globalSearch').val().toLowerCase();
-        const priority = $('#filterPriority').val();
-        let filtered = calEvents.filter(e => {
-            const matchSearch = !search || (e.title || '').toLowerCase().includes(search) || (e.location || '').toLowerCase().includes(search);
-            const matchPriority = !priority || e.priority === priority;
-            return matchSearch && matchPriority;
+        </div>`);
+        $(`#${dlgId}`).dialog({
+            autoOpen: true, modal: true, width: 400, resizable: false,
+            buttons: {
+                'Delete': function () {
+                    $(this).dialog('close').remove();
+                    $.post('actions/delete_event.php', { id }, function (res) {
+                        if (res.success) {
+                            loadEvents();
+                            if (evTable) reloadDataTable();
+                            showAlert('Deleted', res.message || 'Event deleted.', 'success');
+                        } else {
+                            showAlert('Error', res.message || 'Delete failed.', 'danger');
+                        }
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
+            }
         });
+        setTimeout(() => {
+            $(`#${dlgId}`).closest('.ui-dialog').find('.ui-dialog-buttonpane .ui-button:first-child')
+                .css({ background:'var(--danger-bg)', borderColor:'var(--danger-fg)', color:'var(--danger-fg)' });
+        }, 50);
+    });
 
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const monthLabel = monthNames[currentMonth - 1] + ' ' + currentYear;
+    /* ═══════════════════════════════════════
+       HISTORY TAB
+    ═══════════════════════════════════════ */
+    function loadHistory(search) {
+        const $list = $('#histList');
+        $list.html('<div style="padding:20px;text-align:center;color:var(--ink-faint);">Loading…</div>');
+        $.getJSON('actions/fetch_event_history.php', { search: search || '', limit: 80 }, function (res) {
+            $list.empty();
+            if (!res || res.status !== 'ok' || !res.data || !res.data.length) {
+                $list.html('<div style="padding:20px;text-align:center;color:var(--ink-faint);font-style:italic;">No history records found.</div>');
+                return;
+            }
+            res.data.forEach(ev => {
+                const sc  = STA_CONF[ev.status] || STA_CONF.cancelled;
+                const pc  = PRI_CONF[ev.priority] || PRI_CONF.normal;
+                $list.append(`
+                    <div class="hist-card">
+                        <div class="hist-status-col">
+                            <span class="ev-status ${sc.cls}">${sc.label}</span>
+                        </div>
+                        <div class="hist-body">
+                            <div class="hist-card-date">
+                                <span style="font-family:var(--f-mono);">${esc(ev.event_code || '')}</span>
+                                · ${fmtDate(ev.event_date)}${ev.event_time ? ' ' + fmtTime(ev.event_time) : ''}
+                                · <span class="pri-badge ${pc.cls}" style="padding:1px 6px;font-size:8px;">${pc.label}</span>
+                            </div>
+                            <div class="hist-card-title">${esc(ev.title)}</div>
+                            ${ev.location ? `<div class="hist-card-loc">📍 ${esc(ev.location)}</div>` : ''}
+                            ${ev.description ? `<div class="hist-card-meta" style="margin-top:3px;">${esc(ev.description.substring(0,120))}${ev.description.length>120?'…':''}</div>` : ''}
+                        </div>
+                        <div style="flex-shrink:0;font-size:10.5px;color:var(--ink-faint);text-align:right;white-space:nowrap;">
+                            ${esc(ev.created_by_name || '—')}
+                        </div>
+                    </div>
+                `);
+            });
+        }).fail(() => {
+            $list.html('<div style="padding:20px;text-align:center;color:var(--danger-fg);">Failed to load history.</div>');
+        });
+    }
+
+    let histTimer;
+    $('#histSearch').on('input', function () {
+        clearTimeout(histTimer);
+        histTimer = setTimeout(() => loadHistory($(this).val()), 350);
+    });
+
+    /* ═══════════════════════════════════════
+       PRINT
+    ═══════════════════════════════════════ */
+    $('#btnPrintEvents').on('click', function () {
+        const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const monthLabel = MONTHS[curMonth - 1] + ' ' + curYear;
+        const search   = $('#evSearch').val().toLowerCase();
+        const priority = $('.priority-filter .pf-btn.active').data('priority');
+        let filtered   = calEvents.filter(e => {
+            const ms = !search || (e.title||'').toLowerCase().includes(search);
+            const mp = !priority || e.priority === priority;
+            return ms && mp;
+        });
 
         const rows = filtered.map((ev, i) => `
             <tr>
-                <td>${i + 1}</td>
-                <td>${escHtml(ev.event_code || '—')}</td>
-                <td>${escHtml(ev.title)}</td>
+                <td>${i+1}</td>
+                <td style="font-family:monospace;font-weight:700;">${esc(ev.event_code||'—')}</td>
+                <td><strong>${esc(ev.title)}</strong></td>
                 <td>${fmtDate(ev.event_date)}</td>
                 <td>${ev.event_time ? fmtTime(ev.event_time) : '—'}</td>
-                <td>${escHtml(ev.location || '—')}</td>
-                <td>${capitalize(ev.priority || 'normal')}</td>
-                <td>${capitalize(ev.status || '')}</td>
-            </tr>
-        `).join('');
+                <td>${esc(ev.location||'—')}</td>
+                <td>${ev.priority||'normal'}</td>
+            </tr>`).join('');
 
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html><html><head><meta charset="UTF-8">
+        const w = window.open('','_blank');
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
             <title>Events — ${monthLabel}</title>
-            <style>
-                *{margin:0;padding:0;box-sizing:border-box}
-                body{font-family:Arial,sans-serif;font-size:11px;padding:24px}
-                h1{font-size:15px;font-weight:bold;text-align:center;text-transform:uppercase;margin-bottom:4px}
-                p.sub{text-align:center;color:#555;font-size:11px;margin-bottom:16px}
-                table{width:100%;border-collapse:collapse}
-                th{background:#1e40af;color:#fff;padding:5px 7px;text-align:left;font-size:10px}
-                td{padding:4px 7px;border-bottom:1px solid #e5e7eb;font-size:10px}
-                tr:nth-child(even) td{background:#f9fafb}
-                .footer{display:flex;justify-content:space-between;margin-top:28px}
-                .sig{border-top:1px solid #000;width:180px;text-align:center;padding-top:4px;font-size:10px}
-                @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-            </style></head><body>
+            <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;padding:24px}
+            h1{font-size:15px;font-weight:bold;text-align:center;text-transform:uppercase;margin-bottom:4px}
+            p.sub{text-align:center;color:#555;font-size:11px;margin-bottom:14px}
+            table{width:100%;border-collapse:collapse}
+            th{background:#2d5a27;color:#fff;padding:6px 8px;text-align:left;font-size:10px}
+            td{padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:10px}
+            tr:nth-child(even) td{background:#f9fafb}
+            @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
+            </head><body>
             <h1>Barangay Bombongan</h1>
-            <p class="sub">Events & Scheduling — ${monthLabel}</p>
-            <p class="sub" style="margin-bottom:10px">Generated: ${new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-            <table>
-                <thead><tr><th>#</th><th>Code</th><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Priority</th><th>Status</th></tr></thead>
-                <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:10px;color:#888">No events found.</td></tr>'}</tbody>
+            <p class="sub">Events &amp; Scheduling — ${monthLabel}</p>
+            <p class="sub" style="margin-bottom:10px;">Generated: ${new Date().toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'})}</p>
+            <table><thead><tr><th>#</th><th>Code</th><th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Priority</th></tr></thead>
+            <tbody>${rows||'<tr><td colspan="7" style="text-align:center;padding:12px;color:#888">No events.</td></tr>'}</tbody>
             </table>
-            <div class="footer">
-                <div><div class="sig">Prepared by</div></div>
-                <div><div class="sig">Barangay Captain</div></div>
-            </div>
-            <script>window.onload=()=>{window.print();}<\/script>
-            </body></html>
-        `);
-        printWindow.document.close();
+            <script>window.onload=()=>window.print();<\/script></body></html>`);
+        w.document.close();
     });
 
-    // ── Global Message ────────────────────────────────────────────────────────
-    function showMsg(title, msg, isError) {
-        const id = 'msg_' + Date.now();
-        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="p-2 ${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
-        $(`#${id}`).dialog({ modal: true, width: 360, buttons: { OK: function () { $(this).dialog('close').remove(); } } });
-    }
-
-    // ── Boot ─────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       BOOT
+    ═══════════════════════════════════════ */
     loadEvents();
     document.body.style.display = '';
+
 });
