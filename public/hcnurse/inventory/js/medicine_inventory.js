@@ -1,394 +1,334 @@
-// js/medicine_inventory.js
+/**
+ * Medicine Inventory — JS Controller
+ * Replaces: public/hcnurse/inventory/js/medicine_inventory.js
+ */
 $(function () {
-    let medTable;
-    let currentEditId = null;
 
-    function showMessage(title, message, isError) {
-        const $d = $('<div class="p-4 text-sm">' + message + '</div>');
-        $d.dialog({
-            modal: true,
-            title: title,
-            width: 420,
-            resizable: false,
-            buttons: { OK: function () { $(this).dialog('close').remove(); } },
-            classes: {
-                "ui-dialog": "rounded-lg shadow-lg",
-                "ui-dialog-titlebar": (isError ? "bg-red-600" : "bg-theme-primary") + " text-white",
-                "ui-dialog-title": "font-semibold",
-                "ui-dialog-buttonpane": "bg-gray-50"
-            }
+    let medTable       = null;
+    let currentEditId  = null;
+
+    /* ── Helpers ── */
+    function esc(s) {
+        const d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+    function showAlert(title, msg, type) {
+        const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--danger-fg)' : 'var(--warn-fg)';
+        const id  = 'al_' + Date.now();
+        $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">${esc(msg)}</div>
+        </div>`);
+        $(`#${id}`).dialog({
+            autoOpen:true, modal:true, width:400, resizable:false,
+            buttons:{ 'OK': function(){ $(this).dialog('close').remove(); } }
         });
     }
 
+    /* ════════════════════════
+       STAT LEDGER
+    ════════════════════════ */
+    function updateStats(rows) {
+        const total    = rows.length;
+        let ok=0, crit=0, bad=0;
+        rows.forEach(r => {
+            const s = r.status || '';
+            if (s === 'In-Stock')      ok++;
+            else if (s === 'Critical') crit++;
+            else                        bad++;   /* Out of Stock + Expired */
+        });
+        $('#slTotal').text(total);
+        $('#slOk').text(ok);
+        $('#slCritical').text(crit);
+        $('#slBad').text(bad);
+        $('#itemCount').text(total + (total === 1 ? ' ITEM' : ' ITEMS'));
+    }
+
+    /* ════════════════════════
+       CATEGORIES
+    ════════════════════════ */
     function loadCategories(selectedId) {
         $.getJSON('api/medicine_inventory_api.php?action=list_categories', function (res) {
-
-            if (!res || res.status !== 'ok' || !Array.isArray(res.data)) {
-                console.log('Invalid response:', res);
-                showDialog('Invalid response:', res);
-                return;
-            }
-
-            const $sel = $('#medicineCategory');
-            $sel.empty().append('<option value="">Select Category</option>');
-
-            res.data.forEach(function (c) {
-                $sel.append($('<option>').val(c.id).text(c.name));
-            });
-
+            if (!res || res.status !== 'ok') return;
+            const $sel = $('#medCategory');
+            $sel.find('option:not(:first)').remove();
+            res.data.forEach(c => $sel.append(`<option value="${c.id}">${esc(c.name)}</option>`));
             if (selectedId) $sel.val(String(selectedId));
         });
     }
+    function loadReportCategories() {
+        $.getJSON('api/medicine_inventory_api.php?action=list_categories', function (res) {
+            if (!res || res.status !== 'ok') return;
+            const $sel = $('#rptCategory');
+            $sel.find('option:not(:first)').remove();
+            res.data.forEach(c => $sel.append(`<option value="${c.id}">${esc(c.name)}</option>`));
+        });
+    }
 
+    /* ════════════════════════
+       DATATABLE
+    ════════════════════════ */
     function initTable() {
         medTable = $('#medicineTable').DataTable({
             ajax: {
                 url: 'api/medicine_inventory_api.php?action=list',
                 dataSrc: function (json) {
                     if (!json || json.status !== 'ok') return [];
+                    updateStats(json.data || []);
                     return json.data || [];
                 }
             },
+            dom: 'tip',
+            order: [[0, 'desc']],
+            pageLength: 25,
+            language: {
+                info: 'Showing _START_–_END_ of _TOTAL_ items',
+                paginate: { previous:'‹', next:'›' },
+                emptyTable: 'No medicines found.'
+            },
             columns: [
-                { data: 'medicine_code', title: 'Item ID' },
-                { data: 'name', title: 'Item Name' },
-                { data: 'category', title: 'Category', defaultContent: '-' },
-                { data: 'stock_qty', title: 'Stock' },
-                { data: 'expiration_date', title: 'Expiration Date', defaultContent: '-' },
+                /* Item ID */
                 {
-                    data: 'status', title: 'Status',
-                    render: function (data) {
-                        const map = {
-                            'In-Stock': 'text-green-600',
-                            'Critical': 'text-red-600',
-                            'Out of Stock': 'text-red-600',
-                            'Expired': 'text-gray-600'
-                        };
-                        return '<span class="' + (map[data] || '') + '">' + (data || '-') + '</span>';
+                    data: 'medicine_code',
+                    render: d => `<span class="td-item-id">${esc(d)}</span>`
+                },
+                /* Name + Category */
+                {
+                    data: 'name',
+                    render: function (d, t, row) {
+                        let html = `<div class="td-item-name">${esc(d)}</div>`;
+                        if (row.category) html += `<div class="td-category">${esc(row.category)}</div>`;
+                        return html;
                     }
                 },
+                /* Stock */
                 {
-                    data: null, title: 'Actions', orderable: false,
-                    render: function (row) {
-                        return '<button class="editMedBtn text-blue-600 hover:text-blue-800 text-xs px-2 py-1" data-id="' + row.id + '">Edit</button>';
+                    data: 'stock_qty',
+                    render: function (d, t, row) {
+                        const qty = parseInt(d);
+                        const re  = parseInt(row.reorder_level) || 10;
+                        const cls = qty <= 0 ? 'qty-critical' : qty <= re ? 'qty-warn' : 'qty-ok';
+                        return `<span class="td-qty ${cls}">${qty}</span>
+                                <span style="font-size:10px;color:var(--ink-faint);margin-left:4px;">${esc(row.unit||'pcs')}</span>`;
+                    }
+                },
+                /* Reorder */
+                {
+                    data: 'reorder_level',
+                    render: d => `<span style="font-family:var(--f-mono);font-size:11.5px;color:var(--ink-muted);">${d}</span>`
+                },
+                /* Expiration */
+                {
+                    data: 'expiration_date',
+                    render: function (d) {
+                        if (!d) return '<span style="color:var(--ink-faint);font-size:11px;">—</span>';
+                        const today = new Date().toISOString().slice(0,10);
+                        const soon  = new Date(Date.now() + 30*864e5).toISOString().slice(0,10);
+                        const cls   = d < today ? 'exp-danger' : d <= soon ? 'exp-warn' : '';
+                        return `<span class="td-expiry ${cls}">${esc(d)}</span>`;
+                    }
+                },
+                /* Status */
+                {
+                    data: 'status',
+                    render: function (d) {
+                        const map = {
+                            'In-Stock':     'ss-instock',
+                            'Critical':     'ss-critical',
+                            'Out of Stock': 'ss-outstock',
+                            'Expired':      'ss-expired',
+                        };
+                        return `<span class="status-stamp ${map[d]||'ss-outstock'}">${esc(d||'Unknown')}</span>`;
+                    }
+                },
+                /* Actions */
+                {
+                    data: null, orderable: false,
+                    render: function (d, t, row) {
+                        return `<div class="td-actions">
+                            <button class="act-btn act-edit editMedBtn" data-id="${row.id}">Edit</button>
+                        </div>`;
                     }
                 }
-            ],
-            order: [[0, 'desc']],
-            responsive: true,
-            pageLength: 25,
-            language: { emptyTable: "No medicines found" },
-            pageLength: 20,
-            lengthChange: false,
-            info: false,
-            dom: 'rt<"flex items-center justify-between mt-4"p>', // hide default search
+            ]
         });
 
-        $('#searchInput').on('keyup', function () {
-            medTable.search(this.value).draw();
+        /* live search */
+        let searchTimer;
+        $('#searchInput').on('input', function () {
+            clearTimeout(searchTimer);
+            const q = $(this).val();
+            searchTimer = setTimeout(() => {
+                medTable.ajax.url('api/medicine_inventory_api.php?action=list&search=' + encodeURIComponent(q)).load();
+            }, 350);
         });
     }
 
-    // dialogs
-    $("#medicineModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 560,
-        resizable: false,
-        draggable: true,
-        classes: {
-            "ui-dialog": "rounded-lg shadow-lg",
-            "ui-dialog-titlebar": "bg-theme-primary text-white",
-            "ui-dialog-title": "font-semibold",
-            "ui-dialog-titlebar-close": "text-white"
-        },
-        open: function () {
-            // prevent auto-focus
-            $(this).closest('.ui-dialog').find('button, input, textarea, select').blur();
+    /* ════════════════════════
+       ADD MODAL
+    ════════════════════════ */
+    $('#medicineModal').dialog({
+        autoOpen: false, modal: true, width: 560, resizable: false,
+        open: function(){
+            // prevent jQuery UI from auto-focusing first input (causes flash)
+            $(this).find(':input:first').blur();
         }
     });
 
-    $("#categoryModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 420,
-        resizable: false,
-        classes: {
-            "ui-dialog": "rounded-lg shadow-lg",
-            "ui-dialog-titlebar": "bg-theme-primary text-white",
-            "ui-dialog-title": "font-semibold",
-            "ui-dialog-titlebar-close": "text-white"
-        }
-    });
-
-    // datepicker (YYYY-MM-DD)
-    $("#expiration_date").datepicker({ dateFormat: 'yy-mm-dd', changeMonth: true, changeYear: true });
-
-    // buttons
-    $("#addMedicineBtn").on("click", function () {
+    $('#btnAddMedicine').on('click', function () {
         currentEditId = null;
-        $("#medicineForm")[0].reset();
-        $("#medicineId").val('');
+        $('#medicineForm')[0].reset();
+        $('#medId').val('');
         loadCategories(null);
-        $("#medicineModal").dialog("option", "title", "Add Item");
-        $("#submitMedicine").text("Add Item");
-        $("#medicineModal").dialog("open");
+        $('#medSubmitBtn').text('+ Add Item');
+        $('#medicineModal').dialog('option','title','Add Medicine').dialog('open');
     });
 
-    $("#addCategoryBtn").on("click", function () {
-        $("#categoryForm")[0].reset();
-        $("#categoryModal").dialog("option", "title", "Add Category");
-        $("#submitCategory").text("Add Category");
-        $("#categoryModal").dialog("open");
-    });
-
-    // search
-    let t;
-    $('#searchInput').on('keyup', function () {
-        clearTimeout(t);
-        const q = $(this).val();
-        t = setTimeout(function () {
-            medTable.ajax.url('api/medicine_inventory_api.php?action=list&search=' + encodeURIComponent(q)).load();
-        }, 400);
-    });
-
-    // edit
+    /* Edit button */
     $(document).on('click', '.editMedBtn', function () {
         const id = $(this).data('id');
         currentEditId = id;
-
         $.getJSON('api/medicine_inventory_api.php?action=get&id=' + id, function (res) {
             if (!res || res.status !== 'ok') return;
-
             const m = res.data;
-            $("#medicineId").val(m.id);
-            $("#medicineName").val(m.name);
-            $("#medicineDesc").val(m.description || '');
-            $("#stock_qty").val(m.stock_qty);
-            $("#reorder_level").val(m.reorder_level);
-            $("#unit").val(m.unit || 'pcs');
-            $("#expiration_date").val(m.expiration_date || '');
-
+            $('#medId').val(m.id);
+            $('#medName').val(m.name || '');
+            $('#medDesc').val(m.description || '');
+            $('#medStock').val(m.stock_qty);
+            $('#medReorder').val(m.reorder_level);
+            $('#medUnit').val(m.unit || '');
+            $('#medExpiry').val(m.expiration_date || '');
             loadCategories(m.category_id || '');
-
-            $("#medicineModal").dialog("option", "title", "Edit Item");
-            $("#submitMedicine").text("Update Item");
-            $("#medicineModal").dialog("open");
+            $('#medSubmitBtn').text('Save Changes');
+            $('#medicineModal').dialog('option','title','Edit — ' + (m.name||'')).dialog('open');
         });
     });
 
-    // submit medicine
+    /* Submit */
     $('#medicineForm').on('submit', function (e) {
         e.preventDefault();
         const action = currentEditId ? 'update' : 'add';
-
-        $.post('api/medicine_inventory_api.php?action=' + action, $(this).serialize(), function (resp) {
-            const json = (typeof resp === 'string') ? JSON.parse(resp) : resp;
+        $.post('api/medicine_inventory_api.php?action=' + action, $(this).serialize(), function (res) {
+            const json = typeof res === 'string' ? JSON.parse(res) : res;
             if (json.status === 'ok') {
-                $("#medicineModal").dialog('close');
+                $('#medicineModal').dialog('close');
                 medTable.ajax.reload(null, false);
-                showMessage('Success', json.message || 'Saved');
+                showAlert('Saved', json.message || 'Item saved.', 'success');
             } else {
-                showMessage('Error', json.message || 'Failed', true);
+                showAlert('Error', json.message || 'Save failed.', 'danger');
             }
-        }).fail(function (xhr) {
-            showMessage('Error', 'Request failed. ' + (xhr.responseText || ''), true);
-        });
+        }).fail(xhr => showAlert('Error', 'Request failed. ' + (xhr.responseText||''), 'danger'));
     });
 
-    // submit category
+    /* ════════════════════════
+       CATEGORY MODAL
+    ════════════════════════ */
+    $('#categoryModal').dialog({
+        autoOpen: false, modal: true, width: 440, resizable: false
+    });
+    $('#btnAddCategory').on('click', () => {
+        $('#categoryForm')[0].reset();
+        $('#categoryModal').dialog('open');
+    });
     $('#categoryForm').on('submit', function (e) {
         e.preventDefault();
-
-        $.post('api/medicine_inventory_api.php?action=add_category', $(this).serialize(), function (resp) {
-            const json = (typeof resp === 'string') ? JSON.parse(resp) : resp;
+        $.post('api/medicine_inventory_api.php?action=add_category', $(this).serialize(), function (res) {
+            const json = typeof res === 'string' ? JSON.parse(res) : res;
             if (json.status === 'ok') {
-                $("#categoryModal").dialog('close');
-                loadCategories(json.data.id);
-                showMessage('Success', json.message || 'Category added');
+                $('#categoryModal').dialog('close');
+                loadCategories(json.data?.id);
+                showAlert('Category Added', json.message || 'Category saved.', 'success');
             } else {
-                showMessage('Error', json.message || 'Failed', true);
+                showAlert('Error', json.message || 'Failed.', 'danger');
             }
-        }).fail(function (xhr) {
-            showMessage('Error', 'Request failed. ' + (xhr.responseText || ''), true);
         });
     });
 
-    // init
-    loadCategories();
-    initTable();
-
-    $("#medicineReportPreviewModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 980,
-        resizable: false,
-        draggable: true,
-        classes: {
-            "ui-dialog": "rounded-lg shadow-lg",
-            "ui-dialog-titlebar": "bg-theme-primary text-white",
-            "ui-dialog-title": "font-semibold",
-            "ui-dialog-titlebar-close": "text-white"
-        }
+    /* ════════════════════════
+       REPORT MODAL
+    ════════════════════════ */
+    $('#reportModal').dialog({
+        autoOpen: false, modal: true, width: 480, resizable: false,
+        open: function(){ loadReportCategories(); }
     });
+    $('#btnReport').on('click', () => $('#reportModal').dialog('open'));
 
-    // ===== Medicine Report Modal =====
-    $("#medicineReportModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 640,
-        resizable: false,
-        draggable: true,
-        classes: {
-            "ui-dialog": "rounded-lg shadow-lg",
-            "ui-dialog-titlebar": "bg-theme-primary text-white",
-            "ui-dialog-title": "font-semibold",
-            "ui-dialog-titlebar-close": "text-white"
-        }
-    });
-
-    function loadMedicineCategories() {
-        $.getJSON('api/medicine_inventory_api.php?action=list_categories', function (res) {
-            if (!res || res.status !== 'ok') return;
-            const $sel = $("#medReportCategory");
-            $sel.empty().append('<option value="0">All</option>');
-            res.data.forEach(function (c) {
-                $sel.append($('<option>').val(c.id).text(c.name));
-            });
-        });
-    }
-
-    $("#openMedicineReportBtn").on("click", function () {
-        loadMedicineCategories();
-        $("#medicineReportModal").dialog("open");
+    $('#reportPreviewModal').dialog({
+        autoOpen: false, modal: true, width: 960, resizable: false
     });
 
     function buildReportQS() {
-        const qs = $("#medicineReportForm").serialize();
-        return qs;
+        return $('#reportForm').serialize();
     }
 
-    // Preview (show in your table area if you want)
-    $("#previewMedicineReportBtn").on("click", function () {
+    /* Preview */
+    $('#rptPreviewBtn').on('click', function () {
+        $.getJSON('api/medicine_inventory_api.php?action=report&' + buildReportQS(), function (res) {
+            if (!res || res.status !== 'ok') { showAlert('Error', 'Failed to load report.', 'danger'); return; }
 
-        const qs = buildReportQS();
-
-        $("#medSummary").html("Loading...");
-        $("#medicineReportTbody").html(
-            `<tr><td colspan="8" class="p-3 text-gray-400">Loading...</td></tr>`
-        );
-
-        $.getJSON('./api/medicine_inventory_api.php?action=report&' + qs, function (res) {
-
-            if (!res || res.status !== 'ok') {
-                showMessage('Error', (res && res.message) ? res.message : 'Failed to load report', true);
-                return;
-            }
-
-            // ✅ unified payload (new or legacy)
             const payload = res.data ? res.data : res;
+            const rows    = Array.isArray(payload.rows) ? payload.rows : [];
 
-            const rows = Array.isArray(payload.rows) ? payload.rows : [];
+            /* compute summary */
+            let total=0, oos=0, crit=0, ok=0, expSoon=0;
+            rows.forEach(r => {
+                total++;
+                const s = (r.stock_status||'').toUpperCase();
+                if (s==='OUT_OF_STOCK')  oos++;
+                else if (s==='CRITICAL') crit++;
+                else                      ok++;
+                if (parseInt(r.is_expiring_soon,10)===1) expSoon++;
+            });
 
-            // ✅ If backend doesn't return summary, compute it here (works always)
-            const summary = payload.summary ? payload.summary : computeMedicineSummary(rows);
-
-            $("#medSummary").html(
-                `Total: ${summary.total || 0} | Out: ${summary.out_of_stock || 0} | Critical: ${summary.critical || 0} | OK: ${summary.ok_items || 0} | Expiring: ${summary.expiring_soon || 0}`
+            $('#rptSummaryBar').html(
+                `<span>Total: <strong>${total}</strong></span>
+                 <span>Out of Stock: <strong>${oos}</strong></span>
+                 <span>Critical: <strong>${crit}</strong></span>
+                 <span>OK: <strong>${ok}</strong></span>
+                 <span>Expiring Soon: <strong>${expSoon}</strong></span>`
             );
 
-            renderMedicineReportRows(rows);
+            /* render rows */
+            let html = '';
+            rows.forEach(r => {
+                const sBadge = r.stock_status === 'OUT_OF_STOCK'
+                    ? 'ss-outstock' : r.stock_status === 'CRITICAL'
+                    ? 'ss-critical' : 'ss-instock';
+                const expHtml = parseInt(r.is_expiring_soon,10) === 1
+                    ? '<span style="color:var(--danger-fg);font-weight:700;">YES</span>'
+                    : '<span style="color:var(--ink-faint);">No</span>';
+                html += `<tr>
+                    <td style="font-weight:600;">${esc(r.name||'')}</td>
+                    <td style="color:var(--ink-muted);">${esc(r.category_name||'—')}</td>
+                    <td style="font-family:var(--f-mono);">${r.stock_qty}</td>
+                    <td style="font-family:var(--f-mono);">${r.reorder_level}</td>
+                    <td style="color:var(--ink-faint);">${esc(r.unit||'pcs')}</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;">${esc(r.expiration_date||'—')}</td>
+                    <td><span class="status-stamp ${sBadge}">${esc(r.stock_status)}</span></td>
+                    <td>${expHtml}</td>
+                </tr>`;
+            });
 
-            // ✅ open dialog after render
-            $("#medicineReportPreviewModal").dialog("open");
-
-        }).fail(function (xhr) {
-            console.log("HTTP:", xhr.status, xhr.statusText);
-            console.log("Tried URL:", this.url);
-            showMessage("Error", `HTTP ${xhr.status} ${xhr.statusText}`, true);
-        });
-
+            $('#rptTableBody').html(html || '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--ink-faint);">No data.</td></tr>');
+            $('#reportPreviewModal').dialog('open');
+        }).fail(() => showAlert('Error', 'Request failed.', 'danger'));
     });
 
-    function computeMedicineSummary(rows) {
-        const s = {
-            total: rows.length,
-            out_of_stock: 0,
-            critical: 0,
-            ok_items: 0,
-            expiring_soon: 0
-        };
-
-        rows.forEach(r => {
-            const status = String(r.stock_status || '').toUpperCase();
-            if (status === 'OUT_OF_STOCK') s.out_of_stock++;
-            else if (status === 'CRITICAL') s.critical++;
-            else if (status === 'OK') s.ok_items++;
-
-            if (parseInt(r.is_expiring_soon, 10) === 1) s.expiring_soon++;
-        });
-
-        return s;
-    }
-
-    // Print - uses hidden iframe so hindi “blank tab”
-    $("#printMedicineReportBtn").on("click", function () {
-        const qs = buildReportQS();
-        const url = 'reports/medicine_inventory_print.php?' + qs;
-
-        let $frame = $("#printFrame");
-        if ($frame.length === 0) {
-            $frame = $('<iframe id="printFrame" style="display:none;"></iframe>');
-            $("body").append($frame);
+    /* Print */
+    $('#rptPrintBtn').on('click', function () {
+        /* open print page in hidden iframe so it auto-prints */
+        let $f = $('#invPrintFrame');
+        if (!$f.length) {
+            $f = $('<iframe id="invPrintFrame" style="display:none;"></iframe>');
+            $('body').append($f);
         }
-        $frame.attr("src", url);
-
-        // the print page will auto-print onload via window.print()
+        $f.attr('src', 'reports/medicine_inventory_print.php?' + buildReportQS());
     });
 
-    // Minimal renderer (you can upgrade to DataTable if you want)
-    function renderMedicineReportRows(rows) {
-
-        let html = '';
-
-        rows.forEach(function (r) {
-
-            const badge =
-                (r.stock_status === 'OUT_OF_STOCK') ? 'bg-red-100 text-red-800' :
-                    (r.stock_status === 'CRITICAL') ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800';
-
-            const exp =
-                parseInt(r.is_expiring_soon, 10) === 1
-                    ? '<span class="text-red-600 font-semibold">YES</span>'
-                    : 'NO';
-
-            html += `
-      <tr class="border-b hover:bg-gray-50">
-        <td class="p-2">${escapeHtml(r.name || '')}</td>
-        <td class="p-2">${escapeHtml(r.category_name || '-')}</td>
-        <td class="p-2">${r.stock_qty}</td>
-        <td class="p-2">${r.reorder_level}</td>
-        <td class="p-2">${escapeHtml(r.unit || 'pcs')}</td>
-        <td class="p-2">${escapeHtml(r.expiration_date || '-')}</td>
-        <td class="p-2">
-          <span class="px-2 py-1 rounded text-xs ${badge}">
-            ${r.stock_status}
-          </span>
-        </td>
-        <td class="p-2">${exp}</td>
-      </tr>
-    `;
-        });
-
-        $("#medicineReportTbody").html(
-            html || `<tr><td colspan="8" class="p-3 text-gray-500">No data found</td></tr>`
-        );
-    }
-
-    function escapeHtml(str) {
-        return String(str).replace(/[&<>"']/g, function (m) {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]);
-        });
-    }
+    /* ════════════════════════
+       BOOT
+    ════════════════════════ */
+    loadCategories();
+    initTable();
+    $('body').show();
 });

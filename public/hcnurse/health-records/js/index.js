@@ -1,385 +1,289 @@
-// Sub-type options per main type (pwede mong i-edit)
+/**
+ * Health Records — JS Controller
+ * Replaces: public/hcnurse/health-records/js/index.js
+ *
+ * Works for all program types: maternal, family_planning,
+ * prenatal, postnatal, child_nutrition, immunization.
+ */
+
+/* ─── Sub-type options per program ─── */
 const SUBTYPE_OPTIONS = {
-    immunization: [
-        { value: "all", label: "All" },
-        { value: "child", label: "Child" },
-        { value: "adult", label: "Adult" },
-        { value: "pregnant", label: "Pregnant" }
-    ],
-    maternal: [
-        { value: "all", label: "All" },
-        { value: "mother_only", label: "Mother Only" },
-        { value: "child_only", label: "Child Only" },
-        { value: "mother_child", label: "Mother & Child" }
-    ],
-    family_planning: [
-        { value: "all", label: "All" },
-        { value: "pills", label: "Pills" },
-        { value: "injectable", label: "Injectable" },
-        { value: "implant", label: "Implant" },
-        { value: "iud", label: "IUD" }
-    ],
-    prenatal: [
-        { value: "all", label: "All" },
-        { value: "prenatal", label: "Prenatal" },
-    ],
-    postnatal: [
-        { value: "all", label: "All" },
-        { value: "postnatal", label: "Postnatal" }
-    ],
-    child_nutrition: [
-        { value: "all", label: "All" },
-        { value: "supplementation", label: "Supplementation" },
-        { value: "deworming", label: "Deworming" },
-        { value: "weighing", label: "Weighing" }
-    ],
+    immunization:    [['all','All'],['child','Child'],['adult','Adult'],['pregnant','Pregnant']],
+    maternal:        [['all','All'],['mother_only','Mother Only'],['child_only','Child Only'],['mother_child','Mother & Child']],
+    family_planning: [['all','All'],['pills','Pills'],['injectable','Injectable'],['implant','Implant'],['iud','IUD']],
+    prenatal:        [['all','All'],['prenatal','Prenatal']],
+    postnatal:       [['all','All'],['postnatal','Postnatal']],
+    child_nutrition: [['all','All'],['supplementation','Supplementation'],['deworming','Deworming'],['weighing','Weighing']],
 };
 
-/**
- * Initialize modal dialog (jQuery UI)
- * You can customize the form fields and buttons as needed.
- */
-$("#viewConsultationModal").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 600,
-    resizable: false
-});
-$("#editConsultationModal").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 800,
-    resizable: true,
-    classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'text-white rounded-b-lg'
-    },
-    show: { effect: "fadeIn", duration: 200 },
-    hide: { effect: "fadeOut", duration: 200 },
-    buttons: {
-        "Save Changes": function () {
-            $("#editConsultationForm").trigger("submit");
-        },
-        Cancel: function () {
-            $(this).dialog("close");
-        }
-    },
-    open: function () {
-        $(this).find('[tabindex="0"]').focus();
-        $(this).find(':input').blur();
+$(function () {
 
+    /* ── State ── */
+    let currentPeriod = INIT_FILTERS.period || 'all';
+
+    /* ── Helpers ── */
+    function esc(s) {
+        const d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
     }
-});
-
-// submit form
-$("#editConsultationForm").on("submit", function (e) {
-    e.preventDefault();
-
-    const id = $("#edit_id").val(); // hidden input; set this when edit modal opens
-    const payload = $(this).serialize() + "&id=" + encodeURIComponent(id);
-    console.log("Submitting update:", payload);
-
-    $.ajax({
-        url: "api/health_records_api.php?id=" + id + "&action=update&type=" + encodeURIComponent(HEALTH_RECORD_TYPE),
-        type: "POST",
-        data: payload,
-        dataType: "json",
-        success: function (res) {
-            if (res.status !== "ok") {
-                showDialog("Message", res.message || "Update failed");
-                return;
-            }
-            $("#editConsultationModal").dialog("close");
-            showDialog("Message", "Update successful");
-            loadRecords(); // refresh table
-        },
-        error: function (xhr) {
-            console.log(xhr.responseText);
-            alert("Server error");
-        }
-    });
-});
-
-/**
- * UI initialization and event handlers
- * These handlers manage the filter buttons, search input, and dynamically generated view/edit buttons in the records table.
- * @param {*} period 
- */
-function setActivePeriod(period) {
-    document.querySelectorAll(".periodBtn").forEach(btn => {
-        const isActive = btn.dataset.period === period;
-        btn.classList.toggle("bg-theme-primary", isActive);
-        btn.classList.toggle("text-white", isActive);
-        btn.classList.toggle("border-theme-primary", isActive);
-        if (!isActive) {
-            btn.classList.remove("bg-theme-primary", "text-white", "border-theme-primary");
-        }
-    });
-
-    const monthPicker = document.getElementById("monthPicker");
-    monthPicker.closest("div").classList.toggle("opacity-50", period !== "monthly");
-    monthPicker.disabled = period !== "monthly";
-}
-
-function fillSubTypes() {
-    const sel = document.getElementById("subTypeSelect");
-    sel.innerHTML = "";
-    const opts = SUBTYPE_OPTIONS[HEALTH_RECORD_TYPE] || [{
-        value: "all",
-        label: "All"
-    }];
-    opts.forEach(o => {
-        const opt = document.createElement("option");
-        opt.value = o.value;
-        opt.textContent = o.label;
-        sel.appendChild(opt);
-    });
-    sel.value = INIT_FILTERS.sub || "all";
-
-    // update header label
-    const selectedLabel = sel.options[sel.selectedIndex]?.textContent || "All";
-    document.getElementById("currentSubTypeLabel").textContent = selectedLabel.replace(" Only", "");
-}
-
-function updateUrlAndReload() {
-    const period = window.__period || INIT_FILTERS.period || "all";
-    const month = document.getElementById("monthPicker").value || INIT_FILTERS.month;
-    const sub = document.getElementById("subTypeSelect").value || "all";
-    const q = document.getElementById("searchInput").value || "";
-
-    const params = new URLSearchParams();
-    params.set("type", HEALTH_RECORD_TYPE);
-    params.set("period", period);
-    if (period === "monthly") params.set("month", month);
-    if (q.trim() !== "") params.set("q", q.trim());
-    if (sub !== "all") params.set("sub", sub);
-
-    // change URL (shareable)
-    window.history.replaceState({}, "", "?" + params.toString());
-
-    if (typeof loadRecords === 'function') {
-        loadRecords({ type: HEALTH_RECORD_TYPE, period, month, sub, q });
-    }
-}
-
-function openViewModal(id) {
-
-    $.getJSON("api/health_records_api.php", {
-        action: "get",
-        type: HEALTH_RECORD_TYPE,
-        id: id
-    }).done(function (res) {
-
-        if (res.status !== "ok") return;
-
-        const record = res.data;
-        const meta = record.meta || {};
-
-        $("#view_resident").text(record.resident_name || '');
-        $("#view_date").text(record.consultation_date || '');
-        $("#view_time").text(meta.time || '-');
-        $("#view_type").text(meta.program || '');
-        $("#view_sub_type").text(meta.sub_type || '-');
-        $("#view_complaint").text(record.complaint || '');
-        $("#view_diagnosis").text(record.diagnosis || '-');
-        $("#view_treatment").text(record.treatment || '-');
-        $("#view_worker").text(meta.health_worker || '-');
-        $("#view_status").html(formatStatusBadge(meta.status));
-        $("#view_remarks").text(meta.remarks || '-');
-
-        $("#viewConsultationModal").dialog("open");
-
-    }).fail(function (xhr) {
-        console.log(xhr.responseText);
-    });
-}
-
-function openEditModal(id) {
-    $.getJSON("api/health_records_api.php", {
-        action: "get",
-        type: HEALTH_RECORD_TYPE,
-        id: id
-    }).done(function (res) {
-        if (res.status !== "ok") return;
-
-        const record = res.data;
-
-        // fill your form
-        $("#edit_id").val(record.id);
-        $("#edit_resident_id").val(record.resident_id);
-        $("#edit_resident_name").val(record.resident_name);
-        $("#consultation_date").val(record.consultation_date);
-
-        $("textarea[name='complaint']").val(record.complaint || "");
-        $("textarea[name='diagnosis']").val(record.diagnosis || "");
-        $("textarea[name='treatment']").val(record.treatment || "");
-        $("textarea[name='remarks']").val(record.meta.remarks || "");
-
-        $("input[name='consultation_time']").val(record.meta.time || "");
-        $("input[name='health_worker']").val(record.meta.health_worker || "");
-        $("select[name='status']").val(record.meta.status || "Completed");
-
-        $("select[name='consultation_type']").val(record.meta.program || HEALTH_RECORD_TYPE);
-        $("#sub_type").val(record.meta.sub_type || "all");
-
-        $("#editConsultationModal").dialog("open");
-    }).fail(function (xhr) {
-        console.log("Edit load failed:", xhr.status, xhr.responseText);
-    });
-}
-
-/**
- * Initial filter values are set from the server-rendered INIT_FILTERS object.
- * This ensures that when the page loads, the UI reflects the current filter state. 
- */
-window.__period = INIT_FILTERS.period || "all";
-
-document.querySelectorAll(".periodBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        window.__period = btn.dataset.period;
-        setActivePeriod(window.__period);
-    });
-});
-
-document.getElementById("applyPeriodBtn").addEventListener("click", () => {
-    updateUrlAndReload();
-});
-
-document.getElementById("subTypeSelect").addEventListener("change", () => {
-    const sel = document.getElementById("subTypeSelect");
-    const selectedLabel = sel.options[sel.selectedIndex]?.textContent || "All";
-    document.getElementById("currentSubTypeLabel").textContent = selectedLabel.replace(" Only", "");
-    updateUrlAndReload();
-});
-
-document.getElementById("searchInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") updateUrlAndReload();
-});
-
-document.getElementById("clearFiltersBtn").addEventListener("click", () => {
-    const base = new URL(window.location.href);
-    base.search = "";
-    base.searchParams.set("type", HEALTH_RECORD_TYPE);
-    window.location.href = base.toString();
-});
-
-$("#printRecordsBtn").on("click", function () {
-
-    const params = {
-        type: HEALTH_RECORD_TYPE,
-        period: window.__period || "all",
-        month: $("#monthPicker").val() || "",
-        search: $("#searchInput").val() || "",
-        sub: $("#subTypeSelect").val() || "all"
-    };
-
-    $.getJSON("api/health_records_api.php", params, function (res) {
-
-        if (res.status !== "ok") return;
-
-        const records = res.data || [];
-
-        let html = `
-      <div style="font-family: Arial; font-size:12px;">
-        <h2>Health Records - ${params.type.replace("_", " ").toUpperCase()}</h2>
-        <p>
-          Period: ${res.filters.period} |
-          Date Range: ${res.filters.from} to ${res.filters.to}
-        </p>
-        <table border="1" width="100%" cellspacing="0" cellpadding="5">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Resident</th>
-              <th>Sub Type</th>
-              <th>Status</th>
-              <th>Complaint</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-        records.forEach(r => {
-            html += `
-        <tr>
-          <td>${r.consultation_date}</td>
-          <td>${r.resident_name}</td>
-          <td>${r.meta.sub_type || '-'}</td>
-          <td>${r.meta.status || '-'}</td>
-          <td>${r.complaint}</td>
-        </tr>
-      `;
+    function showAlert(title, msg, type) {
+        const col = type === 'success' ? 'var(--ok-fg)' : 'var(--danger-fg)';
+        const id  = 'al_' + Date.now();
+        $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">${esc(msg)}</div>
+        </div>`);
+        $(`#${id}`).dialog({
+            autoOpen:true, modal:true, width:400, resizable:false,
+            buttons:{ 'OK': function(){ $(this).dialog('close').remove(); } }
         });
+    }
+    function statusBadge(s) {
+        if (!s) return '—';
+        const map = {
+            'Completed': 'sb-completed',
+            'Ongoing':   'sb-ongoing',
+            'Dismissed': 'sb-dismissed',
+            'Follow-up': 'sb-followup',
+        };
+        return `<span class="status-badge ${map[s] || 'sb-dismissed'}">${esc(s)}</span>`;
+    }
 
-        html += `
-          </tbody>
-        </table>
-      </div>
-    `;
+    /* ── Fill sub-type select ── */
+    function fillSubTypes() {
+        const opts  = SUBTYPE_OPTIONS[HEALTH_RECORD_TYPE] || [['all','All']];
+        const $sel  = $('#subTypeSelect');
+        $sel.empty();
+        opts.forEach(([v, l]) => $sel.append(`<option value="${v}">${l}</option>`));
+        $sel.val(INIT_FILTERS.sub || 'all');
+    }
+    fillSubTypes();
 
-        const original = $("body").html();
-
-        $("body").html(html);
-        window.print();
-        $("body").html(original);
-
-        // Re-bind scripts after restoring DOM
-        location.reload(); // safest way para hindi masira events
+    /* ── DataTable ── */
+    const table = $('#hrTable').DataTable({
+        pageLength: 25, order: [[0,'desc']],
+        dom: 'tip',
+        language: {
+            info: 'Showing _START_–_END_ of _TOTAL_ records',
+            paginate: { previous:'‹', next:'›' },
+            emptyTable: ''     /* handled by custom empty state */
+        },
+        columns: [
+            /* Date */
+            { data:'consultation_date', render: d => `<span class="td-date">${esc(d||'—')}</span>` },
+            /* Patient */
+            { data:'resident_name', render: d => `<span class="td-patient">${esc(d||'—')}</span>` },
+            /* Sub Type */
+            {
+                data:'meta',
+                render: m => {
+                    const s = (m||{}).sub_type || '';
+                    return s && s !== 'all'
+                        ? `<span class="sub-badge">${esc(s.replace(/_/g,' '))}</span>`
+                        : '<span style="color:var(--ink-faint);font-size:11px;">—</span>';
+                }
+            },
+            /* Complaint */
+            { data:'complaint', render: d => `<div class="td-trunc">${esc(d||'—')}</div>` },
+            /* Worker */
+            {
+                data:'meta',
+                render: m => `<span style="font-size:12px;color:var(--ink-muted);">${esc((m||{}).health_worker||'—')}</span>`
+            },
+            /* Status */
+            { data:'meta', render: m => statusBadge((m||{}).status) },
+            /* Actions */
+            {
+                data:'id', orderable:false,
+                render: id => `<div class="td-actions">
+                    <button class="act-btn act-view viewBtn" data-id="${id}">View</button>
+                    <button class="act-btn act-edit editBtn" data-id="${id}">Edit</button>
+                </div>`
+            }
+        ]
     });
 
+    /* ── Load records ── */
+    function loadRecords() {
+        const params = {
+            type:   HEALTH_RECORD_TYPE,
+            period: currentPeriod,
+            month:  $('#monthPicker').val(),
+            search: $('#searchInput').val(),
+            sub:    $('#subTypeSelect').val(),
+        };
+
+        /* update URL */
+        const url = new URL(window.location.href);
+        url.searchParams.set('type',   HEALTH_RECORD_TYPE);
+        url.searchParams.set('period', currentPeriod);
+        if (currentPeriod === 'monthly') url.searchParams.set('month', params.month);
+        else url.searchParams.delete('month');
+        if (params.search) url.searchParams.set('q', params.search);
+        else url.searchParams.delete('q');
+        if (params.sub !== 'all') url.searchParams.set('sub', params.sub);
+        else url.searchParams.delete('sub');
+        window.history.replaceState({}, '', url.toString());
+
+        $.getJSON('api/health_records_api.php', params, function (res) {
+            table.clear();
+            if (res.status !== 'ok') return;
+
+            const data = res.data || [];
+            $('#recCountBadge').text(data.length + (data.length === 1 ? ' RECORD' : ' RECORDS'));
+
+            if (!data.length) {
+                $('#hrEmptyState').show();
+                $('#hrTable').hide();
+            } else {
+                $('#hrEmptyState').hide();
+                $('#hrTable').show();
+                data.forEach(row => table.row.add(row));
+            }
+            table.draw();
+        });
+    }
+
+    /* ── Period buttons ── */
+    $(document).on('click', '.pb-btn[data-period]', function () {
+        currentPeriod = $(this).data('period');
+        $('.pb-btn[data-period]').removeClass('active');
+        $(this).addClass('active');
+        /* month picker opacity */
+        $('#monthPicker').css('opacity', currentPeriod === 'monthly' ? '1' : '.45');
+        loadRecords();
+    });
+
+    /* ── Month picker ── */
+    $('#monthPicker').on('change', function () {
+        if (currentPeriod === 'monthly') loadRecords();
+    });
+
+    /* ── Sub type ── */
+    $('#subTypeSelect').on('change', loadRecords);
+
+    /* ── Search (Enter key) ── */
+    let searchTimer;
+    $('#searchInput').on('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(loadRecords, 400);
+    });
+
+    /* ── Clear filters ── */
+    $('#btnClear').on('click', function () {
+        currentPeriod = 'all';
+        $('.pb-btn[data-period]').removeClass('active');
+        $('[data-period="all"]').addClass('active');
+        $('#monthPicker').val(new Date().toISOString().slice(0,7)).css('opacity','.45');
+        $('#subTypeSelect').val('all');
+        $('#searchInput').val('');
+        loadRecords();
+    });
+
+    /* ════════════════════════
+       VIEW MODAL
+    ════════════════════════ */
+    $('#viewModal').dialog({
+        autoOpen: false, modal: true, width: 820, resizable: true,
+        buttons: { 'Close': function(){ $(this).dialog('close'); } }
+    });
+
+    $(document).on('click', '.viewBtn', function () {
+        const id = $(this).data('id');
+        $.getJSON('api/health_records_api.php', { action:'get', type:HEALTH_RECORD_TYPE, id }, function (res) {
+            if (res.status !== 'ok') { showAlert('Error', res.message||'Not found.', 'danger'); return; }
+            const d = res.data;
+            const m = d.meta || {};
+            $('#vm-name').text(d.resident_name || '—');
+            $('#vm-sub').text('Record #' + String(d.id).padStart(5,'0') + ' · ' + (m.program||HEALTH_RECORD_TYPE).replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
+            $('#vm-date').text(d.consultation_date || '—');
+            $('#vm-time').text(m.time || '—');
+            $('#vm-subtype').text((m.sub_type||'').replace(/_/g,' ') || '—');
+            $('#vm-worker').text(m.health_worker || '—');
+            $('#vm-complaint').text(d.complaint || '—');
+            $('#vm-diagnosis').text(d.diagnosis || '—');
+            $('#vm-treatment').text(d.treatment || '—');
+            $('#vm-remarks').text(m.remarks || '—');
+            $('#vm-status-wrap').html(statusBadge(m.status));
+            $('#viewModal').dialog('option','title','Record — ' + (d.resident_name||'')).dialog('open');
+        });
+    });
+
+    /* ════════════════════════
+       EDIT MODAL
+    ════════════════════════ */
+    $('#editModal').dialog({
+        autoOpen: false, modal: true, width: 720, resizable: false,
+        buttons: {
+            'Save Changes': function(){ submitEdit(); },
+            'Cancel':       function(){ $(this).dialog('close'); }
+        }
+    });
+    $('#edit_date').datepicker({ dateFormat:'mm/dd/yy', changeMonth:true, changeYear:true });
+
+    $(document).on('click', '.editBtn', function () {
+        const id = $(this).data('id');
+        $.getJSON('api/health_records_api.php', { action:'get', type:HEALTH_RECORD_TYPE, id }, function (res) {
+            if (res.status !== 'ok') { showAlert('Error', res.message||'Not found.', 'danger'); return; }
+            const d = res.data;
+            const m = d.meta || {};
+            $('#edit_id').val(d.id);
+            $('#edit_resident_id').val(d.resident_id);
+            $('#edit_resident_name').val(d.resident_name || '');
+            /* date yyyy-mm-dd → mm/dd/yyyy */
+            if (d.consultation_date && d.consultation_date.includes('-')) {
+                const p = d.consultation_date.split('-');
+                $('#edit_date').val(p[1]+'/'+p[2]+'/'+p[0]);
+            } else {
+                $('#edit_date').val(d.consultation_date || '');
+            }
+            $('#edit_time').val(m.time || '');
+            $('#edit_status').val(m.status || 'Completed');
+            $('#edit_subtype').val((m.sub_type||'').replace(/_/g,' '));
+            $('#edit_worker').val(m.health_worker || '');
+            $('#edit_complaint').val(d.complaint || '');
+            $('#edit_diagnosis').val(d.diagnosis || '');
+            $('#edit_treatment').val(d.treatment || '');
+            $('#edit_remarks').val(m.remarks || '');
+            $('#editModal').dialog('option','title','Edit — ' + (d.resident_name||'')).dialog('open');
+        });
+    });
+
+    function submitEdit() {
+        $.ajax({
+            url: 'api/health_records_api.php?action=update&type=' + encodeURIComponent(HEALTH_RECORD_TYPE),
+            type: 'POST',
+            data: $('#editForm').serialize() + '&id=' + $('#edit_id').val(),
+            dataType: 'json',
+            success: function (res) {
+                if (res.status !== 'ok') { showAlert('Error', res.message||'Update failed.', 'danger'); return; }
+                $('#editModal').dialog('close');
+                showAlert('Saved', 'Record updated successfully.', 'success');
+                loadRecords();
+            },
+            error: () => showAlert('Error', 'Request failed.', 'danger')
+        });
+    }
+
+    /* ════════════════════════
+       PRINT
+    ════════════════════════ */
+    $('#btnPrint').on('click', function () {
+        const params = new URLSearchParams({
+            type:   HEALTH_RECORD_TYPE,
+            period: currentPeriod,
+            month:  $('#monthPicker').val(),
+            search: $('#searchInput').val(),
+            sub:    $('#subTypeSelect').val(),
+        });
+        window.open('../print.php?' + params.toString(), '_blank');
+    });
+
+    /* ── Boot ── */
+    /* set active period button */
+    $(`.pb-btn[data-period="${INIT_FILTERS.period||'all'}"]`).addClass('active');
+    if (INIT_FILTERS.period !== 'monthly') $('#monthPicker').css('opacity','.45');
+
+    loadRecords();
+    $('body').show();
 });
-
-/**
- * Delegated event handlers for dynamically generated buttons in the records table.
- * These buttons are created when the records are loaded, so we use event delegation.
- */
-// VIEW BUTTON
-$(document).on("click", ".viewBtn", function () {
-    const id = $(this).data("id");
-    openViewModal(id);
-});
-
-// EDIT BUTTON
-$(document).on("click", ".editBtn", function () {
-    const id = $(this).data("id");
-    openEditModal(id);
-});
-
-/**
- * initialize sub-type options based on main type, and set initial filter values
- * This runs on page load to ensure the UI reflects the current filters.
- */
-fillSubTypes();
-document.getElementById("searchInput").value = INIT_FILTERS.q || "";
-document.getElementById("monthPicker").value = INIT_FILTERS.month || "";
-setActivePeriod(window.__period);
-
-/**
- * Helper function to format status badges in the view modal.
- * You can customize the badge styles and status values as needed.
- * This function returns HTML strings that are injected into the modal.
- */
-function formatStatusBadge(status) {
-
-    if (!status) return '-';
-
-    if (status === "Completed") {
-        return '<span class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">Completed</span>';
-    }
-
-    if (status === "Ongoing") {
-        return '<span class="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700">Ongoing</span>';
-    }
-
-    if (status === "Dismissed") {
-        return '<span class="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Dismissed</span>';
-    }
-
-    if (status === "Follow-up") {
-        return '<span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">Follow-up</span>';
-    }
-
-    return status;
-}
