@@ -7,13 +7,6 @@
 require_once __DIR__ . '/../../../includes/app.php';
 requireSecretary();
 
-// Load inventory items for the dropdown
-$inventoryItems = [];
-try {
-    $res = $conn->query("SELECT id, asset_code, name FROM inventory WHERE status='available' OR status IS NULL ORDER BY name ASC");
-    if ($res) while ($r = $res->fetch_assoc()) $inventoryItems[] = $r;
-} catch (Exception $e) { /* ignore */ }
-
 $csrf_token = getCSRFToken();
 ?>
 <!DOCTYPE html>
@@ -233,6 +226,52 @@ $csrf_token = getCSRFToken();
     .act-return:hover { border-color:var(--ok-fg);     color:var(--ok-fg);     background:var(--ok-bg); }
     .act-delete:hover { border-color:var(--danger-fg); color:var(--danger-fg); background:var(--danger-bg); }
 
+    /* ── Inventory item search-with-dropdown ── */
+    .inv-search-wrap { position: relative; }
+    .inv-search-dd {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+        background: #fff; border: 1.5px solid var(--rule-dk); border-radius: 2px;
+        box-shadow: 0 6px 24px rgba(0,0,0,.13);
+        max-height: 220px; overflow-y: auto;
+        z-index: 9999; display: none;
+    }
+    .inv-search-dd.open { display: block; }
+    .inv-dd-empty {
+        padding: 14px 13px; font-size: 12px;
+        color: var(--ink-faint); font-style: italic; text-align: center;
+    }
+    .inv-dd-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 13px; cursor: pointer;
+        border-bottom: 1px solid #f0ede8; transition: background .1s;
+    }
+    .inv-dd-row:last-child { border-bottom: none; }
+    .inv-dd-row:hover { background: var(--accent-lt); }
+    .inv-dd-row:hover .inv-dd-code { border-color: var(--accent); color: var(--accent); }
+    .inv-dd-code {
+        font-family: var(--f-mono); font-size: 9.5px; font-weight: 700;
+        color: var(--ink-faint); border: 1px solid var(--rule-dk);
+        border-radius: 2px; padding: 3px 6px; flex-shrink: 0;
+        transition: all .12s; white-space: nowrap;
+    }
+    .inv-dd-body { flex: 1; min-width: 0; }
+    .inv-dd-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .inv-dd-avail { font-size: 10.5px; font-family: var(--f-mono); }
+    .inv-dd-avail.ok   { color: var(--ok-fg); }
+    .inv-dd-avail.warn { color: var(--warn-fg); }
+    .inv-dd-avail.none { color: var(--danger-fg); }
+    .inv-selected-tag {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 8px 12px; margin-top: 6px;
+        background: var(--accent-lt);
+        border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+        border-radius: 2px; font-size: 12px; font-weight: 600; color: var(--accent);
+    }
+    .inv-clear-btn {
+        background: none; border: none; cursor: pointer;
+        font-size: 12px; color: var(--danger-fg); padding: 0 4px; font-weight: 700;
+    }
+
     /* ═══════════════════════════════════════
        DIALOG OVERRIDES
     ═══════════════════════════════════════ */
@@ -393,28 +432,41 @@ $csrf_token = getCSRFToken();
             <div class="form-section">
                 <div class="form-section-lbl">Item Details</div>
                 <div class="form-section-body">
+
+                    <!-- Inventory search replaces the old <select> -->
+                    <div class="fg">
+                        <label class="fg-label">Search Inventory Item</label>
+                        <div class="inv-search-wrap">
+                            <input type="text" id="invItemSearch" class="fg-input"
+                                placeholder="Type asset code or name…" autocomplete="off">
+                            <div id="invItemDropdown" class="inv-search-dd">
+                                <div class="inv-dd-empty">Start typing to search…</div>
+                            </div>
+                        </div>
+                        <!-- Hidden fields populated on selection -->
+                        <input type="hidden" id="inventoryItemId">
+                        <!-- Selected item tag (shown after pick) -->
+                        <div id="invSelectedTag" class="inv-selected-tag" style="display:none;">
+                            <span id="invSelectedLabel"></span>
+                            <button type="button" class="inv-clear-btn" id="invClearBtn" title="Clear selection">✕</button>
+                        </div>
+                        <!-- Availability hint -->
+                        <div id="availHint" style="display:none;margin-top:7px;padding:8px 12px;
+                             border-radius:2px;font-size:12px;font-family:var(--f-mono);border:1px solid;"></div>
+                    </div>
+
                     <div class="form-grid-2">
                         <div class="fg">
-                            <label class="fg-label">Select from Inventory</label>
-                            <select id="inventoryItemSelect" class="fg-select">
-                                <option value="">— Choose inventory item —</option>
-                                <?php foreach ($inventoryItems as $item): ?>
-                                    <option value="<?= $item['id'] ?>" data-name="<?= htmlspecialchars($item['name']) ?>">
-                                        <?= htmlspecialchars($item['asset_code'] . ' — ' . $item['name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="fg">
                             <label class="fg-label">Item Name <span class="req">*</span></label>
-                            <input type="text" id="itemName" class="fg-input" placeholder="Enter or auto-fill from inventory" autocomplete="off">
+                            <input type="text" id="itemName" class="fg-input"
+                                placeholder="Auto-filled or type manually" autocomplete="off">
                         </div>
-                    </div>
-                    <div class="form-grid-3">
                         <div class="fg">
                             <label class="fg-label">Quantity <span class="req">*</span></label>
                             <input type="number" id="borrowQty" class="fg-input" value="1" min="1">
                         </div>
+                    </div>
+                    <div class="form-grid-2">
                         <div class="fg">
                             <label class="fg-label">Condition (Out)</label>
                             <input type="text" id="conditionOut" class="fg-input" placeholder="e.g. Good condition">
@@ -484,10 +536,216 @@ $csrf_token = getCSRFToken();
     <script src="js/index.js"></script>
     <script>
     $(function() {
-        // Update count display
-        $(document).ajaxComplete(function() {
-            const cnt = $('#borrowTable').DataTable ? $('#borrowTable tbody tr').length : 0;
+
+        /* ══════════════════════════════════════════
+           INVENTORY ITEM SEARCH-WITH-DROPDOWN
+        ══════════════════════════════════════════ */
+        let invSearchTimer;
+        let invSearchCache = {};   // simple query cache
+
+        const $search  = $('#invItemSearch');
+        const $dd      = $('#invItemDropdown');
+        const $idField = $('#inventoryItemId');
+        const $tag     = $('#invSelectedTag');
+        const $tagLbl  = $('#invSelectedLabel');
+        const $hint    = $('#availHint');
+        const $qty     = $('#borrowQty');
+
+        function esc(s) { const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+        /* ── Fetch and render dropdown results ── */
+        function searchInventory(q) {
+            if (q.length < 1) {
+                $dd.removeClass('open').html('<div class="inv-dd-empty">Start typing to search…</div>');
+                return;
+            }
+
+            // Show cached results instantly if available
+            if (invSearchCache[q]) {
+                renderDropdown(invSearchCache[q]);
+                return;
+            }
+
+            $.getJSON('actions/borrow_api.php', {
+                action: 'check_availability',
+                search: q           // borrow_api passes this to inventory_api
+            }).done(function() {
+                // For search we call inventory_api directly
+            });
+
+            // Call inventory_api list with search param
+            $.getJSON('../inventory/api/inventory_api.php', {
+                action: 'list',
+                search: q
+            }, function(res) {
+                const items = res.data || [];
+                invSearchCache[q] = items;
+                renderDropdown(items);
+            }).fail(function() {
+                $dd.html('<div class="inv-dd-empty">Search failed. Try again.</div>').addClass('open');
+            });
+        }
+
+        function renderDropdown(items) {
+            $dd.empty();
+            if (!items.length) {
+                $dd.html('<div class="inv-dd-empty">No items found.</div>').addClass('open');
+                return;
+            }
+            items.forEach(function(item) {
+                const total     = parseInt(item.quantity)           || 0;
+                const available = parseInt(item.available_quantity) || 0;
+
+                let availCls, availTxt;
+                if (available <= 0) {
+                    availCls = 'none'; availTxt = '✕ None available';
+                } else if (available <= Math.ceil(total * 0.2)) {
+                    availCls = 'warn'; availTxt = '⚠ ' + available + ' of ' + total + ' available';
+                } else {
+                    availCls = 'ok';   availTxt = '✓ ' + available + ' of ' + total + ' available';
+                }
+
+                $dd.append(
+                    $(`<div class="inv-dd-row" tabindex="0"></div>`)
+                        .data('item', item)
+                        .html(`
+                            <span class="inv-dd-code">${esc(item.asset_code)}</span>
+                            <div class="inv-dd-body">
+                                <div class="inv-dd-name">${esc(item.name)}</div>
+                                <div class="inv-dd-avail ${availCls}">${availTxt}</div>
+                            </div>
+                        `)
+                );
+            });
+            $dd.addClass('open');
+        }
+
+        /* ── Select an item from the dropdown ── */
+        $dd.on('click', '.inv-dd-row', function() {
+            selectItem($(this).data('item'));
         });
+
+        // Keyboard navigation
+        $dd.on('keydown', '.inv-dd-row', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') selectItem($(this).data('item'));
+            if (e.key === 'ArrowDown') $(this).next('.inv-dd-row').focus();
+            if (e.key === 'ArrowUp')   $(this).prev('.inv-dd-row').focus();
+        });
+        $search.on('keydown', function(e) {
+            if (e.key === 'ArrowDown') $dd.find('.inv-dd-row:first').focus();
+        });
+
+        function selectItem(item) {
+            $dd.removeClass('open');
+            $search.val('');
+
+            const total     = parseInt(item.quantity)           || 0;
+            const available = parseInt(item.available_quantity) || 0;
+
+            $idField.val(item.id);
+            $('#itemName').val(item.name);
+            $qty.attr('max', available);
+            if (parseInt($qty.val()) > available) $qty.val(available || 1);
+
+            // Show selected tag
+            $tagLbl.text(item.asset_code + ' — ' + item.name);
+            $tag.show();
+
+            // Show availability hint
+            showHint(total, item.currently_using || (total - available), available);
+
+            // Fetch live availability to confirm
+            refreshAvailability(item.id);
+        }
+
+        /* ── Clear selection ── */
+        $('#invClearBtn').on('click', function() {
+            clearSelection();
+        });
+
+        function clearSelection() {
+            $idField.val('');
+            $('#itemName').val('');
+            $qty.removeAttr('max');
+            $tag.hide();
+            $hint.hide();
+            $search.val('').focus();
+        }
+
+        /* ── Availability hint renderer ── */
+        function showHint(total, borrowed, available) {
+            if (available <= 0) {
+                $hint.css({
+                    background:  'var(--danger-bg)', color: 'var(--danger-fg)',
+                    borderColor: 'color-mix(in srgb,var(--danger-fg) 30%,transparent)'
+                }).html('⚠ No stock available — Total: ' + total +
+                        ' | Borrowed: ' + borrowed + ' | Available: <strong>0</strong>').show();
+            } else if (available <= Math.ceil(total * 0.2)) {
+                $hint.css({
+                    background:  'var(--warn-bg)', color: 'var(--warn-fg)',
+                    borderColor: 'color-mix(in srgb,var(--warn-fg) 30%,transparent)'
+                }).html('⚠ Low stock — Total: ' + total +
+                        ' | Borrowed: ' + borrowed + ' | Available: <strong>' + available + '</strong>').show();
+            } else {
+                $hint.css({
+                    background:  'var(--ok-bg)', color: 'var(--ok-fg)',
+                    borderColor: 'color-mix(in srgb,var(--ok-fg) 30%,transparent)'
+                }).html('✓ Total: ' + total +
+                        ' | Borrowed: ' + borrowed + ' | Available: <strong>' + available + '</strong>').show();
+            }
+        }
+
+        /* ── Live availability refresh from borrow_api ── */
+        function refreshAvailability(invId) {
+            $.getJSON('actions/borrow_api.php', {
+                action:       'check_availability',
+                inventory_id: invId,
+                exclude_id:   $('#borrowId').val() || 0
+            }, function(res) {
+                if (res.status !== 'ok') return;
+                const d = res.data;
+                $qty.attr('max', d.available);
+                if (parseInt($qty.val()) > d.available) $qty.val(d.available || 1);
+                showHint(d.total, d.borrowed, d.available);
+            });
+        }
+
+        /* ── Search input events ── */
+        $search.on('input', function() {
+            const q = $.trim($(this).val());
+            clearTimeout(invSearchTimer);
+            if (!q) {
+                $dd.removeClass('open');
+                return;
+            }
+            invSearchTimer = setTimeout(() => searchInventory(q), 280);
+        });
+
+        /* ── Close dropdown on outside click ── */
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#invItemSearch, #invItemDropdown').length) {
+                $dd.removeClass('open');
+            }
+        });
+
+        /* ── When edit form opens, re-populate the selected tag if inv_id exists ── */
+        // (index.js calls window.populateInvSearch after filling form fields)
+        window.setInvItem = function(id, name, assetCode) {
+            if (!id) { clearSelection(); return; }
+            $idField.val(id);
+            $('#itemName').val(name);
+            $tagLbl.text((assetCode ? assetCode + ' — ' : '') + name);
+            $tag.show();
+            $hint.hide();
+            refreshAvailability(id);
+        };
+
+        /* ── Reset when dialog closes ── */
+        $(document).on('dialogclose', '#borrowDialog', function() {
+            clearSelection();
+            invSearchCache = {};
+        });
+
     });
     </script>
 </body>

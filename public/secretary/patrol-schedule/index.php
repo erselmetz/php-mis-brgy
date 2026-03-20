@@ -497,7 +497,7 @@ $csrf_token = getCSRFToken();
 
     <!-- MODAL: VIEW -->
     <div id="viewPatrolDialog" title="Patrol Record" class="hidden">
-        <div id="viewPatrolContent"></div>
+        <div id="viewPatrolContent" class="p-4"></div>
     </div>
 
     <!-- MODAL: DELETE -->

@@ -246,26 +246,6 @@ $(function () {
         $('#patrolDialog').dialog('option', 'title', 'Edit Patrol — ' + row.patrol_code).dialog('open');
     });
 
-    // ── Delete ───────────────────────────────────────────────────────────────
-    $('#patrolTable').on('click', '.del-patrol-btn', function () {
-        $('#deletePatrolId').val($(this).data('id'));
-        $('#deletePatrolDialog').dialog('open');
-    });
-
-    $('#deletePatrolDialog').dialog({
-        autoOpen: false, modal: true, width: 400,
-        buttons: {
-            'Yes, Delete': function () {
-                $.post('actions/patrol_api.php?action=delete', { id: $('#deletePatrolId').val() }, function (res) {
-                    $('#deletePatrolDialog').dialog('close');
-                    if (res.success) { reloadTable(); showMsg('Deleted', res.message); }
-                    else showMsg('Error', res.message, true);
-                }, 'json');
-            },
-            'Cancel': function () { $(this).dialog('close'); }
-        }
-    });
-
     // ── Print ────────────────────────────────────────────────────────────────
     $('#btnPrintPatrol').on('click', function () {
         const date = $('#filterDate').val() || '';
@@ -276,7 +256,7 @@ $(function () {
     // ── Helpers ──────────────────────────────────────────────────────────────
     function showMsg(title, msg, isError) {
         const id = 'msg_' + Date.now();
-        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
+        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="p-4 ${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
         $(`#${id}`).dialog({ modal: true, width: 380, buttons: { OK: function () { $(this).dialog('close').remove(); } } });
     }
 

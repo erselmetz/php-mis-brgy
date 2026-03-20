@@ -109,10 +109,6 @@ $(function () {
                     return `<div class="td-actions">
                         <button class="act-btn act-view view-duty-btn"   data-id="${row.id}">View</button>
                         <button class="act-btn act-edit edit-duty-btn"   data-id="${row.id}">Edit</button>
-                        <button class="act-btn act-delete del-duty-btn"
-                            data-id="${row.id}"
-                            data-name="${esc(row.tanod_name)}"
-                            data-code="${esc(row.duty_code)}">Delete</button>
                     </div>`;
                 }
             }
@@ -252,48 +248,6 @@ $(function () {
             .dialog('option', 'title', 'Duty Record — ' + (row.duty_code || ''))
             .dialog('open');
     }
-
-    /* ═══════════════════════════════════════
-       DELETE
-    ═══════════════════════════════════════ */
-    $(document).on('click', '.del-duty-btn', function() {
-        const id   = $(this).data('id');
-        const name = $(this).data('name');
-        const code = $(this).data('code');
-        const dlgId = 'del_' + Date.now();
-
-        $('body').append(`<div id="${dlgId}" title="Delete Duty Assignment" style="display:none;">
-            <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid var(--danger-fg);background:var(--paper);">
-                Delete duty assignment <strong style="font-family:var(--f-mono);">${esc(code)}</strong> for <strong>${esc(name)}</strong>?<br>
-                <span style="font-size:11px;color:var(--ink-faint);">This action cannot be undone.</span>
-            </div>
-        </div>`);
-
-        $(`#${dlgId}`).dialog({
-            autoOpen: true, modal: true, width: 440, resizable: false,
-            buttons: {
-                'Delete': function() {
-                    $(this).dialog('close').remove();
-                    $.post('actions/duty_api.php?action=delete', { id }, function(res) {
-                        if (res.success) {
-                            reloadTable();
-                            showAlert('Deleted', res.message || 'Assignment deleted.', 'success');
-                        } else {
-                            showAlert('Error', res.message || 'Delete failed.', 'danger');
-                        }
-                    }, 'json');
-                },
-                'Cancel': function() { $(this).dialog('close').remove(); }
-            }
-        });
-
-        // Style delete button as danger
-        setTimeout(() => {
-            $(`#${dlgId}`).closest('.ui-dialog')
-                .find('.ui-dialog-buttonpane .ui-button:first-child')
-                .css({ background:'var(--danger-bg)', borderColor:'var(--danger-fg)', color:'var(--danger-fg)' });
-        }, 50);
-    });
 
     /* ═══════════════════════════════════════
        PRINT

@@ -247,7 +247,7 @@ $(function () {
     // ── Helpers ──────────────────────────────────────────────────────────────
     function showMsg(title, msg, isError) {
         const id = 'msg_' + Date.now();
-        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
+        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="p-4 ${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
         $(`#${id}`).dialog({ modal: true, width: 380, buttons: { OK: function () { $(this).dialog('close').remove(); } } });
     }
 

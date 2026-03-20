@@ -61,7 +61,6 @@ $(function () {
                         `<div class="flex gap-1">
                             <button class="view-res-btn text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" data-id="${row.id}">View</button>
                             <button class="edit-res-btn text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" data-id="${row.id}">Edit</button>
-                            <button class="del-res-btn text-xs px-2 py-1 bg-red-100 text-red-700 rounded" data-id="${row.id}">Delete</button>
                         </div>`
                 }
             ],
@@ -231,20 +230,6 @@ $(function () {
         $('#deleteResDialog').dialog('open');
     });
 
-    $('#deleteResDialog').dialog({
-        autoOpen: false, modal: true, width: 400,
-        buttons: {
-            'Yes, Delete': function () {
-                $.post('actions/court_api.php?action=delete', { id: $('#deleteResId').val() }, function (res) {
-                    $('#deleteResDialog').dialog('close');
-                    if (res.success) { reloadTable(); showMsg('Deleted', res.message); }
-                    else showMsg('Error', res.message, true);
-                }, 'json');
-            },
-            'Cancel': function () { $(this).dialog('close'); }
-        }
-    });
-
     // ── Print ────────────────────────────────────────────────────────────────
     $('#btnPrintCourt').on('click', function () {
         const date = $('#filterDate').val() || '';
@@ -254,7 +239,7 @@ $(function () {
 
     function showMsg(title, msg, isError) {
         const id = 'msg_' + Date.now();
-        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
+        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="p-4 ${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
         $(`#${id}`).dialog({ modal: true, width: 380, buttons: { OK: function () { $(this).dialog('close').remove(); } } });
     }
 

@@ -113,7 +113,8 @@ $csrf_token = getCSRFToken();
     .inv-search::placeholder { color: var(--ink-faint); font-style: italic; font-size: 12px; }
 
     /* ═══════════════════════════════════════
-       STAT LEDGER (top summary)
+       STAT LEDGER
+       4 cells: Total | Available | Borrowed | Maintenance | Damaged
     ═══════════════════════════════════════ */
     .stat-ledger {
         display: grid; grid-template-columns: repeat(5, 1fr);
@@ -121,9 +122,7 @@ $csrf_token = getCSRFToken();
         background: var(--paper);
         border: 1px solid var(--rule);
         border-top: 3px solid var(--accent);
-        border-radius: 2px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+        border-radius: 2px; box-shadow: var(--shadow); overflow: hidden;
     }
     .stat-cell {
         padding: 16px 18px; border-right: 1px solid var(--rule);
@@ -154,9 +153,7 @@ $csrf_token = getCSRFToken();
         background: var(--paper);
         border: 1px solid var(--rule);
         border-top: 3px solid var(--accent);
-        border-radius: 2px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+        border-radius: 2px; box-shadow: var(--shadow); overflow: hidden;
     }
     .inv-table-wrap .dataTables_wrapper { padding: 0; font-family: var(--f-sans); }
     .inv-table-wrap .dataTables_filter,
@@ -206,11 +203,11 @@ $csrf_token = getCSRFToken();
     .td-asset-name { font-weight: 600; font-size: 13px; color: var(--ink); }
     .td-category   { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
 
-    /* Quantity */
-    .td-qty { font-family: var(--f-mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+    /* Quantity — shows Total / Available */
+    .td-qty { font-family: var(--f-mono); font-size: 13px; font-weight: 600; color: var(--ink); }
     .td-qty.low { color: var(--danger-fg); }
 
-    /* Status badges */
+    /* Status badges — no in_use */
     .inv-status {
         display: inline-flex; align-items: center; gap: 4px;
         padding: 3px 9px; border-radius: 2px;
@@ -219,7 +216,6 @@ $csrf_token = getCSRFToken();
     }
     .inv-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
     .is-available   { background: var(--ok-bg);     color: var(--ok-fg);     border-color: color-mix(in srgb,var(--ok-fg) 25%,transparent); }
-    .is-in_use      { background: var(--info-bg);   color: var(--info-fg);   border-color: color-mix(in srgb,var(--info-fg) 25%,transparent); }
     .is-maintenance { background: var(--warn-bg);   color: var(--warn-fg);   border-color: color-mix(in srgb,var(--warn-fg) 25%,transparent); }
     .is-damaged     { background: var(--danger-bg); color: var(--danger-fg); border-color: color-mix(in srgb,var(--danger-fg) 25%,transparent); }
     .is-retired     { background: var(--neu-bg);    color: var(--neu-fg);    border-color: var(--rule); }
@@ -243,7 +239,6 @@ $csrf_token = getCSRFToken();
         transition: all .13s; white-space: nowrap; background: #fff; color: var(--ink-muted);
     }
     .act-edit:hover   { border-color: var(--accent);    color: var(--accent);    background: var(--accent-lt); }
-    .act-assign:hover { border-color: var(--info-fg);   color: var(--info-fg);   background: var(--info-bg); }
     .act-audit:hover  { border-color: var(--warn-fg);   color: var(--warn-fg);   background: var(--warn-bg); }
     .act-delete:hover { border-color: var(--danger-fg); color: var(--danger-fg); background: var(--danger-bg); }
 
@@ -333,13 +328,10 @@ $csrf_token = getCSRFToken();
         gap: 0; border-bottom: 1px solid var(--rule);
         background: var(--paper-lt);
     }
-    .audit-hdr-cell {
-        padding: 12px 18px; border-right: 1px solid var(--rule);
-    }
+    .audit-hdr-cell { padding: 13px 18px; border-right: 1px solid var(--rule); }
     .audit-hdr-cell:last-child { border-right: none; }
     .audit-hdr-lbl { font-size: 8.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 3px; }
-    .audit-hdr-val { font-size: 13px; font-weight: 600; color: var(--ink); font-family: var(--f-mono); }
-
+    .audit-hdr-val { font-family: var(--f-mono); font-size: 14px; font-weight: 600; color: var(--ink); }
     .audit-filters {
         padding: 11px 16px; background: var(--paper-lt);
         border-bottom: 1px solid var(--rule);
@@ -362,17 +354,16 @@ $csrf_token = getCSRFToken();
         display: flex; justify-content: space-between; align-items: center;
     }
     .audit-footer-count { font-family: var(--f-mono); font-size: 9px; color: var(--ink-faint); letter-spacing: .5px; }
-
     .action-pill {
         display: inline-block; padding: 2px 8px; border-radius: 2px;
         font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; border: 1px solid;
     }
-    .ap-created     { background: var(--ok-bg);   color: var(--ok-fg);   border-color: color-mix(in srgb,var(--ok-fg) 25%,transparent); }
-    .ap-assigned    { background: var(--info-bg);  color: var(--info-fg); border-color: color-mix(in srgb,var(--info-fg) 25%,transparent); }
-    .ap-returned    { background: var(--ok-bg);    color: var(--ok-fg);   border-color: color-mix(in srgb,var(--ok-fg) 25%,transparent); }
-    .ap-updated     { background: var(--warn-bg);  color: var(--warn-fg); border-color: color-mix(in srgb,var(--warn-fg) 25%,transparent); }
-    .ap-deleted     { background: var(--danger-bg);color: var(--danger-fg);border-color: color-mix(in srgb,var(--danger-fg) 25%,transparent); }
-    .ap-other       { background: var(--neu-bg);   color: var(--neu-fg);  border-color: var(--rule); }
+    .ap-created     { background: var(--ok-bg);    color: var(--ok-fg);    border-color: color-mix(in srgb,var(--ok-fg)    25%,transparent); }
+    .ap-assigned    { background: var(--info-bg);  color: var(--info-fg);  border-color: color-mix(in srgb,var(--info-fg)  25%,transparent); }
+    .ap-returned    { background: var(--ok-bg);    color: var(--ok-fg);    border-color: color-mix(in srgb,var(--ok-fg)    25%,transparent); }
+    .ap-updated     { background: var(--warn-bg);  color: var(--warn-fg);  border-color: color-mix(in srgb,var(--warn-fg)  25%,transparent); }
+    .ap-deleted     { background: var(--danger-bg);color: var(--danger-fg);border-color: color-mix(in srgb,var(--danger-fg)25%,transparent); }
+    .ap-other       { background: var(--neu-bg);   color: var(--neu-fg);   border-color: var(--rule); }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
@@ -400,23 +391,26 @@ $csrf_token = getCSRFToken();
                 <!-- Toolbar -->
                 <div class="inv-toolbar">
                     <div class="toolbar-left">
-                        <input type="text" class="inv-search" id="invSearch" placeholder="Search by asset code, name, category, location…">
-                        <select class="inv-search" id="invStatusFilter" style="width:140px;">
+                        <input type="text" class="inv-search" id="invSearch"
+                            placeholder="Search by asset code, name, category, location…">
+                        <select class="inv-search" id="invStatusFilter" style="width:150px;">
                             <option value="">All Status</option>
                             <option value="available">Available</option>
-                            <option value="in_use">In Use</option>
                             <option value="maintenance">Maintenance</option>
                             <option value="damaged">Damaged</option>
                             <option value="retired">Retired</option>
                         </select>
                     </div>
-                    <div class="toolbar-right" style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);letter-spacing:.5px;" id="invCount">
+                    <div class="toolbar-right"
+                         style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);letter-spacing:.5px;"
+                         id="invCount">
                         — ASSETS
                     </div>
                 </div>
             </div>
 
             <!-- ── Stat Ledger ── -->
+            <!-- 5 cells: Total | Available | Has Active Borrows | Maintenance | Damaged/Retired -->
             <div class="stat-ledger">
                 <div class="stat-cell">
                     <div class="stat-eyebrow">Total Assets</div>
@@ -426,12 +420,12 @@ $csrf_token = getCSRFToken();
                 <div class="stat-cell">
                     <div class="stat-eyebrow">Available</div>
                     <div class="stat-val" id="st-available" style="color:var(--ok-fg);">—</div>
-                    <div class="stat-sub">ready for use</div>
+                    <div class="stat-sub">ready to borrow</div>
                 </div>
                 <div class="stat-cell">
-                    <div class="stat-eyebrow">In Use</div>
+                    <div class="stat-eyebrow">Has Active Borrows</div>
                     <div class="stat-val" id="st-inuse" style="color:var(--info-fg);">—</div>
-                    <div class="stat-sub">currently deployed</div>
+                    <div class="stat-sub">partially borrowed out</div>
                 </div>
                 <div class="stat-cell">
                     <div class="stat-eyebrow">Maintenance</div>
@@ -452,7 +446,7 @@ $csrf_token = getCSRFToken();
                         <tr>
                             <th>Asset</th>
                             <th>Category</th>
-                            <th>Qty</th>
+                            <th>Qty (Total / Available)</th>
                             <th>Location</th>
                             <th>Condition</th>
                             <th>Status</th>
@@ -481,7 +475,8 @@ $csrf_token = getCSRFToken();
                 <div class="form-section-body">
                     <div class="fg">
                         <label class="fg-label">Asset Name <span class="req">*</span></label>
-                        <input type="text" name="name" id="assetName" class="fg-input" required autocomplete="off" placeholder="e.g., Monoblock Chairs, Generator Set…">
+                        <input type="text" name="name" id="assetName" class="fg-input" required
+                            autocomplete="off" placeholder="e.g. Monoblock Chairs, Generator Set…">
                     </div>
                     <div class="form-grid-2">
                         <div class="fg">
@@ -494,8 +489,9 @@ $csrf_token = getCSRFToken();
                             </select>
                         </div>
                         <div class="fg">
-                            <label class="fg-label">Quantity</label>
-                            <input type="number" name="quantity" id="assetQuantity" class="fg-input" value="1" min="0">
+                            <label class="fg-label">Total Quantity</label>
+                            <input type="number" name="quantity" id="assetQuantity" class="fg-input"
+                                value="1" min="0">
                         </div>
                     </div>
                 </div>
@@ -516,9 +512,9 @@ $csrf_token = getCSRFToken();
                         </div>
                         <div class="fg">
                             <label class="fg-label">Status</label>
+                            <!-- in_use removed — borrowing schedule tracks active borrows -->
                             <select name="status" id="assetStatus" class="fg-select">
                                 <option value="available">Available</option>
-                                <option value="in_use">In Use</option>
                                 <option value="maintenance">Maintenance</option>
                                 <option value="damaged">Damaged</option>
                                 <option value="retired">Retired</option>
@@ -526,14 +522,20 @@ $csrf_token = getCSRFToken();
                         </div>
                         <div class="fg">
                             <label class="fg-label">Physical Location</label>
-                            <input type="text" name="location" id="assetLocation" class="fg-input" autocomplete="off" placeholder="e.g., Barangay Hall – Storage">
+                            <input type="text" name="location" id="assetLocation" class="fg-input"
+                                autocomplete="off" placeholder="e.g. Barangay Hall – Storage">
                         </div>
                     </div>
                     <div class="fg">
-                        <label class="fg-label">Description <span style="font-weight:400;font-size:9px;text-transform:none;color:var(--ink-faint);">(include plate/serial no. for vehicles)</span></label>
+                        <label class="fg-label">Description
+                            <span style="font-weight:400;font-size:9px;text-transform:none;color:var(--ink-faint);">
+                                (include plate / serial no. for vehicles)
+                            </span>
+                        </label>
                         <textarea name="description" id="assetDescription" class="fg-textarea"></textarea>
                     </div>
-                    <button type="submit" id="submitInventory" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
+                    <button type="submit" id="submitInventory" class="btn btn-primary"
+                        style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
                         Save Asset Record
                     </button>
                 </div>
@@ -551,66 +553,14 @@ $csrf_token = getCSRFToken();
                 <div class="form-section-body">
                     <div class="fg">
                         <label class="fg-label">Category Name <span class="req">*</span></label>
-                        <input type="text" name="category_name" id="categoryName" class="fg-input" required autocomplete="off" placeholder="e.g., Furniture, Equipment, Vehicles…">
+                        <input type="text" name="category_name" id="categoryName" class="fg-input"
+                            required autocomplete="off"
+                            placeholder="e.g. Furniture, Equipment, Vehicles…">
                     </div>
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
+                    <button type="submit" class="btn btn-primary"
+                        style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
                         Add Category
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- ════════════════════════════
-         MODAL: ASSIGN ASSET
-    ════════════════════════════ -->
-    <div id="assignModal" title="Assign Asset" class="hidden">
-        <form id="assignForm" class="modal-form">
-            <input type="hidden" name="id"         id="assignInventoryId">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-
-            <div class="form-section">
-                <div class="form-section-lbl">Personnel Details</div>
-                <div class="form-section-body">
-                    <div class="form-grid-2">
-                        <div class="fg">
-                            <label class="fg-label">Personnel Name <span class="req">*</span></label>
-                            <input type="text" name="personnel_name" id="personnelName" class="fg-input" required autocomplete="off">
-                        </div>
-                        <div class="fg">
-                            <label class="fg-label">Personnel Role</label>
-                            <input type="text" name="personnel_role" id="personnelRole" class="fg-input" autocomplete="off">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="form-section-lbl">Assignment Details</div>
-                <div class="form-section-body">
-                    <div class="form-grid-2">
-                        <div class="fg">
-                            <label class="fg-label">Location / Area</label>
-                            <input type="text" name="location" id="assignLocation" class="fg-input" autocomplete="off">
-                        </div>
-                        <div class="fg">
-                            <label class="fg-label">Purpose</label>
-                            <input type="text" name="purpose" id="assignPurpose" class="fg-input" autocomplete="off">
-                        </div>
-                    </div>
-                    <div class="form-grid-2">
-                        <div class="fg">
-                            <label class="fg-label">Start Time</label>
-                            <input type="datetime-local" name="start_time" id="startTime" class="fg-input">
-                        </div>
-                        <div class="fg">
-                            <label class="fg-label">Expected End Time</label>
-                            <input type="datetime-local" name="end_time" id="endTime" class="fg-input">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-top:4px;" id="submitAssign">
-                        Confirm Assignment
                     </button>
                 </div>
             </div>
@@ -621,7 +571,6 @@ $csrf_token = getCSRFToken();
          MODAL: AUDIT TRAIL
     ════════════════════════════ -->
     <div id="assetAuditModal" title="Asset Audit Trail" class="hidden">
-        <!-- Asset info -->
         <div class="audit-header">
             <div class="audit-hdr-cell">
                 <div class="audit-hdr-lbl">Asset Name</div>
@@ -632,19 +581,19 @@ $csrf_token = getCSRFToken();
                 <div class="audit-hdr-val" id="auditAssetCode">—</div>
             </div>
         </div>
-        <!-- Filters -->
         <div class="audit-filters">
-            <input type="date"   class="inv-search" id="auditDateFilter"      placeholder="Filter by date" style="width:160px;">
-            <input type="text"   class="inv-search" id="auditPersonnelFilter" placeholder="Search personnel…" style="width:200px;">
-            <button class="btn btn-ghost btn-sm" id="auditRefreshBtn">Refresh</button>
+            <input type="date"   class="inv-search" id="auditDateFilter"
+                placeholder="Filter by date" style="width:160px;">
+            <input type="text"   class="inv-search" id="auditPersonnelFilter"
+                placeholder="Search by user…" style="width:200px;">
+            <button class="btn btn-ghost btn-sm" id="auditRefreshBtn">↺ Refresh</button>
         </div>
-        <!-- Table -->
         <div class="audit-table-scroll">
             <table class="audit-table">
                 <thead><tr>
                     <th>Date &amp; Time</th>
                     <th>Action</th>
-                    <th>User / Personnel</th>
+                    <th>User</th>
                     <th>Location</th>
                     <th>Purpose</th>
                     <th>Notes</th>
@@ -654,7 +603,6 @@ $csrf_token = getCSRFToken();
                 </tbody>
             </table>
         </div>
-        <!-- Footer -->
         <div class="audit-footer">
             <span class="audit-footer-count" id="auditPageInfo">0 RECORDS</span>
             <button class="btn btn-ghost btn-sm" id="exportAuditBtn">Export Logs</button>
