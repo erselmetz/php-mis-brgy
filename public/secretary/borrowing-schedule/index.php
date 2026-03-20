@@ -336,6 +336,7 @@ $csrf_token = getCSRFToken();
                     <div class="header-actions">
                         <button class="btn btn-ghost" id="btnPrintBorrow">↗ Print</button>
                         <button class="btn btn-primary" id="btnNewBorrow">+ New Borrowing</button>
+                        <a href="fix_inventory_links.php" class="btn btn-ghost">🔧 Fix Inventory Links</a>
                     </div>
                 </div>
 
@@ -410,8 +411,8 @@ $csrf_token = getCSRFToken();
     ════════════════ -->
     <div id="borrowDialog" title="New Borrowing Entry" class="hidden">
         <form id="borrowForm" class="modal-form">
-            <input type="hidden" id="borrowId">
-            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+            <input type="hidden" id="borrowId"        name="id">
+            <input type="hidden" name="csrf_token"    value="<?= $csrf_token ?>">
 
             <div class="form-section">
                 <div class="form-section-lbl">Borrower Information</div>
@@ -444,7 +445,7 @@ $csrf_token = getCSRFToken();
                             </div>
                         </div>
                         <!-- Hidden fields populated on selection -->
-                        <input type="hidden" id="inventoryItemId">
+                        <input type="hidden" id="inventoryItemId" name="inventory_id">
                         <!-- Selected item tag (shown after pick) -->
                         <div id="invSelectedTag" class="inv-selected-tag" style="display:none;">
                             <span id="invSelectedLabel"></span>
@@ -656,6 +657,8 @@ $csrf_token = getCSRFToken();
             $hint.hide();
             $search.val('').focus();
         }
+        // Expose for js/index.js to call on form reset
+        window.clearBorrowInvSelection = clearSelection;
 
         /* ── Availability hint renderer ── */
         function showHint(total, borrowed, available) {

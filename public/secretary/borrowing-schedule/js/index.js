@@ -1,17 +1,50 @@
 /**
- * Equipment / Items Borrowing Schedule - JS Controller
+ * Equipment / Items Borrowing Schedule — JS Controller
+ * public/secretary/borrowing-schedule/js/index.js
+ *
+ * Key changes from original:
+ *  - inventory_id now read from #inventoryItemId (hidden input, name="inventory_id")
+ *    instead of old #inventoryItemSelect (removed)
+ *  - borrowId has name="id" so serialize() includes it automatically
+ *  - edit form repopulates via window.setInvItem() (defined in index.php inline script)
  */
 $(function () {
     let borrowTable;
 
+    /* ─── Status badge classes ─── */
     const statusBadge = {
-        borrowed: 'bg-blue-100 text-blue-800',
-        returned: 'bg-green-100 text-green-800',
-        overdue: 'bg-red-100 text-red-700',
-        cancelled: 'bg-gray-100 text-gray-500'
+        borrowed:  'bs-borrowed',
+        returned:  'bs-returned',
+        overdue:   'bs-overdue',
+        cancelled: 'bs-cancelled',
     };
 
-    // ── Init DataTable ──────────────────────────────────────────────────────
+    /* ─── Helpers ─── */
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function fmtDate(d) {
+        if (!d) return '—';
+        return new Date(d + 'T00:00:00').toLocaleDateString('en-PH',
+            { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function showMsg(title, msg, isError) {
+        const id = 'bm_' + Date.now();
+        const col = isError ? 'var(--danger-fg)' : 'var(--ok-fg)';
+        $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);
+                        border-left:3px solid ${col};background:var(--paper);">
+                ${esc(msg)}
+            </div>
+        </div>`);
+        $(`#${id}`).dialog({
+            autoOpen: true, modal: true, width: 400, resizable: false,
+            buttons: { 'OK': function () { $(this).dialog('close').remove(); } }
+        });
+    }
+
+    /* ═══════════════════════════════════════
+       DATATABLE
+    ═══════════════════════════════════════ */
     function initTable() {
         borrowTable = $('#borrowTable').DataTable({
             ajax: {
@@ -24,54 +57,73 @@ $(function () {
                     return [];
                 }
             },
+            dom: 'tip',
+            order: [[4, 'desc']],
+            pageLength: 25,
+            language: {
+                info:     'Showing _START_–_END_ of _TOTAL_ records',
+                paginate: { previous: '‹', next: '›' },
+                emptyTable: 'No borrowing records found.'
+            },
             columns: [
-                { data: 'borrow_code', title: 'Code' },
-                { data: 'borrower_name', title: 'Borrower' },
-                { data: 'item_name', title: 'Item' },
-                { data: 'quantity', title: 'Qty', className: 'dt-center' },
                 {
-                    data: 'borrow_date', title: 'Borrow Date',
-                    render: d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+                    data: 'borrow_code',
+                    render: d => `<span style="font-family:var(--f-mono);font-size:11px;font-weight:700;color:var(--accent);">${esc(d)}</span>`
                 },
+                { data: 'borrower_name', render: d => `<span style="font-weight:500;">${esc(d)}</span>` },
                 {
-                    data: 'return_date', title: 'Return Date',
-                    render: function (d, t, row) {
-                        if (!d) return '—';
-                        const dt = new Date(d + 'T00:00:00');
-                        const str = dt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const isOverdue = row.status === 'overdue' || (row.status === 'borrowed' && new Date(d) < new Date());
-                        return isOverdue ? `<span class="text-red-600 font-semibold">${str} ⚠️</span>` : str;
+                    data: null,
+                    render: (d, t, row) => {
+                        let html = `<span style="font-weight:500;">${esc(row.item_name)}</span>`;
+                        if (row.asset_code) html += `<br><span style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);">${esc(row.asset_code)}</span>`;
+                        return html;
+                    }
+                },
+                { data: 'quantity', render: d => `<span style="font-family:var(--f-mono);font-size:13px;font-weight:600;">${d}</span>` },
+                { data: 'borrow_date', render: d => `<span style="font-family:var(--f-mono);font-size:11.5px;">${fmtDate(d)}</span>` },
+                {
+                    data: 'return_date',
+                    render: (d, t, row) => {
+                        const str = fmtDate(d);
+                        const overdue = row.status === 'overdue' ||
+                            (row.status === 'borrowed' && d && new Date(d) < new Date());
+                        return overdue
+                            ? `<span style="color:var(--danger-fg);font-weight:600;font-family:var(--f-mono);font-size:11.5px;">${str} ⚠</span>`
+                            : `<span style="font-family:var(--f-mono);font-size:11.5px;">${str}</span>`;
                     }
                 },
                 {
-                    data: 'actual_return', title: 'Actual Return',
-                    render: d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '<span class="text-gray-400">Not yet</span>'
+                    data: 'actual_return',
+                    render: d => d
+                        ? `<span style="font-family:var(--f-mono);font-size:11.5px;">${fmtDate(d)}</span>`
+                        : `<span style="color:var(--ink-faint);font-size:11px;">Not yet</span>`
                 },
                 {
-                    data: 'status', title: 'Status',
-                    render: d => `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge[d] || ''}">${capitalize(d)}</span>`
+                    data: 'status',
+                    render: d => `<span class="brw-status ${statusBadge[d] || ''}">${capitalize(d)}</span>`
                 },
                 {
-                    data: null, title: 'Actions', orderable: false,
-                    render: function (d, t, row) {
-                        return `<div class="flex gap-1">
-                            <button class="view-borrow-btn text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" data-id="${row.id}">View</button>
-                            <button class="edit-borrow-btn text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" data-id="${row.id}">Edit</button>
+                    data: null, orderable: false,
+                    render: (d, t, row) => {
+                        let returnBtn = '';
+                        if (row.status === 'borrowed' || row.status === 'overdue') {
+                            returnBtn = `<button class="act-btn act-return return-btn" data-id="${row.id}">↩ Return</button>`;
+                        }
+                        return `<div style="display:flex;gap:5px;">
+                            <button class="act-btn act-view view-borrow-btn"  data-id="${row.id}">View</button>
+                            <button class="act-btn act-edit edit-borrow-btn"  data-id="${row.id}">Edit</button>
+                            ${returnBtn}
                         </div>`;
                     }
                 }
-            ],
-            order: [[4, 'desc']],
-            responsive: true,
-            pageLength: 25,
-            language: { emptyTable: 'No borrowing records found.' }
+            ]
         });
     }
 
     function updateCounts(c) {
-        $('#countBorrowed').text(c.borrowed ?? 0);
-        $('#countReturned').text(c.returned ?? 0);
-        $('#countOverdue').text(c.overdue ?? 0);
+        $('#countBorrowed').text(c.borrowed  ?? 0);
+        $('#countReturned').text(c.returned  ?? 0);
+        $('#countOverdue').text(c.overdue   ?? 0);
         $('#countCancelled').text(c.cancelled ?? 0);
     }
 
@@ -88,23 +140,19 @@ $(function () {
 
     $('#filterStatus, #filterDate').on('change', reloadTable);
     let searchTimer;
-    $('#searchInput').on('keyup', function () {
+    $('#searchInput').on('input', function () {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(reloadTable, 400);
+        searchTimer = setTimeout(reloadTable, 350);
     });
 
-    // ── Inventory item auto-fill ─────────────────────────────────────────────
-    $('#inventoryItemSelect').on('change', function () {
-        const name = $(this).find(':selected').data('name') || '';
-        if (name) $('#itemName').val(name);
-    });
-
-    // ── Add/Edit Dialog ──────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       ADD / EDIT DIALOG
+    ═══════════════════════════════════════ */
     $('#borrowDialog').dialog({
-        autoOpen: false, modal: true, width: 600,
+        autoOpen: false, modal: true, width: 620, resizable: false,
         buttons: {
             'Save Record': function () { saveBorrow(); },
-            'Cancel': function () { $(this).dialog('close'); }
+            'Cancel':      function () { $(this).dialog('close'); }
         }
     });
 
@@ -114,19 +162,20 @@ $(function () {
     });
 
     function resetBorrowForm() {
+        $('#borrowForm')[0].reset();
         $('#borrowId').val('');
-        $('#borrowerName, #borrowerContact, #itemName, #borrowPurpose, #borrowNotes').val('');
-        $('#conditionOut, #conditionIn, #actualReturn').val('');
-        $('#inventoryItemSelect').val('');
-        $('#borrowQty').val(1);
+        $('#inventoryItemId').val('');           // clear hidden inventory_id
+        $('#itemName').val('');
         $('#borrowDate').val(new Date().toISOString().split('T')[0]);
-        $('#returnDate').val('');
         $('#borrowStatus').val('borrowed');
+        // The inline script's clearSelection() handles the tag + hint
+        if (window.clearBorrowInvSelection) window.clearBorrowInvSelection();
     }
 
+    /* ── Save (Insert or Update) ── */
     function saveBorrow() {
-        const borrower = $.trim($('#borrowerName').val());
-        const itemName = $.trim($('#itemName').val());
+        const borrower  = $.trim($('#borrowerName').val());
+        const itemName  = $.trim($('#itemName').val());
         const borrowDate = $('#borrowDate').val();
         const returnDate = $('#returnDate').val();
 
@@ -135,80 +184,78 @@ $(function () {
             return;
         }
 
-        $.post('actions/borrow_api.php?action=save', {
-            id: $('#borrowId').val(),
-            borrower_name: borrower,
-            borrower_contact: $('#borrowerContact').val(),
-            item_name: itemName,
-            inventory_id: $('#inventoryItemSelect').val() || 0,
-            quantity: $('#borrowQty').val(),
-            borrow_date: borrowDate,
-            return_date: returnDate,
-            actual_return: $('#actualReturn').val(),
-            purpose: $('#borrowPurpose').val(),
-            status: $('#borrowStatus').val(),
-            condition_out: $('#conditionOut').val(),
-            condition_in: $('#conditionIn').val(),
-            notes: $('#borrowNotes').val()
-        }, function (res) {
+        // Serialize the form — because borrowId has name="id" and
+        // inventoryItemId has name="inventory_id", both are included automatically
+        const formData = $('#borrowForm').serialize();
+
+        $.post('actions/borrow_api.php?action=save', formData, function (res) {
             if (res.success) {
                 $('#borrowDialog').dialog('close');
                 reloadTable();
-                showMsg('Success', res.message);
+                showMsg('Saved', res.message);
             } else {
                 showMsg('Error', res.message, true);
             }
         }, 'json').fail(() => showMsg('Error', 'Request failed. Please try again.', true));
     }
 
-    // ── View Dialog ──────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       VIEW DIALOG
+    ═══════════════════════════════════════ */
     $('#viewBorrowDialog').dialog({
-        autoOpen: false, modal: true, width: 500,
+        autoOpen: false, modal: true, width: 500, resizable: false,
         buttons: { 'Close': function () { $(this).dialog('close'); } }
     });
 
     $('#borrowTable').on('click', '.view-borrow-btn', function () {
         const row = borrowTable.row($(this).closest('tr')).data();
         if (!row) return;
-        const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
         $('#viewBorrowContent').html(`
-            <div class="space-y-3 text-sm">
-                <div class="flex justify-between border-b pb-2">
-                    <span class="font-semibold text-gray-500">Borrow Code</span>
-                    <span class="font-bold text-blue-700">${row.borrow_code}</span>
+            <div style="font-size:13px;">
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:12px;">
+                    <span style="font-weight:700;color:var(--ink-faint);">Borrow Code</span>
+                    <span style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${esc(row.borrow_code)}</span>
                 </div>
-                <div class="flex justify-between"><span class="text-gray-500">Borrower</span><span>${escHtml(row.borrower_name)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Contact</span><span>${escHtml(row.borrower_contact || '—')}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Item</span><span class="font-medium">${escHtml(row.item_name)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Quantity</span><span>${row.quantity}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Borrow Date</span><span>${fmtDate(row.borrow_date)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Expected Return</span><span>${fmtDate(row.return_date)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Actual Return</span><span>${fmtDate(row.actual_return)}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Condition (Out)</span><span>${escHtml(row.condition_out || '—')}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Condition (In)</span><span>${escHtml(row.condition_in || '—')}</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Purpose</span><span>${escHtml(row.purpose || '—')}</span></div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">Status</span>
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge[row.status] || ''}">${capitalize(row.status)}</span>
+                ${viewRow('Borrower',        esc(row.borrower_name))}
+                ${viewRow('Contact',         esc(row.borrower_contact || '—'))}
+                ${viewRow('Item',            `<strong>${esc(row.item_name)}</strong>${row.asset_code ? ' <span style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);">(' + esc(row.asset_code) + ')</span>' : ''}`)}
+                ${viewRow('Quantity',        row.quantity)}
+                ${viewRow('Borrow Date',     fmtDate(row.borrow_date))}
+                ${viewRow('Expected Return', fmtDate(row.return_date))}
+                ${viewRow('Actual Return',   fmtDate(row.actual_return))}
+                ${viewRow('Condition Out',   esc(row.condition_out || '—'))}
+                ${viewRow('Condition In',    esc(row.condition_in  || '—'))}
+                ${viewRow('Purpose',         esc(row.purpose || '—'))}
+                ${viewRow('Status',          `<span class="brw-status ${statusBadge[row.status] || ''}">${capitalize(row.status)}</span>`)}
+                ${viewRow('Notes',           esc(row.notes || '—'))}
+                <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);font-size:10.5px;color:var(--ink-faint);">
+                    Created by: ${esc(row.created_by_name || '—')} · ${row.created_at || ''}
+                    ${row.updated_by_name ? '<br>Updated by: ' + esc(row.updated_by_name) + ' · ' + (row.updated_at || '') : ''}
                 </div>
-                <div class="flex justify-between"><span class="text-gray-500">Notes</span><span class="text-right max-w-xs">${escHtml(row.notes || '—')}</span></div>
-                <hr>
-                <div class="text-xs text-gray-400">Created by: ${escHtml(row.created_by_name || '—')} on ${row.created_at || ''}</div>
-                ${row.updated_by_name ? `<div class="text-xs text-gray-400">Updated by: ${escHtml(row.updated_by_name)} on ${row.updated_at || ''}</div>` : ''}
             </div>
         `);
         $('#viewBorrowDialog').dialog('option', 'title', 'Borrowing — ' + row.borrow_code).dialog('open');
     });
 
-    // ── Edit ─────────────────────────────────────────────────────────────────
+    function viewRow(label, value) {
+        return `<div style="display:flex;justify-content:space-between;margin-bottom:7px;gap:12px;">
+                    <span style="color:var(--ink-faint);flex-shrink:0;">${label}</span>
+                    <span style="text-align:right;">${value}</span>
+                </div>`;
+    }
+
+    /* ═══════════════════════════════════════
+       EDIT
+    ═══════════════════════════════════════ */
     $('#borrowTable').on('click', '.edit-borrow-btn', function () {
         const row = borrowTable.row($(this).closest('tr')).data();
         if (!row) return;
+
+        resetBorrowForm();
         $('#borrowId').val(row.id);
         $('#borrowerName').val(row.borrower_name);
         $('#borrowerContact').val(row.borrower_contact || '');
         $('#itemName').val(row.item_name);
-        $('#inventoryItemSelect').val(row.inventory_id || '');
         $('#borrowQty').val(row.quantity);
         $('#borrowDate').val(row.borrow_date);
         $('#returnDate').val(row.return_date);
@@ -216,45 +263,73 @@ $(function () {
         $('#borrowPurpose').val(row.purpose || '');
         $('#borrowStatus').val(row.status);
         $('#conditionOut').val(row.condition_out || '');
-        $('#conditionIn').val(row.condition_in || '');
+        $('#conditionIn').val(row.condition_in  || '');
         $('#borrowNotes').val(row.notes || '');
+
+        // Repopulate the inventory search tag if linked to an inventory item
+        if (row.inventory_id) {
+            $('#inventoryItemId').val(row.inventory_id);
+            if (window.setInvItem) {
+                window.setInvItem(row.inventory_id, row.item_name, row.asset_code || '');
+            }
+        }
+
         $('#borrowDialog').dialog('option', 'title', 'Edit Borrowing — ' + row.borrow_code).dialog('open');
     });
 
-    // ── Quick Return ─────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       QUICK RETURN
+    ═══════════════════════════════════════ */
     $('#borrowTable').on('click', '.return-btn', function () {
         const row = borrowTable.row($(this).closest('tr')).data();
         if (!row) return;
-        const condIn = prompt('Item returned. Enter condition on return (optional):', 'Good condition');
-        if (condIn === null) return; // cancelled
-        $.post('actions/borrow_api.php?action=mark_returned', {
-            id: row.id,
-            condition_in: condIn
-        }, function (res) {
-            if (res.success) { reloadTable(); showMsg('Returned', res.message); }
-            else showMsg('Error', res.message, true);
-        }, 'json');
+
+        const dlgId = 'ret_' + Date.now();
+        let condIn = '';
+
+        $('body').append(`<div id="${dlgId}" title="Mark as Returned" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                <p style="margin-bottom:12px;">Mark <strong>${esc(row.borrow_code)}</strong> as returned?</p>
+                <label style="display:block;font-size:8.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:5px;">
+                    Condition on Return
+                </label>
+                <input type="text" id="${dlgId}_cond" class="fg-input"
+                    placeholder="e.g. Good condition, minor scratches…"
+                    style="width:100%;padding:8px 12px;border:1.5px solid var(--rule-dk);border-radius:2px;font-size:13px;">
+            </div>
+        </div>`);
+
+        $(`#${dlgId}`).dialog({
+            autoOpen: true, modal: true, width: 440, resizable: false,
+            buttons: {
+                'Confirm Return': function () {
+                    condIn = $(`#${dlgId}_cond`).val();
+                    $(this).dialog('close').remove();
+                    $.post('actions/borrow_api.php?action=mark_returned', {
+                        id:           row.id,
+                        condition_in: condIn
+                    }, function (res) {
+                        if (res.success) { reloadTable(); showMsg('Returned', res.message); }
+                        else showMsg('Error', res.message, true);
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
+            }
+        });
     });
 
-
-    // ── Print ────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       PRINT
+    ═══════════════════════════════════════ */
     $('#btnPrintBorrow').on('click', function () {
         const stat = $('#filterStatus').val() || '';
         const date = $('#filterDate').val() || '';
         window.open('print/print_borrow.php?filter_status=' + stat + '&filter_date=' + date, '_blank');
     });
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    function showMsg(title, msg, isError) {
-        const id = 'msg_' + Date.now();
-        $('body').append(`<div id="${id}" title="${title}" style="display:none"><p class="p-4 ${isError ? 'text-red-600' : 'text-green-600'}">${msg}</p></div>`);
-        $(`#${id}`).dialog({ modal: true, width: 380, buttons: { OK: function () { $(this).dialog('close').remove(); } } });
-    }
-
-    function escHtml(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
-    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-
-    // ── Boot ─────────────────────────────────────────────────────────────────
+    /* ═══════════════════════════════════════
+       BOOT
+    ═══════════════════════════════════════ */
     initTable();
     document.body.style.display = '';
 });

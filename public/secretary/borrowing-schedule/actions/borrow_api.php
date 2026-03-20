@@ -185,6 +185,22 @@ if ($action === 'save') {
     $cond_in      = sanitizeString($_POST['condition_in']  ?? '');
     $notes        = sanitizeString($_POST['notes']         ?? '');
 
+    // ── AUTO-LINK: fallback inventory_id lookup by item_name ─────────────────
+    // If JS failed to set hidden field, find inventory row by exact name match
+    if ($inventory_id <= 0 && !empty($item_name)) {
+        $lkStmt = $conn->prepare(
+            "SELECT id FROM inventory WHERE LOWER(name) = LOWER(?) LIMIT 1"
+        );
+        $lkStmt->bind_param('s', $item_name);
+        $lkStmt->execute();
+        $lkRow = $lkStmt->get_result()->fetch_assoc();
+        $lkStmt->close();
+        if ($lkRow) {
+            $inventory_id = (int)$lkRow['id'];
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Required field validation
     if (empty($borrower) || empty($item_name) || empty($borrow_date) || empty($return_date)) {
         echo json_encode(['success' => false,
