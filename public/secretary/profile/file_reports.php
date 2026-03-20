@@ -2,14 +2,9 @@
 /**
  * File Reports Stats API
  *
- * Returns live record counts and last-updated timestamps
- * for each report category shown on the profile page.
- *
- * Table archive column reference:
- *   residents  → deleted_at  (soft-delete, NULL = active)
- *   officers   → archived_at (NULL = active)
- *   blotter    → archived_at (NULL = active)
- *   inventory  → no archive column, all rows counted
+ * Returns live record counts and last-updated timestamps.
+ * Uses UNIX_TIMESTAMP() so PHP never has to parse a datetime string —
+ * no timezone mismatch possible.
  *
  * Access : Secretary only
  * Method : GET
@@ -19,102 +14,101 @@ require_once __DIR__ . '/../../../includes/app.php';
 requireSecretary();
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 /**
- * Human-friendly "time ago" label
+ * Convert a unix timestamp (int) to a human-readable relative label.
+ * Receives an integer directly from MySQL UNIX_TIMESTAMP() —
+ * no strtotime() parsing, no timezone mismatch possible.
  */
-function timeAgo(?string $datetime): string
+function timeAgoUnix(?int $unix): string
 {
-    if (!$datetime) return 'No records';
-    $diff = time() - strtotime($datetime);
+    if (!$unix) return 'No records';
+    $diff = time() - $unix;
+    if ($diff < 0)      return 'Just now';   // clock skew safety
     if ($diff < 60)     return 'Just now';
-    if ($diff < 3600)   return floor($diff / 60) . ' min ago';
-    if ($diff < 86400)  return floor($diff / 3600) . ' hr ago';
+    if ($diff < 3600)   return floor($diff / 60)    . ' min ago';
+    if ($diff < 86400)  return floor($diff / 3600)  . ' hr ago';
     if ($diff < 604800) return floor($diff / 86400) . ' day(s) ago';
-    return date('m/d/Y', strtotime($datetime));
+    return date('M d, Y', $unix);
 }
 
 /**
- * Safe query helper — returns ['count'=>int, 'last_updated'=>string|null]
- * Catches query errors and returns zeros instead of breaking the whole response.
+ * Single query per table — returns count + latest unix timestamp.
+ *
+ * GREATEST(MAX(created_at), MAX(updated_at)) captures BOTH:
+ *   - newly inserted rows  → MAX(created_at) bumps
+ *   - recently edited rows → MAX(updated_at) bumps
+ *
+ * UNIX_TIMESTAMP() converts to integer inside MySQL so PHP
+ * never has to call strtotime() on a datetime string.
  */
-function safeCount(mysqli $conn, string $sql): array
+function reportStats(mysqli $conn, string $table, string $whereClause = ''): array
 {
+    $where = $whereClause ? "WHERE $whereClause" : '';
+
+    $sql = "
+        SELECT
+            COUNT(*) AS cnt,
+            UNIX_TIMESTAMP(
+                GREATEST(
+                    COALESCE(MAX(created_at), FROM_UNIXTIME(0)),
+                    COALESCE(MAX(updated_at), FROM_UNIXTIME(0))
+                )
+            ) AS last_unix
+        FROM `{$table}`
+        {$where}
+    ";
+
     $result = $conn->query($sql);
     if (!$result) {
-        error_log('file_reports.php query error: ' . $conn->error . ' | SQL: ' . $sql);
-        return ['count' => 0, 'last_updated' => null];
+        error_log("file_reports.php error on {$table}: " . $conn->error);
+        return ['count' => 0, 'last_unix' => null];
     }
+
     $row = $result->fetch_assoc();
     return [
-        'count'        => (int)($row['cnt'] ?? 0),
-        'last_updated' => $row['last_dt'] ?? null,
+        'count'     => (int)($row['cnt']      ?? 0),
+        'last_unix' => (int)($row['last_unix'] ?? 0) ?: null,
     ];
 }
 
-// ── Residents ─────────────────────────────────────────────────────────────────
-// Uses `deleted_at` for soft-delete (NOT archived_at)
-$residents = safeCount($conn,
-    "SELECT COUNT(*) AS cnt,
-            MAX(COALESCE(updated_at, created_at)) AS last_dt
-     FROM residents
-     WHERE deleted_at IS NULL"
-);
+// ── Fetch stats ──────────────────────────────────────────────────────────────
+$residents = reportStats($conn, 'residents', 'deleted_at IS NULL');
+$officers  = reportStats($conn, 'officers',  'archived_at IS NULL');
+$blotter   = reportStats($conn, 'blotter',   'archived_at IS NULL');
+$inventory = reportStats($conn, 'inventory');
 
-// ── Officers / Officials & Staff ──────────────────────────────────────────────
-// Uses `archived_at` (added by add_archived_at_to_officers migration)
-$officers = safeCount($conn,
-    "SELECT COUNT(*) AS cnt,
-            MAX(COALESCE(updated_at, created_at)) AS last_dt
-     FROM officers
-     WHERE archived_at IS NULL"
-);
-
-// ── Blotter ───────────────────────────────────────────────────────────────────
-// Uses `archived_at` (added by add_archived_at_to_blotter migration)
-$blotter = safeCount($conn,
-    "SELECT COUNT(*) AS cnt,
-            MAX(COALESCE(updated_at, created_at)) AS last_dt
-     FROM blotter
-     WHERE archived_at IS NULL"
-);
-
-// ── Inventory ─────────────────────────────────────────────────────────────────
-// No soft-delete column — count all rows
-$inventory = safeCount($conn,
-    "SELECT COUNT(*) AS cnt,
-            MAX(COALESCE(updated_at, created_at)) AS last_dt
-     FROM inventory"
-);
-
-// ── Build response ────────────────────────────────────────────────────────────
+// ── Build response ───────────────────────────────────────────────────────────
 $reports = [
     [
         'key'          => 'residents',
         'label'        => 'Residence List',
         'count'        => $residents['count'],
-        'last_updated' => timeAgo($residents['last_updated']),
+        'last_updated' => timeAgoUnix($residents['last_unix']),
         'print_url'    => '/secretary/profile/file_reports_print.php?report=residents',
     ],
     [
         'key'          => 'officers',
         'label'        => 'Officials & Staff',
         'count'        => $officers['count'],
-        'last_updated' => timeAgo($officers['last_updated']),
+        'last_updated' => timeAgoUnix($officers['last_unix']),
         'print_url'    => '/secretary/profile/file_reports_print.php?report=officers',
     ],
     [
         'key'          => 'blotter',
         'label'        => 'Blotter',
         'count'        => $blotter['count'],
-        'last_updated' => timeAgo($blotter['last_updated']),
+        'last_updated' => timeAgoUnix($blotter['last_unix']),
         'print_url'    => '/secretary/profile/file_reports_print.php?report=blotter',
     ],
     [
         'key'          => 'inventory',
         'label'        => 'Inventory',
         'count'        => $inventory['count'],
-        'last_updated' => timeAgo($inventory['last_updated']),
+        'last_updated' => timeAgoUnix($inventory['last_unix']),
         'print_url'    => '/secretary/profile/file_reports_print.php?report=inventory',
     ],
 ];
