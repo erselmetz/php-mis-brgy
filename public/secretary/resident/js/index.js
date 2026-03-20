@@ -181,15 +181,27 @@ $(function () {
     $('#openResidentModalBtn').on('click', () => $('#addResidentModal').dialog('open'));
 
     /* ══════════════════════════════════════════
-       ARCHIVE MODAL
+       ARCHIVE REGISTRY DIALOG (Residents + Households)
     ══════════════════════════════════════════ */
     $('#archivedResidentsDialog').dialog(dialogCfg({
-        width: 620,
-        open: function () { loadArchivedResidents(); }
+        width: 780,
+        open: function () {
+            loadArchivedResidents();
+            loadArchivedHouseholds();
+        }
     }));
     $('#archiveResidentsBtn').on('click', () => $('#archivedResidentsDialog').dialog('open'));
 
-    // Archive a resident
+    // Tab switching
+    $(document).on('click', '.arc-tab', function () {
+        const tab = $(this).data('tab');
+        $('.arc-tab').removeClass('active');
+        $(this).addClass('active');
+        $('.arc-pane').removeClass('active');
+        $(`#arc-pane-${tab}`).addClass('active');
+    });
+
+    // ── Archive a resident ──
     $(document).on('click', '.archive-resident-btn', function () {
         const id   = $(this).data('id');
         const name = $(this).data('name');
@@ -197,7 +209,7 @@ $(function () {
         $('body').append(`<div id="${dlgId}" title="Confirm Archive" style="display:none;">
             <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
                 Archive <strong>${escHtml(name)}</strong> from the register?<br>
-                <span style="font-size:11px;color:var(--ink-faint);">This can be reversed from the Archive panel.</span>
+                <span style="font-size:11px;color:var(--ink-faint);">This can be reversed from the Archive Registry.</span>
             </div>
         </div>`);
         $(`#${dlgId}`).dialog(dialogCfg({
@@ -215,8 +227,8 @@ $(function () {
         })).dialog('open');
     });
 
-    // Restore from archive
-    $(document).on('click', '.restore-btn', function () {
+    // ── Restore resident ──
+    $(document).on('click', '.restore-res-btn', function () {
         const id   = $(this).data('id');
         const name = $(this).data('name');
         const dlgId = 'rdlg_' + Date.now();
@@ -232,7 +244,7 @@ $(function () {
                     $(this).dialog('close').remove();
                     $.post('archive_api.php', { action: 'restore', resident_id: id }, function (res) {
                         showAlert(res.success ? 'Restored' : 'Error', res.message, res.success ? 'success' : 'danger');
-                        if (res.success) loadArchivedResidents();
+                        if (res.success) { loadArchivedResidents(); location.reload(); }
                     }, 'json');
                 },
                 'Cancel': function () { $(this).dialog('close').remove(); }
@@ -240,42 +252,147 @@ $(function () {
         })).dialog('open');
     });
 
-    // Search archive
-    let archTimer;
-    $('#archiveSearchInput').on('input', function () {
-        clearTimeout(archTimer);
-        archTimer = setTimeout(() => loadArchivedResidents($(this).val()), 300);
+    // ── Restore household ──
+    $(document).on('click', '.restore-hh-btn', function () {
+        const id   = $(this).data('id');
+        const name = $(this).data('name');
+        const dlgId = 'rhhd_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Restore Household" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                Restore household <strong>${escHtml(name)}</strong> to the active register?
+            </div>
+        </div>`);
+        $(`#${dlgId}`).dialog(dialogCfg({
+            width: 420,
+            buttons: {
+                'Restore': function () {
+                    $(this).dialog('close').remove();
+                    $.post('household_api.php', { action: 'restore', id }, function (res) {
+                        showAlert(res.success ? 'Restored' : 'Error', res.message, res.success ? 'success' : 'danger');
+                        if (res.success) loadArchivedHouseholds();
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
+            }
+        })).dialog('open');
     });
 
+    // ── Search residents archive ──
+    let arcResTimer;
+    $('#arcResSearch').on('input', function () {
+        clearTimeout(arcResTimer);
+        arcResTimer = setTimeout(() => loadArchivedResidents($(this).val()), 300);
+    });
+
+    // ── Search households archive ──
+    let arcHhTimer;
+    $('#arcHhSearch').on('input', function () {
+        clearTimeout(arcHhTimer);
+        arcHhTimer = setTimeout(() => loadArchivedHouseholds($(this).val()), 300);
+    });
+
+    // ── Load archived residents ──
     function loadArchivedResidents(search = '') {
-        $.getJSON('archive_api.php', { search, limit: 50, offset: 0 }, function (res) {
-            const $body = $('#archiveTableBody');
+        $.getJSON('archive_api.php', { search, limit: 100, offset: 0 }, function (res) {
+            const $body = $('#arcResBody');
             if (!res.success) {
-                $body.html('<tr><td colspan="4" class="archive-empty">Error loading archive.</td></tr>'); return;
-            }
-            if (!res.residents.length) {
-                $body.html('<tr><td colspan="4" class="archive-empty">No archived residents found.</td></tr>');
-                $('#archiveFooter').text('0 RECORDS');
+                $body.html('<tr><td colspan="4" class="archive-empty">Error loading archive.</td></tr>');
                 return;
             }
+
+            // Stats
+            const total = res.total || 0;
+            const now   = new Date();
+            const thisMonth = res.residents.filter(r => {
+                const d = new Date(r.archived_date);
+                return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+            }).length;
+            const latest = res.residents[0]
+                ? new Date(res.residents[0].archived_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+                : '—';
+
+            $('#arc-res-total').text(total);
+            $('#arc-res-month').text(thisMonth);
+            $('#arc-res-latest').text(latest);
+            $('#arc-res-count').text(total);
+
+            if (!res.residents.length) {
+                $body.html('<tr><td colspan="4" class="archive-empty">No archived residents found.</td></tr>');
+                $('#arcResFooter').text('0 RECORDS');
+                return;
+            }
+
             $body.empty();
             res.residents.forEach((r, i) => {
                 $body.append(`<tr>
-                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);">${String(r.id).padStart(4,'0')}</td>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${String(r.id).padStart(4,'0')}</td>
                     <td style="font-weight:500;">${escHtml(r.full_name)}</td>
                     <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${r.archived_date}</td>
                     <td style="text-align:center;">
-                        <button class="act-btn restore-btn"
-                            style="background:#fff;border-color:var(--rule-dk);color:var(--ok-fg);border-color:color-mix(in srgb,var(--ok-fg) 30%,transparent);"
+                        <button class="act-btn restore-res-btn"
+                            style="color:var(--ok-fg);border-color:color-mix(in srgb,var(--ok-fg) 30%,transparent);background:#fff;"
                             data-id="${r.id}" data-name="${escHtml(r.full_name)}">
                             Restore
                         </button>
                     </td>
                 </tr>`);
             });
-            $('#archiveFooter').text(res.total + ' ARCHIVED RECORD' + (res.total !== 1 ? 'S' : ''));
+            $('#arcResFooter').text(total + ' ARCHIVED RESIDENT' + (total !== 1 ? 'S' : ''));
         });
     }
+
+    // ── Load archived households ──
+    function loadArchivedHouseholds(search = '') {
+        // household_api.php returns archived households (archived_at IS NOT NULL)
+        $.getJSON('household_api.php', { archived: 1, search, limit: 100 }, function (res) {
+            const $body = $('#arcHhBody');
+
+            if (!res.success) {
+                $body.html('<tr><td colspan="6" class="archive-empty">Error loading archive.</td></tr>');
+                return;
+            }
+
+            const households = res.households || [];
+            const total      = res.total || households.length;
+
+            // Stats
+            const totalMembers = households.reduce((s, h) => s + (parseInt(h.total_members) || 0), 0);
+            const latest = households[0]
+                ? new Date(households[0].archived_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+                : '—';
+
+            $('#arc-hh-total').text(total);
+            $('#arc-hh-members').text(totalMembers);
+            $('#arc-hh-latest').text(latest);
+            $('#arc-hh-count').text(total);
+
+            if (!households.length) {
+                $body.html('<tr><td colspan="6" class="archive-empty">No archived households found.</td></tr>');
+                $('#arcHhFooter').text('0 RECORDS');
+                return;
+            }
+
+            $body.empty();
+            households.forEach((h, i) => {
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i + 1}</td>
+                    <td style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${escHtml(h.household_no)}</td>
+                    <td style="font-weight:500;">${escHtml(h.head_name || '—')}</td>
+                    <td style="font-size:12px;color:var(--ink-muted);">${escHtml(h.address || '—')}</td>
+                    <td style="text-align:center;font-family:var(--f-mono);font-size:12px;">${h.total_members || 0}</td>
+                    <td style="text-align:center;">
+                        <button class="act-btn restore-hh-btn"
+                            style="color:var(--ok-fg);border-color:color-mix(in srgb,var(--ok-fg) 30%,transparent);background:#fff;"
+                            data-id="${h.id}" data-name="${escHtml(h.household_no)}">
+                            Restore
+                        </button>
+                    </td>
+                </tr>`);
+            });
+            $('#arcHhFooter').text(total + ' ARCHIVED HOUSEHOLD' + (total !== 1 ? 'S' : ''));
+        });
+    }
+
 
     /* ══════════════════════════════════════════
        HOUSEHOLD MANAGEMENT

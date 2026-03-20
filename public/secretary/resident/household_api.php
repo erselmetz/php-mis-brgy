@@ -18,18 +18,10 @@ try {
             $action = $_POST['action'] ?? '';
 
             switch ($action) {
-                case 'create':
-                    handleCreateHousehold();
-                    break;
-
-                case 'update':
-                    handleUpdateHousehold();
-                    break;
-
-                case 'archive':
-                    handleArchiveHousehold();
-                    break;
-
+                case 'create': handleCreateHousehold(); break;
+                case 'update': handleUpdateHousehold(); break;
+                case 'archive': handleArchiveHousehold(); break;
+                case 'restore': handleRestoreHousehold(); break; 
                 default:
                     $response['message'] = 'Invalid action';
                     echo json_encode($response);
@@ -49,54 +41,52 @@ try {
 function handleGetHouseholds()
 {
     global $conn;
-
-    $search = $_GET['search'] ?? '';
-    $limit = (int) ($_GET['limit'] ?? 50);
-
-    // Build query
-    $where = "1=1";
+ 
+    $search   = $_GET['search'] ?? '';
+    $limit    = (int) ($_GET['limit'] ?? 50);
+    $archived = isset($_GET['archived']) && $_GET['archived'] == '1';
+ 
+    // Filter by archived state
+    $whereBase = $archived ? "archived_at IS NOT NULL" : "archived_at IS NULL";
+ 
     if (!empty($search)) {
         $searchTerm = $conn->real_escape_string($search);
-        $where .= " AND (h.household_no LIKE '%$searchTerm%' OR h.address LIKE '%$searchTerm%')";
+        $whereBase .= " AND (h.household_no LIKE '%$searchTerm%'
+                          OR h.address      LIKE '%$searchTerm%'
+                          OR CONCAT(hr.first_name,' ',hr.last_name) LIKE '%$searchTerm%')";
     }
-
-    // Get total count
-    $countQuery = "SELECT COUNT(*) as total FROM households h WHERE $where";
-    $countResult = $conn->query($countQuery);
+ 
+    $countResult = $conn->query("SELECT COUNT(*) as total FROM households h WHERE $whereBase");
     $total = $countResult->fetch_assoc()['total'];
-
-    // Get households with dynamic member count and head name
-    $query = "SELECT h.id, h.household_no, h.address, h.created_at, h.head_id,
+ 
+    $query = "SELECT h.id, h.household_no, h.address, h.created_at, h.head_id, h.archived_at,
                      CONCAT_WS(' ', hr.first_name, hr.middle_name, hr.last_name, hr.suffix) as head_name,
                      COUNT(r.id) as total_members
               FROM households h
               LEFT JOIN residents hr ON h.head_id = hr.id
-              LEFT JOIN residents r ON h.id = r.household_id AND r.deleted_at IS NULL
-              WHERE $where
-              GROUP BY h.id, h.household_no, h.address, h.created_at, hr.first_name, hr.middle_name, hr.last_name, hr.suffix
-              ORDER BY h.household_no ASC
+              LEFT JOIN residents r  ON h.id = r.household_id AND r.deleted_at IS NULL
+              WHERE $whereBase
+              GROUP BY h.id, h.household_no, h.address, h.created_at, h.archived_at,
+                       hr.first_name, hr.middle_name, hr.last_name, hr.suffix
+              ORDER BY " . ($archived ? "h.archived_at DESC" : "h.household_no ASC") . "
               LIMIT $limit";
-
+ 
     $result = $conn->query($query);
-
     $households = [];
     while ($row = $result->fetch_assoc()) {
         $households[] = [
-            'id' => $row['id'],
-            'household_no' => $row['household_no'],
-            'address' => $row['address'],
-            'head_name' => $row['head_name'] ?: 'Unknown',
-            'head_id' => $row['head_id'] ?? null,
+            'id'            => $row['id'],
+            'household_no'  => $row['household_no'],
+            'address'       => $row['address'],
+            'head_name'     => $row['head_name'] ?: 'Unknown',
+            'head_id'       => $row['head_id'] ?? null,
             'total_members' => (int) $row['total_members'],
-            'created_at' => $row['created_at']
+            'created_at'    => $row['created_at'],
+            'archived_at'   => $row['archived_at'],
         ];
     }
-
-    echo json_encode([
-        'success' => true,
-        'households' => $households,
-        'total' => $total
-    ]);
+ 
+    echo json_encode(['success' => true, 'households' => $households, 'total' => $total]);
 }
 
 function handleCreateHousehold()
@@ -236,47 +226,66 @@ function handleUpdateHousehold()
 function handleArchiveHousehold()
 {
     global $conn;
-
+ 
     $id = (int) ($_POST['id'] ?? 0);
-
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Household ID is required.']);
         return;
     }
-
-    // Check if household exists
-    $checkQuery = "SELECT id FROM households WHERE id = ?";
-    $stmt = $conn->prepare($checkQuery);
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-
-    if ($stmt->get_result()->num_rows === 0) {
-        echo json_encode(['success' => false, 'message' => 'Household not found.']);
+ 
+    // Check exists and is not already archived
+    $check = $conn->prepare("SELECT id FROM households WHERE id = ? AND archived_at IS NULL");
+    $check->bind_param('i', $id);
+    $check->execute();
+    if ($check->get_result()->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Household not found or already archived.']);
         return;
     }
-
-    // Check if household has residents (you might want to prevent archiving households with residents)
-    $residentCheckQuery = "SELECT COUNT(*) as count FROM residents WHERE household_id = ? AND deleted_at IS NULL";
-    $stmt = $conn->prepare($residentCheckQuery);
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $residentCount = $result->fetch_assoc()['count'];
-
-    if ($residentCount > 0) {
-        echo json_encode(['success' => false, 'message' => "Cannot archive household. It has $residentCount active resident(s). Please reassign or archive residents first."]);
+ 
+    // Block if active residents still assigned
+    $resCheck = $conn->prepare("SELECT COUNT(*) as cnt FROM residents WHERE household_id = ? AND deleted_at IS NULL");
+    $resCheck->bind_param('i', $id);
+    $resCheck->execute();
+    $cnt = $resCheck->get_result()->fetch_assoc()['cnt'];
+    if ($cnt > 0) {
+        echo json_encode(['success' => false,
+            'message' => "Cannot archive household — it has $cnt active resident(s). Reassign or archive residents first."]);
         return;
     }
-
-    // Archive household (you could add a deleted_at field to households table, or just delete it)
-    $deleteQuery = "DELETE FROM households WHERE id = ?";
-    $stmt = $conn->prepare($deleteQuery);
+ 
+    // Soft-archive
+    $stmt = $conn->prepare("UPDATE households SET archived_at = NOW() WHERE id = ?");
     $stmt->bind_param('i', $id);
-
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'message' => 'Household archived successfully.']);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to archive household.']);
     }
 }
-?>
+
+function handleRestoreHousehold()
+{
+    global $conn;
+ 
+    $id = (int) ($_POST['id'] ?? 0);
+    if (!$id) {
+        echo json_encode(['success' => false, 'message' => 'Household ID is required.']);
+        return;
+    }
+ 
+    $check = $conn->prepare("SELECT id FROM households WHERE id = ? AND archived_at IS NOT NULL");
+    $check->bind_param('i', $id);
+    $check->execute();
+    if ($check->get_result()->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Household not found or not archived.']);
+        return;
+    }
+ 
+    $stmt = $conn->prepare("UPDATE households SET archived_at = NULL WHERE id = ?");
+    $stmt->bind_param('i', $id);
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Household restored successfully.']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to restore household.']);
+    }
+}

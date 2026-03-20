@@ -70,7 +70,8 @@ $migrations = [
             'add_archived_at_to_blotter.php',
             'create_blotter_history_table.php',
             'add_archived_at_to_officers.php',
-            'create_term_history_table.php'
+            'create_term_history_table.php',
+            'add_archived_at_to_households.php',
         ]
     ],
     'Structural Changes' => [

@@ -839,24 +839,126 @@ else { $stmt->execute(); $result = $stmt->get_result(); }
     </div>
 
     <!-- ════════════════════════════════════════════
-         MODAL: ARCHIVED RESIDENTS
+         MODAL: ARCHIVE REGISTRY (Residents + Households)
     ════════════════════════════════════════════ -->
-    <div id="archivedResidentsDialog" title="Archived Residents" class="hidden">
-        <div class="archive-modal-wrap">
-            <div class="archive-search-bar">
-                <input type="text" class="res-search" id="archiveSearchInput" placeholder="Search archived residents…" style="width:100%;">
+    <div id="archivedResidentsDialog" title="Archive Registry" class="hidden">
+        <style>
+        .arc-tab-bar{display:flex;background:var(--paper-lt);border-bottom:1px solid var(--rule);}
+        .arc-tab{
+            display:flex;align-items:center;gap:7px;padding:12px 22px;
+            font-family:var(--f-sans);font-size:10px;font-weight:700;
+            letter-spacing:1px;text-transform:uppercase;
+            color:var(--ink-faint);background:none;border:none;
+            border-bottom:2px solid transparent;cursor:pointer;
+            transition:all .14s;margin-bottom:-1px;
+        }
+        .arc-tab:hover{color:var(--ink-muted);}
+        .arc-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--paper);}
+        .arc-tab-count{
+            display:inline-flex;align-items:center;justify-content:center;
+            min-width:20px;height:16px;padding:0 5px;
+            background:var(--rule);border-radius:2px;
+            font-family:var(--f-mono);font-size:9px;font-weight:700;
+            color:var(--ink-muted);transition:all .14s;
+        }
+        .arc-tab.active .arc-tab-count{background:var(--accent-md);color:var(--accent);}
+        .arc-pane{display:none;}
+        .arc-pane.active{display:block;}
+        .arc-stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--rule);}
+        .arc-stat-cell{padding:13px 18px;border-right:1px solid var(--rule);text-align:center;}
+        .arc-stat-cell:last-child{border-right:none;}
+        .arc-stat-val{font-family:var(--f-mono);font-size:24px;font-weight:600;color:var(--ink);line-height:1;margin-bottom:5px;}
+        .arc-stat-lbl{font-size:8px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-faint);}
+        .arc-search-bar{padding:11px 16px;border-bottom:1px solid var(--rule);background:var(--paper-lt);}
+        .arc-table-scroll{overflow-y:auto;max-height:288px;}
+        </style>
+
+        <!-- Tab bar -->
+        <div class="arc-tab-bar">
+            <button class="arc-tab active" data-tab="residents">
+                <span style="font-size:12px;opacity:.65;">⊞</span>
+                Residents
+                <span class="arc-tab-count" id="arc-res-count">—</span>
+            </button>
+            <button class="arc-tab" data-tab="households">
+                <span style="font-size:12px;opacity:.65;">▣</span>
+                Households
+                <span class="arc-tab-count" id="arc-hh-count">—</span>
+            </button>
+        </div>
+
+        <!-- ── RESIDENTS PANE ── -->
+        <div class="arc-pane active" id="arc-pane-residents">
+            <div class="arc-stats">
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-res-total">—</div>
+                    <div class="arc-stat-lbl">Total Archived</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-res-month">—</div>
+                    <div class="arc-stat-lbl">This Month</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-res-latest">—</div>
+                    <div class="arc-stat-lbl">Last Archived</div>
+                </div>
             </div>
-            <div style="overflow:auto;max-height:380px;">
+            <div class="arc-search-bar">
+                <input type="text" class="res-search" id="arcResSearch"
+                    placeholder="Search by name or ID…" style="width:100%;">
+            </div>
+            <div class="arc-table-scroll">
                 <table class="archive-table">
                     <thead><tr>
-                        <th>#</th><th>Full Name</th><th>Date Archived</th><th style="text-align:center;">Action</th>
+                        <th style="width:52px;font-family:var(--f-mono);">No.</th>
+                        <th>Full Name</th>
+                        <th>Date Archived</th>
+                        <th style="text-align:center;">Action</th>
                     </tr></thead>
-                    <tbody id="archiveTableBody">
+                    <tbody id="arcResBody">
                         <tr><td colspan="4" class="archive-empty">Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
-            <div class="archive-footer" id="archiveFooter">—</div>
+            <div class="archive-footer" id="arcResFooter">—</div>
+        </div>
+
+        <!-- ── HOUSEHOLDS PANE ── -->
+        <div class="arc-pane" id="arc-pane-households">
+            <div class="arc-stats">
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-hh-total">—</div>
+                    <div class="arc-stat-lbl">Total Archived</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-hh-members">—</div>
+                    <div class="arc-stat-lbl">Total Members</div>
+                </div>
+                <div class="arc-stat-cell">
+                    <div class="arc-stat-val" id="arc-hh-latest">—</div>
+                    <div class="arc-stat-lbl">Last Archived</div>
+                </div>
+            </div>
+            <div class="arc-search-bar">
+                <input type="text" class="res-search" id="arcHhSearch"
+                    placeholder="Search by household number, head, or address…" style="width:100%;">
+            </div>
+            <div class="arc-table-scroll">
+                <table class="archive-table">
+                    <thead><tr>
+                        <th style="width:36px;font-family:var(--f-mono);">#</th>
+                        <th>Household No.</th>
+                        <th>Head of Household</th>
+                        <th>Address</th>
+                        <th style="text-align:center;">Members</th>
+                        <th style="text-align:center;">Action</th>
+                    </tr></thead>
+                    <tbody id="arcHhBody">
+                        <tr><td colspan="6" class="archive-empty">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="archive-footer" id="arcHhFooter">—</div>
         </div>
     </div>
 
