@@ -173,6 +173,35 @@ $certBody = getCertificateBody($cert, $currentDate);
 
         /* Screen preview height — updated by applyPageStyle() JS */
         min-height: 11.03in;    /* A4 default: 297mm ≈ 11.03in */
+
+        /* Watermark sits inside, so position:relative is needed */
+        position: relative;
+    }
+
+    /* ── Watermark ── */
+    .cert-watermark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 600px;
+        height: 600px;
+        pointer-events: none;
+        z-index: 0;
+
+        /* Faded — just barely visible behind content */
+        opacity: 0.05;
+        filter: grayscale(30%);
+    }
+
+    /* Keep all content above the watermark */
+    .cert-header,
+    .cert-type-title,
+    .cert-divider,
+    .cert-body-section,
+    .cert-bottom {
+        position: relative;
+        z-index: 1;
     }
 
     /* ── Header — stays at top ── */
@@ -344,17 +373,26 @@ $certBody = getCertificateBody($cert, $currentDate);
     <!-- ══════════════════════════════════
          CERTIFICATE PAPER
     ══════════════════════════════════ -->
+    <?php
+    // Detect logo once — used for both header and watermark
+    $logoPath  = __DIR__ . '/../../favicon.ico';
+    $logoPath2 = __DIR__ . '/../../favicon.png';
+    $logoSrc   = null;
+    if (file_exists($logoPath))       { $logoSrc = 'data:image/x-icon;base64,' . base64_encode(file_get_contents($logoPath)); }
+    elseif (file_exists($logoPath2))  { $logoSrc = 'data:image/png;base64,'    . base64_encode(file_get_contents($logoPath2)); }
+    ?>
     <div class="certificate" id="certificateContent">
+
+        <!-- WATERMARK — centered behind all content -->
+        <?php if ($logoSrc): ?>
+            <img src="<?= $logoSrc ?>" alt="" class="cert-watermark" aria-hidden="true">
+        <?php else: ?>
+            <!-- No logo file found — watermark omitted -->
+        <?php endif; ?>
 
         <!-- HEADER — top -->
         <div class="cert-header">
-            <?php
-            $logoPath  = __DIR__ . '/../../favicon.ico';
-            $logoPath2 = __DIR__ . '/../../favicon.png';
-            $logoSrc   = null;
-            if (file_exists($logoPath))  { $logoSrc = 'data:image/x-icon;base64,' . base64_encode(file_get_contents($logoPath)); }
-            elseif (file_exists($logoPath2)) { $logoSrc = 'data:image/png;base64,'  . base64_encode(file_get_contents($logoPath2)); }
-            ?>
+            <?php /* $logoSrc already set above */ ?>
             <?php if ($logoSrc): ?>
                 <img src="<?= $logoSrc ?>" alt="Barangay Logo" class="logo">
             <?php else: ?>
