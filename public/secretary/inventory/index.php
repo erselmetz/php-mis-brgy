@@ -609,6 +609,6 @@ $csrf_token = getCSRFToken();
         </div>
     </div>
 
-    <script src="./js/index.js"></script>
+    <script src="./js/index.js?v=<?= time() ?>"></script>
 </body>
 </html>
