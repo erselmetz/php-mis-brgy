@@ -541,7 +541,7 @@ $csrf_token = getCSRFToken();
            INVENTORY ITEM SEARCH-WITH-DROPDOWN
         ══════════════════════════════════════════ */
         let invSearchTimer;
-        let invSearchCache = {};   // simple query cache
+        // No caching — availability changes every time someone borrows or returns
 
         const $search  = $('#invItemSearch');
         const $dd      = $('#invItemDropdown');
@@ -560,27 +560,12 @@ $csrf_token = getCSRFToken();
                 return;
             }
 
-            // Show cached results instantly if available
-            if (invSearchCache[q]) {
-                renderDropdown(invSearchCache[q]);
-                return;
-            }
-
-            $.getJSON('actions/borrow_api.php', {
-                action: 'check_availability',
-                search: q           // borrow_api passes this to inventory_api
-            }).done(function() {
-                // For search we call inventory_api directly
-            });
-
-            // Call inventory_api list with search param
+            // Always fetch fresh — availability changes with every borrow/return
             $.getJSON('../inventory/api/inventory_api.php', {
                 action: 'list',
                 search: q
             }, function(res) {
-                const items = res.data || [];
-                invSearchCache[q] = items;
-                renderDropdown(items);
+                renderDropdown(res.data || []);
             }).fail(function() {
                 $dd.html('<div class="inv-dd-empty">Search failed. Try again.</div>').addClass('open');
             });
@@ -743,7 +728,6 @@ $csrf_token = getCSRFToken();
         /* ── Reset when dialog closes ── */
         $(document).on('dialogclose', '#borrowDialog', function() {
             clearSelection();
-            invSearchCache = {};
         });
 
     });

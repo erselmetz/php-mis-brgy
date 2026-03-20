@@ -240,7 +240,6 @@ $csrf_token = getCSRFToken();
     }
     .act-edit:hover   { border-color: var(--accent);    color: var(--accent);    background: var(--accent-lt); }
     .act-audit:hover  { border-color: var(--warn-fg);   color: var(--warn-fg);   background: var(--warn-bg); }
-    .act-delete:hover { border-color: var(--danger-fg); color: var(--danger-fg); background: var(--danger-bg); }
 
     /* ═══════════════════════════════════════
        DIALOG OVERRIDES

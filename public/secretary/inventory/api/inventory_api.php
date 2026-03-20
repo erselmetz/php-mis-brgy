@@ -327,51 +327,6 @@ if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// ── DELETE ────────────────────────────────────────────────────────────────────
-if ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!validateCSRFToken($token)) {
-        http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'Invalid CSRF token']);
-        exit;
-    }
-
-    $id = (int)($_POST['id'] ?? 0);
-    if ($id <= 0) {
-        http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'Invalid item ID']);
-        exit;
-    }
-
-    $stmt = $conn->prepare("SELECT asset_code, name FROM inventory WHERE id = ?");
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $item = $stmt->get_result()->fetch_assoc();
-    if (!$item) {
-        http_response_code(404);
-        echo json_encode(['status' => 'error', 'message' => 'Item not found']);
-        exit;
-    }
-
-    try {
-        logAuditTrail($conn, $id, $item['asset_code'], 'deleted',
-            $userId, $userName, $userRole, [
-                'notes' => 'Inventory item deleted: ' . $item['name'],
-            ]);
-
-        $stmt = $conn->prepare("DELETE FROM inventory WHERE id = ?");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-
-        echo json_encode(['status' => 'ok', 'message' => 'Inventory item deleted successfully']);
-    } catch (Exception $e) {
-        http_response_code(500);
-        error_log('Inventory delete error: ' . $e->getMessage());
-        echo json_encode(['status' => 'error', 'message' => 'Failed to delete item']);
-    }
-    exit;
-}
-
 // ── ASSIGN / RETURN ───────────────────────────────────────────────────────────
 if (in_array($action, ['assign','return']) && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
