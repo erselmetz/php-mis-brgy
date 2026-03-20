@@ -54,15 +54,9 @@ $(function () {
                 {
                     data: null, title: 'Actions', orderable: false,
                     render: function (d, t, row) {
-                        let returnBtn = '';
-                        if (row.status === 'borrowed' || row.status === 'overdue') {
-                            returnBtn = `<button class="return-btn text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200" data-id="${row.id}">Return</button>`;
-                        }
                         return `<div class="flex gap-1">
                             <button class="view-borrow-btn text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded" data-id="${row.id}">View</button>
                             <button class="edit-borrow-btn text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded" data-id="${row.id}">Edit</button>
-                            ${returnBtn}
-                            <button class="del-borrow-btn text-xs px-2 py-1 bg-red-100 text-red-700 rounded" data-id="${row.id}">Delete</button>
                         </div>`;
                     }
                 }
@@ -242,25 +236,6 @@ $(function () {
         }, 'json');
     });
 
-    // ── Delete ───────────────────────────────────────────────────────────────
-    $('#borrowTable').on('click', '.del-borrow-btn', function () {
-        $('#deleteBorrowId').val($(this).data('id'));
-        $('#deleteBorrowDialog').dialog('open');
-    });
-
-    $('#deleteBorrowDialog').dialog({
-        autoOpen: false, modal: true, width: 400,
-        buttons: {
-            'Yes, Delete': function () {
-                $.post('actions/borrow_api.php?action=delete', { id: $('#deleteBorrowId').val() }, function (res) {
-                    $('#deleteBorrowDialog').dialog('close');
-                    if (res.success) { reloadTable(); showMsg('Deleted', res.message); }
-                    else showMsg('Error', res.message, true);
-                }, 'json');
-            },
-            'Cancel': function () { $(this).dialog('close'); }
-        }
-    });
 
     // ── Print ────────────────────────────────────────────────────────────────
     $('#btnPrintBorrow').on('click', function () {

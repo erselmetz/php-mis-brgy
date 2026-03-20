@@ -165,23 +165,4 @@ if ($action === 'mark_returned') {
     exit;
 }
 
-// ─── DELETE ──────────────────────────────────────────────────────────────────
-if ($action === 'delete') {
-    $id = (int) ($_POST['id'] ?? 0);
-    if ($id <= 0) {
-        echo json_encode(['success' => false, 'message' => 'Invalid ID.']);
-        exit;
-    }
-    try {
-        $stmt = $conn->prepare("DELETE FROM borrowing_schedule WHERE id=?");
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $stmt->close();
-        echo json_encode(['success' => true, 'message' => 'Record deleted.']);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => 'Failed to delete.']);
-    }
-    exit;
-}
-
 echo json_encode(['status' => 'error', 'message' => 'Unknown action.']);
