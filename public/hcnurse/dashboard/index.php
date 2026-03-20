@@ -19,7 +19,7 @@ function fetchRow(mysqli $conn, string $sql, array $defaults = []): array {
 }
 
 /* ═══════════════════════════════════════════
-   STATIC COUNTS (not period-filtered)
+   STATIC COUNTS
 ═══════════════════════════════════════════ */
 $patients = fetchRow($conn,
     "SELECT COUNT(*) total,
@@ -31,7 +31,6 @@ $patients = fetchRow($conn,
     ['total'=>0,'infant'=>0,'child'=>0,'adult'=>0,'senior'=>0]
 );
 
-/* Medicine inventory — always current, not period-filtered */
 $inventory = ['items'=>0,'low_stock'=>0,'ok_stock'=>0,'total_qty'=>0];
 if (tableExists($conn,'medicines'))
     $inventory = fetchRow($conn,
@@ -43,6 +42,7 @@ if (tableExists($conn,'medicines'))
         ['items'=>0,'low_stock'=>0,'ok_stock'=>0,'total_qty'=>0]
     );
 
+/* ─── Medicine rows for right panel ─── */
 $medicineRows = [];
 if (tableExists($conn,'medicines')) {
     $mr = $conn->query(
@@ -51,10 +51,16 @@ if (tableExists($conn,'medicines')) {
          ORDER BY (stock_qty <= reorder_level) DESC, name ASC LIMIT 10"
     );
     if ($mr) while ($r = $mr->fetch_assoc()) {
-        $qty = (int)$r['stock_qty']; $re = max((int)$r['reorder_level'], 1);
+        $qty    = (int)$r['stock_qty'];
+        $re     = max((int)$r['reorder_level'], 1);
         $status = $qty <= 0 ? 'Out of Stock' : ($qty <= $re ? 'Low Stock' : ($qty <= $re*2 ? 'Average' : 'Good'));
         $pct    = max(0, min(100, (int)round(($qty / ($re*2)) * 100)));
-        $medicineRows[] = compact('name','qty','pct','status') + ['name'=>$r['name']];
+        $medicineRows[] = [
+            'name'   => $r['name'],
+            'qty'    => $qty,
+            'pct'    => $pct,
+            'status' => $status,
+        ];
     }
 }
 ?>
@@ -80,7 +86,6 @@ if (tableExists($conn,'medicines')) {
         --bg:         #edeae4;
         --accent:     var(--theme-primary, #2d5a27);
         --accent-lt:  color-mix(in srgb, var(--accent) 8%, white);
-        --accent-md:  color-mix(in srgb, var(--accent) 18%, white);
         --ok-bg:      #edfaf3; --ok-fg:     #1a5c35;
         --warn-bg:    #fef9ec; --warn-fg:   #7a5700;
         --danger-bg:  #fdeeed; --danger-fg: #7a1f1a;
@@ -95,245 +100,174 @@ if (tableExists($conn,'medicines')) {
         --f-mono:  'Source Code Pro', 'Courier New', monospace;
         --shadow:  0 1px 2px rgba(0,0,0,.07), 0 3px 14px rgba(0,0,0,.05);
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body, input, button, select { font-family: var(--f-sans); }
-    .hcd-page { background: var(--bg); min-height: 100%; padding-bottom: 56px; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body, input, button, select { font-family:var(--f-sans); }
+    .hcd-page { background:var(--bg); min-height:100%; padding-bottom:56px; }
 
-    /* ── Doc header ─────────────────────── */
-    .doc-header {
-        background: var(--paper);
-        border-bottom: 1px solid var(--rule);
-        padding: 20px 28px 0;
+    /* ── Doc header ── */
+    .doc-header { background:var(--paper); border-bottom:1px solid var(--rule); }
+    .doc-header-inner {
+        padding:20px 28px 0;
+        display:flex; align-items:flex-end;
+        justify-content:space-between; gap:20px; flex-wrap:wrap;
     }
     .doc-eyebrow {
-        font-size: 8.5px; font-weight: 700; letter-spacing: 1.8px;
-        text-transform: uppercase; color: var(--ink-faint);
-        display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
-    }
-    .doc-eyebrow::before {
-        content:''; width:18px; height:2px; background:var(--accent); display:inline-block;
-    }
-    .doc-title {
-        font-family: var(--f-serif); font-size: 22px; font-weight: 700;
-        color: var(--ink); letter-spacing: -.3px; margin-bottom: 3px;
-    }
-    .doc-sub { font-size: 12px; color: var(--ink-faint); font-style: italic; }
-
-    /* ── Period filter bar ───────────────── */
-    .period-bar {
-        display: flex; align-items: center; gap: 6px;
-        padding: 12px 0 0; flex-wrap: wrap;
-        border-top: none;
-    }
-    .period-lbl {
-        font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px;
-        text-transform: uppercase; color: var(--ink-faint); margin-right: 4px;
-    }
-    .pb-btn {
-        padding: 5px 13px; border-radius: 2px;
-        border: 1.5px solid var(--rule-dk); background: #fff;
-        font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
-        text-transform: uppercase; color: var(--ink-muted); cursor: pointer;
-        transition: all .12s; font-family: var(--f-sans);
-    }
-    .pb-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
-    .pb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .pb-sep { width:1px; height:20px; background:var(--rule); margin: 0 4px; }
-    .pb-range { display:flex; align-items:center; gap:6px; }
-    .pb-date {
-        padding: 5px 10px; border: 1.5px solid var(--rule-dk); border-radius: 2px;
-        font-size: 12px; font-family: var(--f-sans); color: var(--ink);
-        background: #fff; outline: none; transition: border-color .14s;
-    }
-    .pb-date:focus { border-color: var(--accent); }
-    .pb-apply {
-        padding: 5px 14px; border-radius: 2px;
-        background: var(--accent); border: 1.5px solid var(--accent);
-        color: #fff; font-size: 10.5px; font-weight: 700;
-        letter-spacing: .4px; text-transform: uppercase;
-        cursor: pointer; font-family: var(--f-sans); transition: filter .12s;
-    }
-    .pb-apply:hover { filter: brightness(1.1); }
-
-    /* accent bottom bar */
-    .doc-accent-bar {
-        height: 3px; margin-top: 12px;
-        background: linear-gradient(to right, var(--accent), transparent);
-    }
-
-    /* ── Stat ledger ─────────────────────── */
-    .stat-ledger {
-        display: grid; grid-template-columns: repeat(5, 1fr);
-        margin: 22px 28px 0;
-        background: var(--paper);
-        border: 1px solid var(--rule);
-        border-radius: 2px; box-shadow: var(--shadow); overflow: hidden;
-    }
-    .sl-cell {
-        padding: 16px 18px; border-right: 1px solid var(--rule);
-        position: relative; transition: background .12s;
-    }
-    .sl-cell:last-child { border-right: none; }
-    .sl-cell::after {
-        content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    }
-    .sl-0::after { background: var(--accent); }
-    .sl-1::after { background: var(--blue); }
-    .sl-2::after { background: var(--purple); }
-    .sl-3::after { background: var(--teal); }
-    .sl-4::after { background: var(--rose); }
-    .sl-cell:hover { background: var(--paper-lt); }
-    .sl-eyebrow {
-        font-size: 8px; font-weight: 700; letter-spacing: 1.4px;
-        text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px;
-    }
-    .sl-val {
-        font-family: var(--f-mono); font-size: 30px; font-weight: 600;
-        line-height: 1; margin-bottom: 4px; letter-spacing: -1px; color: var(--ink);
-        display: flex; align-items: baseline; gap: 6px;
-    }
-    .sl-delta {
-        font-size: 10px; font-weight: 700; padding: 1px 5px;
-        border-radius: 2px; letter-spacing: .3px;
-    }
-    .sl-sub { font-size: 10.5px; color: var(--ink-faint); line-height: 1.5; }
-    .sl-sub strong { color: var(--ink-muted); font-weight: 600; }
-    /* skeleton loader */
-    .sl-skel {
-        height: 30px; width: 70px; border-radius: 2px;
-        background: linear-gradient(90deg,#f0ede8 25%,#e8e5e0 50%,#f0ede8 75%);
-        background-size: 300px 100%; animation: shimmer 1.2s infinite;
-    }
-    @keyframes shimmer { 0%{background-position:-300px 0} 100%{background-position:300px 0} }
-
-    /* ── Body grid ───────────────────────── */
-    .hcd-grid {
-        display: grid; grid-template-columns: 1fr 300px;
-        gap: 18px; margin: 18px 28px 0; align-items: start;
-    }
-    .hcd-left { display:flex; flex-direction:column; gap:18px; }
-    @media (max-width:1100px) { .hcd-grid { grid-template-columns:1fr; } }
-
-    /* ── Card ────────────────────────────── */
-    .hc-card {
-        background: var(--paper); border: 1px solid var(--rule);
-        border-radius: 2px; box-shadow: var(--shadow); overflow: hidden;
-    }
-    .hc-card-head {
-        padding: 10px 18px; border-bottom: 1px solid var(--rule);
-        background: var(--paper-lt);
-        display: flex; align-items: center; justify-content: space-between;
-    }
-    .hc-card-title {
-        font-size: 8.5px; font-weight: 700; letter-spacing: 1.4px;
-        text-transform: uppercase; color: var(--ink-muted);
-        display: flex; align-items: center; gap: 8px;
-    }
-    .hc-card-title::before {
-        content:''; display:inline-block; width:3px; height:13px;
-        background:var(--accent); border-radius:1px; flex-shrink:0;
-    }
-    .hc-card-meta {
-        font-family: var(--f-mono); font-size: 9.5px;
-        color: var(--ink-faint); letter-spacing: .3px;
-    }
-    .hc-card-body { padding: 18px; }
-
-    /* ── Care program mini-grid ──────────── */
-    .care-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-        margin-bottom: 16px;
-    }
-    .care-cell {
-        padding: 12px 14px; border-radius: 2px;
-        border: 1px solid var(--rule); background: var(--paper-lt);
-        position: relative; overflow: hidden;
-    }
-    .care-cell::before {
-        content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    }
-    .cc-maternal::before   { background: var(--rose); }
-    .cc-fp::before         { background: var(--blue); }
-    .cc-prenatal::before   { background: var(--amber); }
-    .cc-postnatal::before  { background: var(--teal); }
-    .cc-nutrition::before  { background: var(--accent); }
-    .cc-immune::before     { background: var(--purple); }
-    .care-val {
-        font-family: var(--f-mono); font-size: 22px; font-weight: 600;
-        line-height: 1; margin-bottom: 3px; letter-spacing: -.5px;
-    }
-    .cc-maternal  .care-val { color: var(--rose); }
-    .cc-fp        .care-val { color: var(--blue); }
-    .cc-prenatal  .care-val { color: var(--amber); }
-    .cc-postnatal .care-val { color: var(--teal); }
-    .cc-nutrition .care-val { color: var(--accent); }
-    .cc-immune    .care-val { color: var(--purple); }
-    .care-lbl {
-        font-size: 8.5px; font-weight: 700; letter-spacing: .5px;
-        text-transform: uppercase; color: var(--ink-faint);
-    }
-
-    /* ── Chart containers ────────────────── */
-    .chart-h180 { position:relative; height:180px; }
-    .chart-h220 { position:relative; height:220px; }
-
-    /* ── Medicine panel ──────────────────── */
-    .med-row {
-        display:flex; align-items:center; gap:12px;
-        padding: 10px 18px; border-bottom: 1px solid #f0ede8;
-        transition: background .1s;
-    }
-    .med-row:last-of-type { border-bottom: none; }
-    .med-row:hover { background: var(--paper-lt); }
-    .med-info { flex:1; min-width:0; }
-    .med-name {
-        font-size: 12px; font-weight: 600; color: var(--ink);
-        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-        margin-bottom: 5px;
-    }
-    .med-track { height:4px; background:var(--rule); border-radius:2px; }
-    .med-fill  { height:100%; border-radius:2px; transition:width .4s; }
-    .mf-good { background: var(--ok-fg); }
-    .mf-avg  { background: var(--amber); }
-    .mf-low  { background: var(--rose); }
-    .mf-oos  { background: var(--ink-faint); }
-    .med-badge {
-        font-size: 9px; font-weight: 700; letter-spacing: .4px;
-        text-transform: uppercase; padding: 2px 7px; border-radius: 2px;
-        white-space: nowrap; flex-shrink:0;
-    }
-    .mb-good { background:var(--ok-bg);     color:var(--ok-fg); }
-    .mb-avg  { background:var(--warn-bg);   color:var(--warn-fg); }
-    .mb-low  { background:var(--danger-bg); color:var(--danger-fg); }
-    .mb-oos  { background:var(--neu-bg);    color:var(--neu-fg); }
-
-    /* inv summary strip */
-    .inv-strip {
-        display:grid; grid-template-columns:repeat(3,1fr);
-        border-top:1px solid var(--rule); background:var(--paper-lt);
-    }
-    .inv-strip-cell {
-        padding:11px 14px; text-align:center; border-right:1px solid var(--rule);
-    }
-    .inv-strip-cell:last-child { border-right:none; }
-    .inv-strip-val {
-        font-family:var(--f-mono); font-size:20px; font-weight:600;
-        color:var(--ink); line-height:1; margin-bottom:3px;
-    }
-    .inv-strip-lbl {
-        font-size:7.5px; font-weight:700; letter-spacing:1.1px;
+        font-size:8.5px; font-weight:700; letter-spacing:1.8px;
         text-transform:uppercase; color:var(--ink-faint);
+        display:flex; align-items:center; gap:8px; margin-bottom:5px;
     }
+    .doc-eyebrow::before { content:''; width:18px; height:2px; background:var(--accent); display:inline-block; }
+    .doc-title {
+        font-family:var(--f-serif); font-size:22px; font-weight:700;
+        color:var(--ink); letter-spacing:-.3px; margin-bottom:3px;
+        display:flex; align-items:baseline; gap:0; flex-wrap:wrap;
+    }
+    .doc-sub { font-size:12px; color:var(--ink-faint); font-style:italic; }
 
-    /* ── Period label pill ───────────────── */
+    /* Period pill */
     #periodPill {
         display:inline-flex; align-items:center; gap:6px;
         padding:3px 10px; border-radius:2px;
         background:var(--accent-lt);
         border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);
         font-family:var(--f-mono); font-size:9px; color:var(--accent);
-        letter-spacing:.4px; margin-left:10px;
+        letter-spacing:.4px; margin-left:12px; vertical-align:middle;
     }
+
+    /* Period filter bar */
+    .period-bar {
+        display:flex; align-items:center; gap:6px;
+        padding:12px 0 0; flex-wrap:wrap;
+    }
+    .period-lbl {
+        font-size:8.5px; font-weight:700; letter-spacing:1.2px;
+        text-transform:uppercase; color:var(--ink-faint); margin-right:4px;
+    }
+    .pb-btn {
+        padding:5px 13px; border-radius:2px;
+        border:1.5px solid var(--rule-dk); background:#fff;
+        font-size:10.5px; font-weight:700; letter-spacing:.3px;
+        text-transform:uppercase; color:var(--ink-muted); cursor:pointer;
+        transition:all .12s; font-family:var(--f-sans);
+    }
+    .pb-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-lt); }
+    .pb-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .pb-sep { width:1px; height:20px; background:var(--rule); margin:0 4px; }
+    .pb-range { display:flex; align-items:center; gap:6px; }
+    .pb-date {
+        padding:5px 10px; border:1.5px solid var(--rule-dk); border-radius:2px;
+        font-size:12px; font-family:var(--f-sans); color:var(--ink);
+        background:#fff; outline:none; transition:border-color .14s;
+    }
+    .pb-date:focus { border-color:var(--accent); }
+    .pb-apply {
+        padding:5px 14px; border-radius:2px;
+        background:var(--accent); border:1.5px solid var(--accent);
+        color:#fff; font-size:10.5px; font-weight:700;
+        letter-spacing:.4px; text-transform:uppercase;
+        cursor:pointer; font-family:var(--f-sans); transition:filter .12s;
+    }
+    .pb-apply:hover { filter:brightness(1.1); }
+    .doc-accent-bar { height:3px; margin-top:12px; background:linear-gradient(to right, var(--accent), transparent); }
+
+    /* ── Stat ledger ── */
+    .stat-ledger {
+        display:grid; grid-template-columns:repeat(5,1fr);
+        margin:22px 28px 0;
+        background:var(--paper);
+        border:1px solid var(--rule); border-radius:2px;
+        box-shadow:var(--shadow); overflow:hidden;
+    }
+    .sl-cell {
+        padding:16px 18px; border-right:1px solid var(--rule);
+        position:relative; transition:background .12s;
+    }
+    .sl-cell:last-child { border-right:none; }
+    .sl-cell::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .sl-0::after { background:var(--accent); }
+    .sl-1::after { background:var(--blue); }
+    .sl-2::after { background:var(--purple); }
+    .sl-3::after { background:var(--teal); }
+    .sl-4::after { background:var(--rose); }
+    .sl-cell:hover { background:var(--paper-lt); }
+    .sl-eyebrow { font-size:8px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:8px; }
+    .sl-val { font-family:var(--f-mono); font-size:30px; font-weight:600; line-height:1; margin-bottom:4px; letter-spacing:-1px; color:var(--ink); }
+    .sl-sub { font-size:10.5px; color:var(--ink-faint); line-height:1.5; }
+    .sl-sub strong { color:var(--ink-muted); font-weight:600; }
+    .sl-skel {
+        height:30px; width:70px; border-radius:2px;
+        background:linear-gradient(90deg,#f0ede8 25%,#e8e5e0 50%,#f0ede8 75%);
+        background-size:300px 100%; animation:shimmer 1.2s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:-300px 0} 100%{background-position:300px 0} }
+
+    /* ── Body grid ── */
+    .hcd-grid { display:grid; grid-template-columns:1fr 300px; gap:18px; margin:18px 28px 0; align-items:start; }
+    .hcd-left  { display:flex; flex-direction:column; gap:18px; }
+    @media (max-width:1100px) { .hcd-grid { grid-template-columns:1fr; } }
+
+    /* ── Card ── */
+    .hc-card { background:var(--paper); border:1px solid var(--rule); border-radius:2px; box-shadow:var(--shadow); overflow:hidden; }
+    .hc-card-head {
+        padding:10px 18px; border-bottom:1px solid var(--rule); background:var(--paper-lt);
+        display:flex; align-items:center; justify-content:space-between;
+    }
+    .hc-card-title {
+        font-size:8.5px; font-weight:700; letter-spacing:1.4px;
+        text-transform:uppercase; color:var(--ink-muted);
+        display:flex; align-items:center; gap:8px;
+    }
+    .hc-card-title::before { content:''; display:inline-block; width:3px; height:13px; background:var(--accent); border-radius:1px; flex-shrink:0; }
+    .hc-card-meta { font-family:var(--f-mono); font-size:9.5px; color:var(--ink-faint); letter-spacing:.3px; }
+    .hc-card-body { padding:18px; }
+
+    /* ── Care grid ── */
+    .care-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+    .care-cell { padding:12px 14px; border-radius:2px; border:1px solid var(--rule); background:var(--paper-lt); position:relative; overflow:hidden; }
+    .care-cell::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .cc-maternal::before   { background:var(--rose); }
+    .cc-fp::before         { background:var(--blue); }
+    .cc-prenatal::before   { background:var(--amber); }
+    .cc-postnatal::before  { background:var(--teal); }
+    .cc-nutrition::before  { background:var(--accent); }
+    .cc-immune::before     { background:var(--purple); }
+    .care-val { font-family:var(--f-mono); font-size:22px; font-weight:600; line-height:1; margin-bottom:3px; letter-spacing:-.5px; }
+    .cc-maternal  .care-val { color:var(--rose); }
+    .cc-fp        .care-val { color:var(--blue); }
+    .cc-prenatal  .care-val { color:var(--amber); }
+    .cc-postnatal .care-val { color:var(--teal); }
+    .cc-nutrition .care-val { color:var(--accent); }
+    .cc-immune    .care-val { color:var(--purple); }
+    .care-lbl { font-size:8.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--ink-faint); }
+
+    /* ── Charts ── */
+    .chart-h180 { position:relative; height:180px; }
+    .chart-h220 { position:relative; height:220px; }
+
+    /* ── Medicine panel ── */
+    .med-row { display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid #f0ede8; transition:background .1s; }
+    .med-row:last-of-type { border-bottom:none; }
+    .med-row:hover { background:var(--paper-lt); }
+    .med-info { flex:1; min-width:0; }
+    .med-name { font-size:12px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+    .med-track { height:4px; background:var(--rule); border-radius:2px; }
+    .med-fill  { height:100%; border-radius:2px; transition:width .4s; }
+    .mf-good { background:var(--ok-fg); }
+    .mf-avg  { background:var(--amber); }
+    .mf-low  { background:var(--rose); }
+    .mf-oos  { background:var(--ink-faint); }
+    .med-badge { font-size:9px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; padding:2px 7px; border-radius:2px; white-space:nowrap; flex-shrink:0; }
+    .mb-good { background:var(--ok-bg);     color:var(--ok-fg); }
+    .mb-avg  { background:var(--warn-bg);   color:var(--warn-fg); }
+    .mb-low  { background:var(--danger-bg); color:var(--danger-fg); }
+    .mb-oos  { background:var(--neu-bg);    color:var(--neu-fg); }
+
+    /* inv summary strip */
+    .inv-strip { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--rule); background:var(--paper-lt); }
+    .inv-strip-cell { padding:11px 14px; text-align:center; border-right:1px solid var(--rule); }
+    .inv-strip-cell:last-child { border-right:none; }
+    .inv-strip-val { font-family:var(--f-mono); font-size:20px; font-weight:600; color:var(--ink); line-height:1; margin-bottom:3px; }
+    .inv-strip-lbl { font-size:7.5px; font-weight:700; letter-spacing:1.1px; text-transform:uppercase; color:var(--ink-faint); }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
@@ -343,39 +277,39 @@ if (tableExists($conn,'medicines')) {
 
         <main class="flex-1 h-screen overflow-y-auto hcd-page">
 
-            <!-- ══════════════════════════════════
-                 DOCUMENT HEADER + PERIOD BAR
-            ══════════════════════════════════ -->
+            <!-- ── Document Header ── -->
             <div class="doc-header">
-                <div class="doc-eyebrow">Barangay Bombongan — Health Center</div>
-                <div style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;">
-                    <div class="doc-title">Health Center Dashboard</div>
-                    <span id="periodPill">THIS MONTH</span>
-                </div>
-                <div class="doc-sub"><?= date('l, d F Y') ?> &mdash; <?= htmlspecialchars($_SESSION['name'] ?? 'HC Nurse') ?></div>
+                <div class="doc-header-inner">
+                    <div>
+                        <div class="doc-eyebrow">Barangay Bombongan — Health Center</div>
+                        <div class="doc-title">
+                            Health Center Dashboard
+                            <span id="periodPill">THIS MONTH</span>
+                        </div>
+                        <div class="doc-sub"><?= date('l, d F Y') ?> &mdash; <?= htmlspecialchars($_SESSION['name'] ?? 'HC Nurse') ?></div>
 
-                <!-- Period filter bar -->
-                <div class="period-bar">
-                    <span class="period-lbl">Period</span>
-                    <button class="pb-btn" data-preset="today">Today</button>
-                    <button class="pb-btn active" data-preset="this_month">This Month</button>
-                    <button class="pb-btn" data-preset="last_30">Last 30 Days</button>
-                    <button class="pb-btn" data-preset="this_year">This Year</button>
-                    <button class="pb-btn" data-preset="all_time">All Time</button>
-                    <div class="pb-sep"></div>
-                    <div class="pb-range">
-                        <input type="date" class="pb-date" id="pbFrom">
-                        <span style="font-size:11px;color:var(--ink-faint);">to</span>
-                        <input type="date" class="pb-date" id="pbTo">
-                        <button class="pb-apply" id="pbApply">Apply</button>
+                        <!-- Period filter bar -->
+                        <div class="period-bar">
+                            <span class="period-lbl">Period</span>
+                            <button class="pb-btn" data-preset="today">Today</button>
+                            <button class="pb-btn active" data-preset="this_month">This Month</button>
+                            <button class="pb-btn" data-preset="last_30">Last 30 Days</button>
+                            <button class="pb-btn" data-preset="this_year">This Year</button>
+                            <button class="pb-btn" data-preset="all_time">All Time</button>
+                            <div class="pb-sep"></div>
+                            <div class="pb-range">
+                                <input type="date" class="pb-date" id="pbFrom">
+                                <span style="font-size:11px;color:var(--ink-faint);">to</span>
+                                <input type="date" class="pb-date" id="pbTo">
+                                <button class="pb-apply" id="pbApply">Apply</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="doc-accent-bar"></div>
             </div>
 
-            <!-- ══════════════════════════════════
-                 STAT LEDGER  (5 cells, AJAX-filled)
-            ══════════════════════════════════ -->
+            <!-- ── Stat Ledger ── -->
             <div class="stat-ledger">
                 <div class="sl-cell sl-0">
                     <div class="sl-eyebrow">Consultations</div>
@@ -408,22 +342,19 @@ if (tableExists($conn,'medicines')) {
                 </div>
             </div>
 
-            <!-- ══════════════════════════════════
-                 BODY GRID
-            ══════════════════════════════════ -->
+            <!-- ── Body Grid ── -->
             <div class="hcd-grid">
 
-                <!-- ── LEFT ── -->
+                <!-- LEFT -->
                 <div class="hcd-left">
 
-                    <!-- Care Programs + Charts -->
+                    <!-- Care Programs -->
                     <div class="hc-card">
                         <div class="hc-card-head">
                             <span class="hc-card-title">Care Programs Overview</span>
                             <span class="hc-card-meta" id="careCardMeta">—</span>
                         </div>
                         <div class="hc-card-body">
-                            <!-- 6-cell mini-grid -->
                             <div class="care-grid">
                                 <div class="care-cell cc-maternal">
                                     <div class="care-val" id="cvMaternal">—</div>
@@ -450,53 +381,38 @@ if (tableExists($conn,'medicines')) {
                                     <div class="care-lbl">Immunization</div>
                                 </div>
                             </div>
-                            <!-- Care bar chart -->
                             <div class="chart-h180">
                                 <canvas id="careChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Consultation trend -->
+                    <!-- Consultation Trend -->
                     <div class="hc-card">
                         <div class="hc-card-head">
                             <span class="hc-card-title">Consultation Daily Trend</span>
                             <span class="hc-card-meta" id="trendMeta">—</span>
                         </div>
                         <div class="hc-card-body">
-                            <div class="chart-h220">
-                                <canvas id="trendChart"></canvas>
-                            </div>
+                            <div class="chart-h220"><canvas id="trendChart"></canvas></div>
                         </div>
                     </div>
 
-                    <!-- Patients donut + inventory donut side by side -->
+                    <!-- Donuts row -->
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
                         <div class="hc-card">
-                            <div class="hc-card-head">
-                                <span class="hc-card-title">Patients by Age</span>
-                            </div>
-                            <div class="hc-card-body">
-                                <div class="chart-h180">
-                                    <canvas id="patientChart"></canvas>
-                                </div>
-                            </div>
+                            <div class="hc-card-head"><span class="hc-card-title">Patients by Age</span></div>
+                            <div class="hc-card-body"><div class="chart-h180"><canvas id="patientChart"></canvas></div></div>
                         </div>
                         <div class="hc-card">
-                            <div class="hc-card-head">
-                                <span class="hc-card-title">Medicine Stock Status</span>
-                            </div>
-                            <div class="hc-card-body">
-                                <div class="chart-h180">
-                                    <canvas id="stockChart"></canvas>
-                                </div>
-                            </div>
+                            <div class="hc-card-head"><span class="hc-card-title">Medicine Stock Status</span></div>
+                            <div class="hc-card-body"><div class="chart-h180"><canvas id="stockChart"></canvas></div></div>
                         </div>
                     </div>
 
                 </div><!-- /left -->
 
-                <!-- ── RIGHT — Medicine panel ── -->
+                <!-- RIGHT: Medicine panel -->
                 <div class="hc-card" style="position:sticky;top:0;">
                     <div class="hc-card-head">
                         <span class="hc-card-title">Medicine Inventory</span>
@@ -554,7 +470,7 @@ if (tableExists($conn,'medicines')) {
         Chart.defaults.plugins.legend.position        = 'bottom';
         Chart.defaults.plugins.legend.labels.boxWidth = 10;
         Chart.defaults.plugins.legend.labels.padding  = 10;
-        Chart.defaults.plugins.legend.labels.font     = { size: 10, family: "'Source Sans 3', sans-serif" };
+        Chart.defaults.plugins.legend.labels.font     = { size:10, family:"'Source Sans 3', sans-serif" };
         Chart.defaults.plugins.legend.labels.usePointStyle = true;
 
         /* ── Date helpers ── */
@@ -592,7 +508,6 @@ if (tableExists($conn,'medicines')) {
 
         /* ── Render ── */
         function renderAll(d) {
-            /* Stat ledger */
             $('#stConsult').text(d.consultations ?? 0);
             $('#stConsultSub').html(`Today: <strong>${d.today_consult ?? 0}</strong>`);
             $('#stImmune').text(d.immunizations ?? 0);
@@ -602,7 +517,6 @@ if (tableExists($conn,'medicines')) {
             $('#stDispense').text(d.dispensed_qty ?? 0);
             $('#stDispenseSub').html(`Txns: <strong>${d.dispensed_txn ?? 0}</strong>`);
 
-            /* Care cells */
             const cv = d.care_by_type || {};
             $('#cvMaternal').text(cv.maternal ?? 0);
             $('#cvFP').text(cv.family_planning ?? 0);
@@ -614,30 +528,23 @@ if (tableExists($conn,'medicines')) {
             $('#careCardMeta').text(fmt(d.date_from) + ' → ' + fmt(d.date_to));
             $('#trendMeta').text(fmt(d.date_from) + ' → ' + fmt(d.date_to));
 
-            /* Care bar chart */
             careInst = mkChart(careInst, 'careChart', {
-                type: 'bar',
-                data: {
-                    labels: ['Maternal','Fam. Planning','Prenatal','Postnatal','Child Nutrition','Immunization'],
-                    datasets: [{
-                        data: [
-                            cv.maternal??0, cv.family_planning??0,
-                            cv.prenatal??0, cv.postnatal??0,
-                            cv.child_nutrition??0, d.immunizations??0
-                        ],
-                        backgroundColor: ['#fda4af','#93c5fd','#fcd34d','#5eead4',ACCENT2+'bb','#c4b5fd'],
-                        borderRadius: 3,
+                type:'bar',
+                data:{
+                    labels:['Maternal','Fam. Planning','Prenatal','Postnatal','Child Nutrition','Immunization'],
+                    datasets:[{
+                        data:[cv.maternal??0,cv.family_planning??0,cv.prenatal??0,cv.postnatal??0,cv.child_nutrition??0,d.immunizations??0],
+                        backgroundColor:['#fda4af','#93c5fd','#fcd34d','#5eead4',ACCENT2+'bb','#c4b5fd'],
+                        borderRadius:3,
                     }]
                 },
-                options: {
+                options:{
                     maintainAspectRatio:false, responsive:true,
                     plugins:{ legend:{ display:false } },
-                    scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{size:10} } },
-                             x:{ ticks:{ font:{size:9} } } }
+                    scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{size:10} } }, x:{ ticks:{ font:{size:9} } } }
                 }
             });
 
-            /* Trend line */
             const days   = (d.consult_by_day||[]).map(r=>r.day);
             const counts = (d.consult_by_day||[]).map(r=>+r.cnt);
             trendInst = mkChart(trendInst, 'trendChart', {
@@ -647,63 +554,38 @@ if (tableExists($conn,'medicines')) {
                     datasets:[{
                         label:'Consultations',
                         data: counts.length ? counts : [0],
-                        borderColor: ACCENT,
-                        backgroundColor: ACCENT+'22',
+                        borderColor:ACCENT, backgroundColor:ACCENT+'22',
                         fill:true, tension:.4,
-                        pointRadius:3, pointBackgroundColor:ACCENT,
-                        borderWidth:2,
+                        pointRadius:3, pointBackgroundColor:ACCENT, borderWidth:2,
                     }]
                 },
                 options:{
                     maintainAspectRatio:false, responsive:true,
                     plugins:{ legend:{ display:false } },
-                    scales:{
-                        x:{ ticks:{ font:{size:9}, maxTicksLimit:12 } },
-                        y:{ beginAtZero:true, ticks:{ stepSize:1, font:{size:10} } }
-                    }
+                    scales:{ x:{ ticks:{ font:{size:9}, maxTicksLimit:12 } }, y:{ beginAtZero:true, ticks:{ stepSize:1, font:{size:10} } } }
                 }
             });
         }
 
-        /* Patient + stock charts — static, rendered once */
         function renderStaticCharts() {
-            const p = <?= json_encode($patients) ?>;
-            patientInst = mkChart(patientInst, 'patientChart', {
+            const p   = <?= json_encode($patients) ?>;
+            const inv = <?= json_encode($inventory) ?>;
+            patientInst = mkChart(patientInst,'patientChart',{
                 type:'doughnut',
-                data:{
-                    labels:['Adult','Senior','Child','Infant'],
-                    datasets:[{
-                        data:[p.adult,p.senior,p.child,p.infant],
-                        backgroundColor:[ACCENT,'#f59e0b','#3b82f6','#a78bfa'],
-                        borderWidth:1.5, borderColor:'#fff'
-                    }]
-                },
+                data:{ labels:['Adult','Senior','Child','Infant'], datasets:[{ data:[p.adult,p.senior,p.child,p.infant], backgroundColor:[ACCENT,'#f59e0b','#3b82f6','#a78bfa'], borderWidth:1.5, borderColor:'#fff' }] },
                 options:{ cutout:'68%', maintainAspectRatio:false, responsive:true }
             });
-
-            const inv = <?= json_encode($inventory) ?>;
-            stockInst = mkChart(stockInst, 'stockChart', {
+            stockInst = mkChart(stockInst,'stockChart',{
                 type:'doughnut',
-                data:{
-                    labels:['OK Stock','Low / Out'],
-                    datasets:[{
-                        data:[inv.ok_stock, inv.low_stock],
-                        backgroundColor:['#1a5c35','#e11d48'],
-                        borderWidth:1.5, borderColor:'#fff'
-                    }]
-                },
+                data:{ labels:['OK Stock','Low / Out'], datasets:[{ data:[inv.ok_stock,inv.low_stock], backgroundColor:['#1a5c35','#e11d48'], borderWidth:1.5, borderColor:'#fff' }] },
                 options:{ cutout:'68%', maintainAspectRatio:false, responsive:true }
             });
         }
 
         /* ── API call ── */
         function load(from, to, preset) {
-            /* update pill */
             $('#periodPill').text(preset ? (PRESET_LABELS[preset]||preset.toUpperCase()) : (fmt(from)+' → '+fmt(to)));
-            /* skeleton */
-            ['#stConsult','#stImmune','#stVisits','#stDispense'].forEach(id=>{
-                $(id).html('<span class="sl-skel"></span>');
-            });
+            ['#stConsult','#stImmune','#stVisits','#stDispense'].forEach(id=>$(id).html('<span class="sl-skel"></span>'));
             $.getJSON('dashboard_api.php',{ date_from:from, date_to:to }, renderAll)
              .fail(()=>{ ['#stConsult','#stImmune','#stVisits','#stDispense'].forEach(id=>$(id).text('—')); });
         }
@@ -712,13 +594,11 @@ if (tableExists($conn,'medicines')) {
         $('.pb-btn').on('click', function(){
             const key = $(this).data('preset');
             const [f,t] = presets[key]();
-            $('.pb-btn').removeClass('active');
-            $(this).addClass('active');
+            $('.pb-btn').removeClass('active'); $(this).addClass('active');
             $('#pbFrom').val(f); $('#pbTo').val(t);
             load(f, t, key);
         });
 
-        /* ── Custom range ── */
         $('#pbApply').on('click', function(){
             const f=$('#pbFrom').val(), t=$('#pbTo').val();
             if (!f||!t) return;
@@ -726,7 +606,6 @@ if (tableExists($conn,'medicines')) {
             load(f, t, null);
         });
 
-        /* ── Boot ── */
         const [initFrom, initTo] = presets.this_month();
         $('#pbFrom').val(initFrom); $('#pbTo').val(initTo);
         load(initFrom, initTo, 'this_month');
