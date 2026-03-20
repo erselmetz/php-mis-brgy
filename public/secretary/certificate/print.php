@@ -52,64 +52,39 @@ $fullName = strtoupper(trim(
     $cert['last_name']
 ));
 
-// ──────────────────────────────────────────────────────────────
-// CERTIFICATE BODY TEMPLATES
-// To add a new certificate type:
-//   1. Add a new case to the match below
-//   2. Return an array with 'paragraphs' (array of strings)
-//   3. Each paragraph will be indented and rendered automatically
-// ──────────────────────────────────────────────────────────────
 function getCertificateBody(array $cert, string $currentDate): array
 {
     $purpose = htmlspecialchars($cert['purpose']);
     $date = "<strong>{$currentDate}</strong>";
 
     return match ($cert['certificate_type']) {
-
         'Barangay Clearance' => [
             'paragraphs' => [
                 "This certification is issued upon the request of the above-named person for
                  <strong>{$purpose}</strong> and whatever legal purpose it may serve.",
-
                 "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
             ],
         ],
-
         'Indigency Certificate' => [
             'paragraphs' => [
                 "This is to certify further that the above-named person belongs to an indigent
                  family in this barangay and is in need of financial assistance for
                  <strong>{$purpose}</strong>.",
-
                 "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
             ],
         ],
-
         'Residency Certificate' => [
             'paragraphs' => [
                 "This is to certify that the above-named person is a bonafide resident of this
                  barangay and has been residing at the above-mentioned address for the purpose of
                  <strong>{$purpose}</strong>.",
-
                 "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
             ],
         ],
-
-        // ── ADD NEW CERTIFICATE TYPES BELOW ──────────────────────────────────
-        // Example:
-        // 'Business Clearance' => [
-        //     'paragraphs' => [
-        //         "This is to certify that ...",
-        //         "This certification is issued this {$date} ...",
-        //     ],
-        // ],
-        // ─────────────────────────────────────────────────────────────────────
-
         default => [
             'paragraphs' => [
                 "This certification is issued upon the request of the above-named person for
                  <strong>{$purpose}</strong> and whatever legal purpose it may serve.",
-
                 "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
             ],
         ],
@@ -120,304 +95,219 @@ $certBody = getCertificateBody($cert, $currentDate);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($cert['certificate_type']) ?> — <?= $fullName ?></title>
     <?= loadAllAssets(); ?>
     <style>
-        /* ── Page Setup ────────────────────────────────────── */
-        @page {
-            size: A4;
-            margin: 0.75in;
-        }
+    /* ── Reset ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* ↑ overridden dynamically by applyPageStyle() below */
+    /* ── Screen: body background ── */
+    body {
+        font-family: 'Times New Roman', Times, serif;
+        background: #e5e7eb;
+        padding: 20px;
+        color: #1a1a1a;
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    /* ── Print controls (hidden on print) ── */
+    .print-controls {
+        position: fixed;
+        top: 20px; right: 20px;
+        background: white;
+        border: 2px solid #2d6a4f;
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,.15);
+        z-index: 1000;
+        min-width: 200px;
+    }
+    .print-controls h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-family: sans-serif;
+        color: #2d6a4f;
+        font-weight: 700;
+    }
+    .control-group { margin-bottom: 10px; font-family: sans-serif; }
+    .control-group label {
+        display: block; font-size: 11px; margin-bottom: 4px;
+        color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .control-group select {
+        width: 100%; padding: 5px 8px;
+        border: 1px solid #d1d5db; border-radius: 6px;
+        font-size: 12px; background: #f9fafb;
+    }
+    .print-button {
+        width: 100%; background: #2d6a4f; color: white;
+        padding: 10px; border: none; border-radius: 7px;
+        cursor: pointer; font-size: 13px; font-weight: bold;
+        margin-top: 10px; font-family: sans-serif;
+        transition: background .2s;
+    }
+    .print-button:hover { background: #235a40; }
 
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            background: #e5e7eb;
-            margin: 0;
-            padding: 20px;
-            color: #1a1a1a;
-        }
+    /* ═══════════════════════════════════════════
+       CERTIFICATE PAPER
+       Uses flex column so we can pin header top,
+       body center, signatures+footer bottom.
+    ═══════════════════════════════════════════ */
+    .certificate {
+        background: white;
+        max-width: 8.27in;          /* A4 width default */
+        margin: 0 auto;
+        padding: 40px 50px;
+        box-shadow: 0 4px 20px rgba(0,0,0,.2);
 
-        /* ── Print Controls (hidden on print) ──────────────── */
-        .print-controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border: 2px solid var(--theme-primary, #2d6a4f);
-            border-radius: 10px;
-            padding: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            min-width: 200px;
-        }
+        /* Double border */
+        border: 4px double #1a4a2e;
+        outline: 1px solid #2d6a4f;
+        outline-offset: -10px;
 
-        .print-controls h3 {
-            margin: 0 0 12px 0;
-            font-size: 14px;
-            font-family: sans-serif;
-            color: var(--theme-primary, #2d6a4f);
-            font-weight: 700;
-        }
+        /* FULL PAGE LAYOUT */
+        display: flex;
+        flex-direction: column;
 
-        .control-group {
-            margin-bottom: 10px;
-            font-family: sans-serif;
-        }
+        /* Screen preview height — updated by applyPageStyle() JS */
+        min-height: 11.03in;    /* A4 default: 297mm ≈ 11.03in */
+    }
 
-        .control-group label {
-            display: block;
-            font-size: 11px;
-            margin-bottom: 4px;
-            color: #555;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+    /* ── Header — stays at top ── */
+    .cert-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding-bottom: 14px;
+        border-bottom: 2px solid #1a4a2e;
+        flex-shrink: 0;             /* never compress */
+    }
+    .cert-header .logo {
+        width: 80px; height: 80px;
+        flex-shrink: 0; object-fit: contain;
+    }
+    .cert-header .logo-placeholder {
+        width: 80px; height: 80px; flex-shrink: 0;
+        border: 2px dashed #9ca3af; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; color: #9ca3af; text-align: center;
+    }
+    .cert-header .header-text { text-align: center; }
+    .cert-header .header-text .republic  { font-size: 11px; font-style: italic; color: #444; margin: 0 0 2px; }
+    .cert-header .header-text .province,
+    .cert-header .header-text .municipality { font-size: 13px; font-weight: 600; margin: 1px 0; color: #222; }
+    .cert-header .header-text .barangay-name {
+        font-size: 22px; font-weight: 900; text-transform: uppercase;
+        letter-spacing: 2px; color: #1a4a2e; margin: 4px 0 2px;
+    }
+    .cert-header .header-text .office-label {
+        font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+        color: #555; font-weight: 600;
+    }
 
-        .control-group select {
-            width: 100%;
-            padding: 5px 8px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 12px;
-            background: #f9fafb;
-        }
+    /* ── Certificate type title ── */
+    .cert-type-title {
+        text-align: center;
+        margin: 18px 0 0;
+        flex-shrink: 0;
+    }
+    .cert-type-title h2 {
+        display: inline-block;
+        font-size: 17px; font-weight: 900;
+        text-transform: uppercase; letter-spacing: 3px; color: #1a4a2e;
+        border-bottom: 2px solid #1a4a2e; padding-bottom: 4px; margin: 0;
+    }
 
-        .print-button {
-            width: 100%;
-            background: var(--theme-primary, #2d6a4f);
-            color: white;
-            padding: 10px;
-            border: none;
-            border-radius: 7px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            margin-top: 10px;
-            font-family: sans-serif;
-            letter-spacing: 0.3px;
-            transition: background 0.2s;
-        }
+    /* ── Divider ── */
+    .cert-divider {
+        border: none; border-top: 1px solid #ccc;
+        margin: 14px 0;
+        flex-shrink: 0;
+    }
 
-        .print-button:hover {
-            filter: brightness(1.1);
-        }
+    /* ══════════════════════════════════════════
+       BODY SECTION — grows to fill available
+       space and centers content vertically
+    ══════════════════════════════════════════ */
+    .cert-body-section {
+        flex: 1;                        /* take all remaining vertical space */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;        /* vertically center the text */
+        padding: 10px 0;
+    }
 
-        /* ── Certificate Paper ──────────────────────────────── */
+    .cert-body {
+        font-size: 13.5px;
+        line-height: 1.9;
+        text-align: justify;
+        color: #1a1a1a;
+    }
+    .cert-body p {
+        margin: 14px 0;
+        text-indent: 60px;
+    }
+
+    /* ══════════════════════════════════════════
+       BOTTOM SECTION — signatures + footer
+       pinned to the bottom of the page
+    ══════════════════════════════════════════ */
+    .cert-bottom {
+        flex-shrink: 0;                 /* never compress */
+        margin-top: auto;               /* push to bottom if body is short */
+    }
+
+    /* ── Signatures ── */
+    .cert-signatures {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .sig-block { text-align: center; width: 45%; }
+    .sig-line-space { height: 48px; }
+    .sig-line { border-top: 1.5px solid #1a4a2e; padding-top: 6px; }
+    .sig-name {
+        font-size: 13px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .5px; margin: 0;
+    }
+    .sig-title { font-size: 11px; color: #555; margin: 2px 0 0; font-style: italic; }
+
+    /* ── Footer (OR No., CTC No.) ── */
+    .cert-footer {
+        padding-top: 12px;
+        border-top: 1px solid #d1d5db;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        font-size: 11px;
+        color: #555;
+    }
+
+    /* ── Print overrides ── */
+    @media print {
+        body { background: white; padding: 0; }
+        .no-print { display: none !important; }
         .certificate {
-            background: white;
-            max-width: 8.27in;
-            margin: 0 auto;
-            padding: 40px 50px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            position: relative;
-
-            /* Double border effect */
-            border: 4px double #1a4a2e;
-            outline: 1px solid #2d6a4f;
-            outline-offset: -10px;
-        }
-
-        /* ── Header ─────────────────────────────────────────── */
-        .cert-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            margin-bottom: 6px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid #1a4a2e;
-        }
-
-        .cert-header .logo {
-            width: 80px;
-            height: 80px;
-            flex-shrink: 0;
-            object-fit: contain;
-        }
-
-        .cert-header .logo-placeholder {
-            width: 80px;
-            height: 80px;
-            flex-shrink: 0;
-            border: 2px dashed #9ca3af;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #9ca3af;
-            text-align: center;
-        }
-
-        .cert-header .header-text {
-            text-align: center;
-        }
-
-        .cert-header .header-text .republic {
-            font-size: 11px;
-            font-style: italic;
-            color: #444;
-            margin: 0 0 2px 0;
-            letter-spacing: 0.3px;
-        }
-
-        .cert-header .header-text .province,
-        .cert-header .header-text .municipality {
-            font-size: 13px;
-            font-weight: 600;
-            margin: 1px 0;
-            color: #222;
-        }
-
-        .cert-header .header-text .barangay-name {
-            font-size: 22px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #1a4a2e;
-            margin: 4px 0 2px 0;
-        }
-
-        .cert-header .header-text .office-label {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            color: #555;
-            font-weight: 600;
-        }
-
-        /* ── Certificate Type Title ─────────────────────────── */
-        .cert-type-title {
-            text-align: center;
-            margin: 22px 0 18px 0;
-        }
-
-        .cert-type-title h2 {
-            display: inline-block;
-            font-size: 17px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: #1a4a2e;
-            border-bottom: 2px solid #1a4a2e;
-            padding-bottom: 4px;
+            box-shadow: none;
+            max-width: 100%;
+            padding: 30px 40px;
             margin: 0;
+            /* Fill the full printable area */
+            min-height: 100vh;
+            page-break-inside: avoid;
         }
+    }
 
-        /* ── Divider ─────────────────────────────────────────── */
-        .cert-divider {
-            border: none;
-            border-top: 1px solid #ccc;
-            margin: 16px 0;
-        }
-
-        /* ── Body Text ──────────────────────────────────────── */
-        .cert-body {
-            font-size: 13.5px;
-            line-height: 1.9;
-            text-align: justify;
-            color: #1a1a1a;
-        }
-
-        .cert-body p {
-            margin: 14px 0;
-            text-indent: 60px;
-        }
-
-        /* ── Signatures ─────────────────────────────────────── */
-        .cert-signatures {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 50px;
-            gap: 20px;
-        }
-
-        .sig-block {
-            text-align: center;
-            width: 45%;
-        }
-
-        .sig-line-space {
-            height: 48px;
-            /* space for actual signature */
-        }
-
-        .sig-line {
-            border-top: 1.5px solid #1a4a2e;
-            padding-top: 6px;
-        }
-
-        .sig-name {
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0;
-        }
-
-        .sig-title {
-            font-size: 11px;
-            color: #555;
-            margin: 2px 0 0 0;
-            font-style: italic;
-        }
-
-        /* ── Footer ─────────────────────────────────────────── */
-        .cert-footer {
-            margin-top: 30px;
-            padding-top: 12px;
-            border-top: 1px solid #d1d5db;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            font-size: 11px;
-            color: #555;
-        }
-
-        .cert-footer .or-block {
-            font-size: 11px;
-        }
-
-        .cert-footer .cert-no {
-            font-size: 11px;
-            text-align: right;
-        }
-
-        /* ── Print Overrides ────────────────────────────────── */
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .certificate {
-                box-shadow: none;
-                max-width: 100%;
-                padding: 30px 40px;
-                margin: 0;
-            }
-        }
+    /* Style tag injected by applyPageStyle() */
     </style>
 </head>
-
 <body>
 
-    <!-- ── Print Controls ──────────────────────────────────── -->
+    <!-- ── Print Controls ── -->
     <div class="print-controls no-print">
         <h3>🖨️ Print Options</h3>
         <div class="control-group">
@@ -429,11 +319,10 @@ $certBody = getCertificateBody($cert, $currentDate);
                 <option value="A5">A5 (148 × 210mm)</option>
             </select>
         </div>
-
         <div class="control-group">
             <label for="scaleSelect">Scale</label>
             <select id="scaleSelect" onchange="applyScale()">
-                <option value="1.0">100% (Default)</option>
+                <option value="1.0">100%</option>
                 <option value="0.95">95%</option>
                 <option value="0.90">90%</option>
                 <option value="0.85">85%</option>
@@ -442,7 +331,7 @@ $certBody = getCertificateBody($cert, $currentDate);
         </div>
         <div class="control-group">
             <label for="marginSelect">Margins</label>
-            <select id="marginSelect" onchange="applyMargins()">
+            <select id="marginSelect" onchange="applyPageStyle()">
                 <option value="0.75">Normal (0.75in)</option>
                 <option value="0.5">Small (0.5in)</option>
                 <option value="0.25">Minimal (0.25in)</option>
@@ -452,26 +341,20 @@ $certBody = getCertificateBody($cert, $currentDate);
         <button class="print-button" onclick="update_document_status()">🖨️ Print Certificate</button>
     </div>
 
-    <!-- ── Certificate Paper ────────────────────────────────── -->
+    <!-- ══════════════════════════════════
+         CERTIFICATE PAPER
+    ══════════════════════════════════ -->
     <div class="certificate" id="certificateContent">
 
-        <!-- HEADER -->
+        <!-- HEADER — top -->
         <div class="cert-header">
             <?php
-            // Try favicon.ico first, then favicon.png, then show placeholder
-            $logoPath = __DIR__ . '/../../favicon.ico';
+            $logoPath  = __DIR__ . '/../../favicon.ico';
             $logoPath2 = __DIR__ . '/../../favicon.png';
-            $logoSrc = null;
-
-            if (file_exists($logoPath)) {
-                $logoData = base64_encode(file_get_contents($logoPath));
-                $logoSrc = 'data:image/x-icon;base64,' . $logoData;
-            } elseif (file_exists($logoPath2)) {
-                $logoData = base64_encode(file_get_contents($logoPath2));
-                $logoSrc = 'data:image/png;base64,' . $logoData;
-            }
+            $logoSrc   = null;
+            if (file_exists($logoPath))  { $logoSrc = 'data:image/x-icon;base64,' . base64_encode(file_get_contents($logoPath)); }
+            elseif (file_exists($logoPath2)) { $logoSrc = 'data:image/png;base64,'  . base64_encode(file_get_contents($logoPath2)); }
             ?>
-
             <?php if ($logoSrc): ?>
                 <img src="<?= $logoSrc ?>" alt="Barangay Logo" class="logo">
             <?php else: ?>
@@ -500,102 +383,103 @@ $certBody = getCertificateBody($cert, $currentDate);
 
         <hr class="cert-divider">
 
-        <!-- BODY -->
-        <div class="cert-body">
-            <!-- Opening paragraph (common to all types) -->
-            <p>
-                This is to certify that
-                <strong><?= $fullName ?></strong>,
-                <?= $age ?> years old,
-                <?= htmlspecialchars($cert['gender']) ?>,
-                <?= htmlspecialchars($cert['civil_status'] ?? 'Single') ?>,
-                Filipino, and a resident of
-                <?= htmlspecialchars($cert['address']) ?>,
-                Barangay Bongbongan, Morong, Rizal.
-            </p>
+        <!-- BODY — vertically centered in flex:1 container -->
+        <div class="cert-body-section">
+            <div class="cert-body">
+                <!-- Opening paragraph -->
+                <p>
+                    This is to certify that
+                    <strong><?= $fullName ?></strong>,
+                    <?= $age ?> years old,
+                    <?= htmlspecialchars($cert['gender']) ?>,
+                    <?= htmlspecialchars($cert['civil_status'] ?? 'Single') ?>,
+                    Filipino, and a resident of
+                    <?= htmlspecialchars($cert['address']) ?>,
+                    Barangay Bongbongan, Morong, Rizal.
+                </p>
 
-            <!-- Type-specific paragraphs -->
-            <?php foreach ($certBody['paragraphs'] as $para): ?>
-                <p><?= $para ?></p>
-            <?php endforeach; ?>
-        </div>
-
-        <hr class="cert-divider">
-
-        <!-- SIGNATURES -->
-        <div class="cert-signatures">
-            <div class="sig-block">
-                <div class="sig-line-space"></div>
-                <div class="sig-line">
-                    <p class="sig-name"><?= htmlspecialchars(strtoupper($cert['issued_by_name'] ?? 'Staff')) ?></p>
-                    <p class="sig-title">Barangay Secretary</p>
-                    <p class="sig-title">Prepared by</p>
-                </div>
-            </div>
-
-            <div class="sig-block">
-                <div class="sig-line-space"></div>
-                <div class="sig-line">
-                    <p class="sig-name"><?= htmlspecialchars($barangay_captain_name) ?></p>
-                    <p class="sig-title">Barangay Captain</p>
-                    <p class="sig-title">Certified by</p>
-                </div>
+                <!-- Type-specific paragraphs -->
+                <?php foreach ($certBody['paragraphs'] as $para): ?>
+                    <p><?= $para ?></p>
+                <?php endforeach; ?>
             </div>
         </div>
 
-        <!-- FOOTER -->
-        <div class="cert-footer">
-            <div class="or-block">
-                OR No.: _________________________ &nbsp;&nbsp; Amount Paid: _____________
+        <!-- BOTTOM — signatures + footer pinned to bottom -->
+        <div class="cert-bottom">
+            <hr class="cert-divider">
+
+            <!-- SIGNATURES -->
+            <div class="cert-signatures">
+                <div class="sig-block">
+                    <div class="sig-line-space"></div>
+                    <div class="sig-line">
+                        <p class="sig-name"><?= htmlspecialchars(strtoupper($cert['issued_by_name'] ?? 'Staff')) ?></p>
+                        <p class="sig-title">Barangay Secretary</p>
+                        <p class="sig-title">Prepared by</p>
+                    </div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line-space"></div>
+                    <div class="sig-line">
+                        <p class="sig-name"><?= htmlspecialchars($barangay_captain_name) ?></p>
+                        <p class="sig-title">Barangay Captain</p>
+                        <p class="sig-title">Certified by</p>
+                    </div>
+                </div>
             </div>
-            <div class="cert-no">
-                CTC No.: _________________________ <br>
-                Date Issued: <?= $currentDate ?>
+
+            <!-- FOOTER -->
+            <div class="cert-footer">
+                <div>OR No.: _________________________ &nbsp;&nbsp; Amount Paid: _____________</div>
+                <div style="text-align:right;">
+                    CTC No.: _________________________ <br>
+                    Date Issued: <?= $currentDate ?>
+                </div>
             </div>
         </div>
 
     </div><!-- /.certificate -->
 
     <style id="pageStyle"></style>
+
     <script>
-        // Paper dimensions for preview sizing
-        const PAPER_SIZES = {
-            'A4': { w: '8.27in', h: '11.69in', label: 'A4' },
-            'letter': { w: '8.5in', h: '11in', label: 'Letter' },
-            'legal': { w: '8.5in', h: '14in', label: 'Legal' },
-            'A5': { w: '5.83in', h: '8.27in', label: 'A5' },
-        };
+    /* ── Paper dimensions ── */
+    const PAPER = {
+        'A4':     { w: '8.27in',  h: '11.03in', wPx: 793  },
+        'letter': { w: '8.5in',   h: '11in',    wPx: 816  },
+        'legal':  { w: '8.5in',   h: '14in',    wPx: 816  },
+        'A5':     { w: '5.83in',  h: '8.27in',  wPx: 559  },
+    };
 
-        function applyPageStyle() {
-            const paper = document.getElementById('paperSelect').value;
-            const margin = document.getElementById('marginSelect').value + 'in';
-            const size = PAPER_SIZES[paper];
+    function applyPageStyle() {
+        const paper  = document.getElementById('paperSelect').value;
+        const margin = parseFloat(document.getElementById('marginSelect').value);
+        const p      = PAPER[paper];
 
-            // 1. Inject @page rule
-            document.getElementById('pageStyle').textContent = `
-                @page { size: ${paper}; margin: ${margin}; }
-            `;
+        // 1. @page rule for actual print
+        document.getElementById('pageStyle').textContent =
+            `@page { size: ${paper}; margin: ${margin}in; }`;
 
-            // 2. Resize preview body to match paper width
-            document.body.style.maxWidth = size.w;
-        }
+        // 2. Screen preview: set certificate width and height to match paper minus margins
+        const cert = document.getElementById('certificateContent');
+        cert.style.maxWidth  = p.w;
+        // min-height = paper height minus top+bottom margins
+        // Using calc so it scales with the paper unit
+        cert.style.minHeight = `calc(${p.h} - ${margin * 2}in)`;
+    }
 
-        function applyScale() {
-            const scale = parseFloat(document.getElementById('scaleSelect').value);
-            document.getElementById('certificateContent').style.transform = `scale(${scale})`;
-            document.getElementById('certificateContent').style.transformOrigin = 'top center';
-        }
+    function applyScale() {
+        const scale = parseFloat(document.getElementById('scaleSelect').value);
+        const cert  = document.getElementById('certificateContent');
+        cert.style.transform       = `scale(${scale})`;
+        cert.style.transformOrigin = 'top center';
+    }
 
-        function applyMargins() {
-            applyPageStyle(); // margins are part of @page now
-        }
-
-        // Init on load
-        window.addEventListener('DOMContentLoaded', function () {
-            applyPageStyle();
-        });
+    // Init on load
+    window.addEventListener('DOMContentLoaded', applyPageStyle);
     </script>
+
     <script src="./js/print.js"></script>
 </body>
-
 </html>
