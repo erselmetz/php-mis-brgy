@@ -336,7 +336,6 @@ $csrf_token = getCSRFToken();
                     <div class="header-actions">
                         <button class="btn btn-ghost" id="btnPrintBorrow">↗ Print</button>
                         <button class="btn btn-primary" id="btnNewBorrow">+ New Borrowing</button>
-                        <a href="fix_inventory_links.php" class="btn btn-ghost">🔧 Fix Inventory Links</a>
                     </div>
                 </div>
 
@@ -420,11 +419,11 @@ $csrf_token = getCSRFToken();
                     <div class="form-grid-2">
                         <div class="fg">
                             <label class="fg-label">Borrower Name <span class="req">*</span></label>
-                            <input type="text" id="borrowerName" class="fg-input" placeholder="Full name" autocomplete="off">
+                            <input type="text" id="borrowerName"  name="borrower_name"  class="fg-input" placeholder="Full name" autocomplete="off">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Contact No.</label>
-                            <input type="text" id="borrowerContact" class="fg-input" placeholder="09XXXXXXXXX">
+                            <input type="text" id="borrowerContact" name="borrower_contact" class="fg-input" placeholder="09XXXXXXXXX">
                         </div>
                     </div>
                 </div>
@@ -459,22 +458,22 @@ $csrf_token = getCSRFToken();
                     <div class="form-grid-2">
                         <div class="fg">
                             <label class="fg-label">Item Name <span class="req">*</span></label>
-                            <input type="text" id="itemName" class="fg-input"
+                            <input type="text" id="itemName"      name="item_name"      class="fg-input"
                                 placeholder="Auto-filled or type manually" autocomplete="off">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Quantity <span class="req">*</span></label>
-                            <input type="number" id="borrowQty" class="fg-input" value="1" min="1">
+                            <input type="number" id="borrowQty"     name="quantity"       class="fg-input" value="1" min="1">
                         </div>
                     </div>
                     <div class="form-grid-2">
                         <div class="fg">
                             <label class="fg-label">Condition (Out)</label>
-                            <input type="text" id="conditionOut" class="fg-input" placeholder="e.g. Good condition">
+                            <input type="text" id="conditionOut"  name="condition_out"  class="fg-input" placeholder="e.g. Good condition">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Condition (Returned)</label>
-                            <input type="text" id="conditionIn" class="fg-input" placeholder="Fill on return">
+                            <input type="text" id="conditionIn"   name="condition_in"   class="fg-input" placeholder="Fill on return">
                         </div>
                     </div>
                 </div>
@@ -486,25 +485,25 @@ $csrf_token = getCSRFToken();
                     <div class="form-grid-3">
                         <div class="fg">
                             <label class="fg-label">Borrow Date <span class="req">*</span></label>
-                            <input type="date" id="borrowDate" class="fg-input">
+                            <input type="date" id="borrowDate"    name="borrow_date"    class="fg-input">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Expected Return <span class="req">*</span></label>
-                            <input type="date" id="returnDate" class="fg-input">
+                            <input type="date" id="returnDate"    name="return_date"    class="fg-input">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Actual Return Date</label>
-                            <input type="date" id="actualReturn" class="fg-input">
+                            <input type="date" id="actualReturn"  name="actual_return"  class="fg-input">
                         </div>
                     </div>
                     <div class="form-grid-2">
                         <div class="fg">
                             <label class="fg-label">Purpose</label>
-                            <input type="text" id="borrowPurpose" class="fg-input" placeholder="Purpose of borrowing" autocomplete="off">
+                            <input type="text" id="borrowPurpose" name="purpose"        class="fg-input" placeholder="Purpose of borrowing" autocomplete="off">
                         </div>
                         <div class="fg">
                             <label class="fg-label">Status</label>
-                            <select id="borrowStatus" class="fg-select">
+                            <select id="borrowStatus"  name="status"         class="fg-select">
                                 <option value="borrowed">Borrowed</option>
                                 <option value="returned">Returned</option>
                                 <option value="overdue">Overdue</option>
@@ -514,7 +513,7 @@ $csrf_token = getCSRFToken();
                     </div>
                     <div class="fg">
                         <label class="fg-label">Notes</label>
-                        <textarea id="borrowNotes" class="fg-textarea" placeholder="Additional notes…" style="min-height:60px;"></textarea>
+                        <textarea id="borrowNotes"   name="notes"          class="fg-textarea" placeholder="Additional notes…" style="min-height:60px;"></textarea>
                     </div>
                 </div>
             </div>
