@@ -1,259 +1,384 @@
 <?php
 /**
- * Sidebar — HCNurse Portal
+ * HC Nurse Sidebar
  * Replaces: public/hcnurse/layout/sidebar.php
  *
- * Active detection via current URL path.
- * Health Records sub-menu auto-expands when on /health-records/.
+ * Design: narrow document-register aesthetic.
+ * - 56px collapsed rail with icons + tooltips
+ * - 220px expanded panel on hover/toggle
+ * - Active state: 3px left accent bar + tinted bg
+ * - Care Records: inline sub-menu expands in place
+ * - Active sub-item detected from ?type= param
  */
 
-$path = $_SERVER['REQUEST_URI'] ?? '';
+$uri    = $_SERVER['REQUEST_URI'] ?? '';
+$qtype  = $_GET['type'] ?? '';
 
-function sb_active(string $segment, string $path): bool {
-    return str_contains($path, $segment);
+// Determine which top-level section is active
+function isActive(string $uri, string $path): bool {
+    return str_starts_with(parse_url($uri, PHP_URL_PATH) ?? '', $path);
 }
+
+$isHR = isActive($uri, '/hcnurse/health-records/');
+
+$careTypes = [
+    'maternal'        => ['🤱', 'Maternal'],
+    'family_planning' => ['💊', 'Family Planning'],
+    'prenatal'        => ['👶', 'Prenatal'],
+    'postnatal'       => ['🍼', 'Postnatal'],
+    'child_nutrition' => ['🥗', 'Child Nutrition'],
+    'immunization'    => ['💉', 'Immunization'],
+];
 ?>
-<style>
-/* ── TOKENS (same root as navbar/dashboard) ── */
-:root {
-    --sb-paper:   #fdfcf9;
-    --sb-paper-lt:#f5f3ee;
-    --sb-ink:     #1a1a1a;
-    --sb-muted:   #5a5a5a;
-    --sb-faint:   #a0a0a0;
-    --sb-rule:    #d8d4cc;
-    --sb-accent:  var(--theme-primary, #2d5a27);
-    --sb-font-n:  'Source Sans 3', 'Segoe UI', sans-serif;
-    --sb-font-m:  'Source Code Pro', 'Courier New', monospace;
-}
 
-/* ── ASIDE ───────────────────────────────── */
-.sb-root {
-    width: 220px; flex-shrink:0;
-    background: var(--sb-paper);
-    border-right: 1px solid var(--sb-rule);
-    min-height: 100%; overflow-y: auto;
-    padding-bottom: 56px;
-    font-family: var(--sb-font-n);
-    display: flex; flex-direction: column;
-}
+<aside id="hcSidebar" class="hcs">
 
-/* ── SECTION LABEL ───────────────────────── */
-.sb-section {
-    padding: 18px 16px 6px;
-}
-.sb-section-lbl {
-    font-size: 7.5px; font-weight: 700; letter-spacing: 1.8px;
-    text-transform: uppercase; color: var(--sb-faint);
-    display: flex; align-items: center; gap: 8px; white-space: nowrap;
-}
-.sb-section-lbl::after {
-    content:''; flex:1; height:1px; background:var(--sb-rule);
-}
-
-/* ── NAV ITEM ────────────────────────────── */
-.sb-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 16px 8px 14px;
-    font-size: 13px; font-weight: 500;
-    color: var(--sb-muted); text-decoration: none;
-    border-left: 3px solid transparent;
-    transition: background .12s, color .12s, border-color .12s;
-    white-space: nowrap; cursor: pointer;
-    background: none; border-top: none; border-right: none; border-bottom: none;
-    width: 100%; text-align: left; font-family: var(--sb-font-n);
-}
-.sb-item:hover {
-    background: color-mix(in srgb, var(--sb-accent) 6%, white);
-    color: var(--sb-ink);
-    border-left-color: var(--sb-rule);
-}
-.sb-item.active {
-    background: color-mix(in srgb, var(--sb-accent) 8%, white);
-    color: var(--sb-accent);
-    border-left-color: var(--sb-accent);
-    font-weight: 700;
-}
-.sb-icon { font-size: 15px; flex-shrink:0; width: 20px; text-align:center; }
-.sb-label { flex: 1; }
-.sb-caret {
-    font-size: 9px; color: var(--sb-faint); flex-shrink:0;
-    transition: transform .2s;
-}
-.sb-item.open .sb-caret { transform: rotate(180deg); }
-
-/* ── SUB-MENU ────────────────────────────── */
-.sb-submenu {
-    overflow: hidden; max-height: 0;
-    transition: max-height .25s ease;
-    background: var(--sb-paper-lt);
-    border-left: 1px solid var(--sb-rule);
-    margin-left: 30px;
-}
-.sb-submenu.open { max-height: 400px; }
-.sb-sub-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 14px 7px 12px;
-    font-size: 12px; font-weight: 500;
-    color: var(--sb-muted); text-decoration: none;
-    border-left: 2px solid transparent;
-    transition: background .1s, color .1s, border-color .1s;
-}
-.sb-sub-item:hover {
-    color: var(--sb-ink);
-    background: color-mix(in srgb, var(--sb-accent) 5%, white);
-    border-left-color: var(--sb-rule);
-}
-.sb-sub-item.active {
-    color: var(--sb-accent); font-weight: 700;
-    border-left-color: var(--sb-accent);
-    background: color-mix(in srgb, var(--sb-accent) 7%, white);
-}
-.sb-sub-icon { font-size: 13px; width:18px; text-align:center; flex-shrink:0; }
-
-/* ── DIVIDER ─────────────────────────────── */
-.sb-rule { height:1px; background:var(--sb-rule); margin: 8px 0; }
-
-/* ── FOOTER ──────────────────────────────── */
-.sb-footer {
-    margin-top: auto; padding: 14px 16px;
-    border-top: 1px solid var(--sb-rule);
-    background: var(--sb-paper-lt);
-}
-.sb-footer-txt {
-    font-family: var(--sb-font-m); font-size: 8px;
-    color: var(--sb-faint); letter-spacing: .5px; line-height: 1.8;
-}
-</style>
-
-<aside class="sb-root">
-
-    <!-- ── MAIN ── -->
-    <div class="sb-section">
-        <div class="sb-section-lbl">Main</div>
-    </div>
-
-    <a href="/hcnurse/dashboard/"
-       class="sb-item <?= sb_active('/hcnurse/dashboard', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">🏠</span>
-        <span class="sb-label">Dashboard</span>
-    </a>
-
-    <a href="/hcnurse/resident/"
-       class="sb-item <?= sb_active('/hcnurse/resident', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">👥</span>
-        <span class="sb-label">Residents</span>
-    </a>
-
-    <a href="/hcnurse/consultation/"
-       class="sb-item <?= sb_active('/hcnurse/consultation', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">📝</span>
-        <span class="sb-label">Consultation</span>
-    </a>
-
-    <!-- ── HEALTH RECORDS ── -->
-    <div class="sb-section">
-        <div class="sb-section-lbl">Health Records</div>
-    </div>
-
-    <?php
-    $hrActive  = sb_active('/hcnurse/health-records', $path);
-    $hrOpen    = $hrActive;
-    $hrType    = '';
-    if (preg_match('/[?&]type=([a-z_]+)/', $path, $m)) $hrType = $m[1];
-    ?>
-
-    <!-- Immunization (standalone page) -->
-    <a href="/hcnurse/immunization/"
-       class="sb-item <?= sb_active('/hcnurse/immunization', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">💉</span>
-        <span class="sb-label">Immunization</span>
-    </a>
-
-    <!-- Collapsible group for other health record types -->
-    <button class="sb-item <?= $hrActive ? 'active open' : '' ?>" id="sbHrToggle"
-            type="button" aria-expanded="<?= $hrActive ? 'true' : 'false' ?>">
-        <span class="sb-icon">🩺</span>
-        <span class="sb-label">Care Records</span>
-        <span class="sb-caret">▼</span>
-    </button>
-    <div class="sb-submenu <?= $hrOpen ? 'open' : '' ?>" id="sbHrMenu">
-        <?php
-        $subItems = [
-            'immunization'   => ['💉', 'Immunization'],
-            'maternal'       => ['🤱', 'Maternal'],
-            'family_planning'=> ['💊', 'Family Planning'],
-            'prenatal'       => ['👶', 'Prenatal Care'],
-            'postnatal'      => ['🍼', 'Postnatal Care'],
-            'child_nutrition'=> ['🥗', 'Child Nutrition'],
-        ];
-        foreach ($subItems as $type => [$icon, $label]):
-            $subActive = $hrActive && $hrType === $type;
-        ?>
-        <a href="/hcnurse/health-records/?type=<?= $type ?>"
-           class="sb-sub-item <?= $subActive ? 'active' : '' ?>">
-            <span class="sb-sub-icon"><?= $icon ?></span>
-            <?= $label ?>
-        </a>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- ── CLINIC ── -->
-    <div class="sb-section">
-        <div class="sb-section-lbl">Clinic</div>
-    </div>
-
-    <a href="/hcnurse/inventory/"
-       class="sb-item <?= sb_active('/hcnurse/inventory', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">📦</span>
-        <span class="sb-label">Inventory</span>
-    </a>
-
-    <div class="sb-rule"></div>
-
-    <!-- ── ACCOUNT ── -->
-    <a href="/hcnurse/profile/"
-       class="sb-item <?= sb_active('/hcnurse/profile', $path) ? 'active' : '' ?>">
-        <span class="sb-icon">⚙</span>
-        <span class="sb-label">Settings</span>
-    </a>
-
-    <a href="/logout.php" class="sb-item"
-       style="color:#7a1f1a;">
-        <span class="sb-icon">→</span>
-        <span class="sb-label">Sign Out</span>
-    </a>
-
-    <!-- Footer -->
-    <div class="sb-footer">
-        <div class="sb-footer-txt">
-            HEALTH CENTER PORTAL<br>
-            MIS BARANGAY BOMBONGAN<br>
-            <?= date('Y') ?>
+    <!-- ── Branding strip ── -->
+    <div class="hcs-brand">
+        <div class="hcs-brand-icon">🏥</div>
+        <div class="hcs-brand-text">
+            <div class="hcs-brand-name">HC Portal</div>
+            <div class="hcs-brand-role">Health Center</div>
         </div>
     </div>
 
+    <nav class="hcs-nav">
+
+        <!-- Dashboard -->
+        <a href="/hcnurse/dashboard/"
+           class="hcs-item <?= isActive($uri, '/hcnurse/dashboard/') ? 'hcs-active' : '' ?>"
+           data-tip="Dashboard">
+            <span class="hcs-icon">🏠</span>
+            <span class="hcs-label">Dashboard</span>
+        </a>
+
+        <!-- Residents -->
+        <a href="/hcnurse/resident/"
+           class="hcs-item <?= isActive($uri, '/hcnurse/resident/') ? 'hcs-active' : '' ?>"
+           data-tip="Residents">
+            <span class="hcs-icon">👥</span>
+            <span class="hcs-label">Residents</span>
+        </a>
+
+        <!-- Consultation -->
+        <a href="/hcnurse/consultation/"
+           class="hcs-item <?= isActive($uri, '/hcnurse/consultation/') ? 'hcs-active' : '' ?>"
+           data-tip="Consultation">
+            <span class="hcs-icon">📝</span>
+            <span class="hcs-label">Consultation</span>
+        </a>
+
+        <!-- ── Care Records (collapsible) ── -->
+        <div class="hcs-group <?= $isHR ? 'hcs-group-open' : '' ?>">
+
+            <button class="hcs-group-btn <?= $isHR ? 'hcs-active' : '' ?>"
+                    id="careToggle" type="button" data-tip="Care Records">
+                <span class="hcs-icon">🩺</span>
+                <span class="hcs-label">Care Records</span>
+                <span class="hcs-chevron" id="careChevron"><?= $isHR ? '▲' : '▼' ?></span>
+            </button>
+
+            <div class="hcs-sub <?= $isHR ? '' : 'hcs-sub-hidden' ?>" id="careMenu">
+                <?php foreach ($careTypes as $type => [$icon, $label]):
+                    $href      = "/hcnurse/health-records/?type={$type}";
+                    $subActive = $isHR && $qtype === $type;
+                ?>
+                <a href="<?= $href ?>"
+                   class="hcs-sub-item <?= $subActive ? 'hcs-sub-active' : '' ?>">
+                    <span class="hcs-sub-icon"><?= $icon ?></span>
+                    <span><?= $label ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Inventory -->
+        <a href="/hcnurse/inventory/"
+           class="hcs-item <?= isActive($uri, '/hcnurse/inventory/') ? 'hcs-active' : '' ?>"
+           data-tip="Inventory">
+            <span class="hcs-icon">📁</span>
+            <span class="hcs-label">Inventory</span>
+        </a>
+
+        <!-- Divider -->
+        <div class="hcs-div"></div>
+
+        <!-- Settings -->
+        <a href="/hcnurse/profile/"
+           class="hcs-item <?= isActive($uri, '/hcnurse/profile/') ? 'hcs-active' : '' ?>"
+           data-tip="Settings">
+            <span class="hcs-icon">⚙️</span>
+            <span class="hcs-label">Settings</span>
+        </a>
+
+        <!-- Sign Out -->
+        <a href="/logout.php" class="hcs-item hcs-signout" data-tip="Sign Out">
+            <span class="hcs-icon">🚪</span>
+            <span class="hcs-label">Sign Out</span>
+        </a>
+
+    </nav>
+
+    <!-- Version stamp -->
+    <div class="hcs-foot">
+        <span class="hcs-foot-txt">MIS Barangay</span>
+    </div>
 </aside>
+
+<style>
+/* ════════════════════════════════════════
+   HC SIDEBAR
+════════════════════════════════════════ */
+.hcs {
+    --s-w:        220px;
+    --s-accent:   var(--theme-primary, #2d5a27);
+    --s-accent-lt:color-mix(in srgb, var(--s-accent) 10%, white);
+    --s-paper:    #fdfcf9;
+    --s-rule:     #e8e4dc;
+    --s-ink:      #1a1a1a;
+    --s-muted:    #6b7280;
+    --s-faint:    #a0a0a0;
+    --s-brand-h:  56px;
+    --s-item-h:   38px;
+    --f-sans:     'Source Sans 3','Segoe UI',sans-serif;
+    --f-mono:     'Source Code Pro','Courier New',monospace;
+
+    width: var(--s-w);
+    min-height: 100vh;
+    background: var(--s-paper);
+    border-right: 1px solid var(--s-rule);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    font-family: var(--f-sans);
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--s-rule) transparent;
+
+    /* subtle grain */
+    background-image:
+        radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--s-accent) 4%, transparent) 0%, transparent 60%);
+}
+
+/* ── Brand ── */
+.hcs-brand {
+    height: var(--s-brand-h);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--s-rule);
+    background: color-mix(in srgb, var(--s-accent) 6%, white);
+    flex-shrink: 0;
+}
+.hcs-brand-icon {
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--s-accent);
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.hcs-brand-name {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--s-accent);
+    letter-spacing: .3px;
+    line-height: 1;
+}
+.hcs-brand-role {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--s-faint);
+    margin-top: 2px;
+}
+
+/* ── Nav ── */
+.hcs-nav {
+    flex: 1;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/* ── Item (link or button) ── */
+.hcs-item,
+.hcs-group-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    height: var(--s-item-h);
+    border-radius: 4px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--s-muted);
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    transition: background .12s, color .12s;
+    position: relative;
+    font-family: var(--f-sans);
+    white-space: nowrap;
+    overflow: hidden;
+}
+.hcs-item::before,
+.hcs-group-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px; bottom: 6px;
+    width: 0;
+    background: var(--s-accent);
+    border-radius: 0 2px 2px 0;
+    transition: width .14s;
+}
+.hcs-item:hover,
+.hcs-group-btn:hover {
+    background: var(--s-accent-lt);
+    color: var(--s-accent);
+}
+.hcs-item.hcs-active,
+.hcs-group-btn.hcs-active {
+    background: var(--s-accent-lt);
+    color: var(--s-accent);
+    font-weight: 700;
+}
+.hcs-item.hcs-active::before,
+.hcs-group-btn.hcs-active::before { width: 3px; }
+
+.hcs-icon  { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; }
+.hcs-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.hcs-chevron {
+    font-size: 8px;
+    color: var(--s-faint);
+    flex-shrink: 0;
+    transition: transform .2s;
+}
+.hcs-group-open .hcs-chevron,
+.hcs-group-btn:not(.hcs-active) .hcs-chevron { /* inherit */ }
+
+/* ── Sub-menu ── */
+.hcs-sub {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height .22s ease, opacity .18s;
+    opacity: 1;
+    padding: 3px 0 3px 12px;
+}
+.hcs-sub-hidden {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+}
+.hcs-sub-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    height: 33px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--s-muted);
+    text-decoration: none;
+    transition: background .11s, color .11s;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.hcs-sub-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 5px; bottom: 5px;
+    width: 0;
+    background: var(--s-accent);
+    border-radius: 0 2px 2px 0;
+    transition: width .13s;
+}
+.hcs-sub-item:hover {
+    background: var(--s-accent-lt);
+    color: var(--s-accent);
+}
+.hcs-sub-item.hcs-sub-active {
+    background: var(--s-accent-lt);
+    color: var(--s-accent);
+    font-weight: 700;
+}
+.hcs-sub-item.hcs-sub-active::before { width: 2px; }
+.hcs-sub-icon { font-size: 13px; flex-shrink: 0; width: 18px; text-align: center; }
+
+/* ── Divider ── */
+.hcs-div {
+    height: 1px;
+    background: var(--s-rule);
+    margin: 6px 4px;
+}
+
+/* ── Sign Out ── */
+.hcs-signout { color: #b91c1c; }
+.hcs-signout:hover { background: #fef2f2; color: #7f1d1d; }
+.hcs-signout::before { background: #b91c1c !important; }
+
+/* ── Footer ── */
+.hcs-foot {
+    padding: 10px 16px;
+    border-top: 1px solid var(--s-rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.hcs-foot-txt {
+    font-family: var(--f-mono);
+    font-size: 8.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--s-faint);
+}
+
+/* ── Section label (decorative) ── */
+.hcs-section-lbl {
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--s-faint);
+    padding: 10px 10px 4px;
+}
+</style>
 
 <script>
 (function () {
-    const toggle = document.getElementById('sbHrToggle');
-    const menu   = document.getElementById('sbHrMenu');
-    if (!toggle || !menu) return;
+    const btn    = document.getElementById('careToggle');
+    const menu   = document.getElementById('careMenu');
+    const chev   = document.getElementById('careChevron');
+    const group  = btn?.closest('.hcs-group');
+    if (!btn || !menu) return;
 
-    toggle.addEventListener('click', function () {
-        const isOpen = menu.classList.contains('open');
-        menu.classList.toggle('open', !isOpen);
-        toggle.classList.toggle('open', !isOpen);
-        toggle.setAttribute('aria-expanded', !isOpen);
+    btn.addEventListener('click', function () {
+        const open = !menu.classList.contains('hcs-sub-hidden');
+        if (open) {
+            menu.classList.add('hcs-sub-hidden');
+            chev.textContent = '▼';
+            group?.classList.remove('hcs-group-open');
+        } else {
+            menu.classList.remove('hcs-sub-hidden');
+            chev.textContent = '▲';
+            group?.classList.add('hcs-group-open');
+        }
     });
-
-    // Auto-open if currently on health-records
-    const path = window.location.pathname + window.location.search;
-    if (path.includes('/hcnurse/health-records/')) {
-        menu.classList.add('open');
-        toggle.classList.add('open');
-        toggle.setAttribute('aria-expanded', 'true');
-    }
 })();
 </script>

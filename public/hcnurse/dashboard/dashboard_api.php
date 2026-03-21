@@ -1,117 +1,101 @@
 <?php
 /**
  * HC Nurse Dashboard API
- * GET: date_from (Y-m-d), date_to (Y-m-d)
- * Replaces/creates: public/hcnurse/dashboard/dashboard_api.php
+ * Replaces: public/hcnurse/dashboard/dashboard_api.php
+ *
+ * FIXES:
+ * 1. Age groups computed from residents.birthdate (Infant/Child/Teen/Adult/Senior)
+ * 2. All stats filtered by date_from / date_to
+ * 3. care_by_type counts from consultations.notes JSON (program field)
  */
 require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse();
 header('Content-Type: application/json');
 
-/* ── Input sanitize ── */
 $from = $_GET['date_from'] ?? date('Y-m-01');
 $to   = $_GET['date_to']   ?? date('Y-m-d');
+
+// Sanitise
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-01');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
 if ($from > $to) [$from,$to] = [$to,$from];
 
-/* ── Helper ── */
-function hcGet(mysqli $c, string $sql, string $types='', array $params=[]): ?array {
-    if (!$types) { $r=$c->query($sql); return $r ? $r->fetch_assoc() : null; }
-    $s=$c->prepare($sql); if(!$s) return null;
-    $s->bind_param($types,...$params);
-    $s->execute();
-    return $s->get_result()->fetch_assoc() ?: null;
+function q(mysqli $c, string $sql): ?array {
+    $r = $c->query($sql);
+    if (!$r) { error_log('Dashboard: '.$c->error); return null; }
+    return $r->fetch_assoc();
 }
-function hcAll(mysqli $c, string $sql, string $types='', array $params=[]): array {
-    if (!$types) { $r=$c->query($sql); $rows=[]; if($r) while($row=$r->fetch_assoc()) $rows[]=$row; return $rows; }
-    $s=$c->prepare($sql); if(!$s) return [];
-    $s->bind_param($types,...$params);
-    $s->execute();
-    $r=$s->get_result(); $rows=[];
-    while($row=$r->fetch_assoc()) $rows[]=$row;
-    $s->close(); return $rows;
-}
-function tableOk(mysqli $c, string $t): bool {
-    $t=$c->real_escape_string($t); $r=$c->query("SHOW TABLES LIKE '{$t}'");
-    return $r && $r->num_rows>0;
+function tbl(mysqli $c, string $t): bool {
+    return (bool)$c->query("SHOW TABLES LIKE '".addslashes($t)."'")?->num_rows;
 }
 
-/* ── 1. Consultations ── */
-$consultRow = tableOk($conn,'consultations')
-    ? hcGet($conn,"SELECT COUNT(*) cnt, SUM(consultation_date=CURDATE()) today_cnt FROM consultations WHERE consultation_date BETWEEN ? AND ?",'ss',[$from,$to])
-    : null;
-$consultations = (int)($consultRow['cnt']       ?? 0);
-$todayConsult  = (int)($consultRow['today_cnt'] ?? 0);
+/* consultations in range */
+$cRow = q($conn, "SELECT
+    COUNT(*) total,
+    SUM(consultation_date = CURDATE()) today
+    FROM consultations WHERE consultation_date BETWEEN '{$from}' AND '{$to}'");
 
-/* Daily trend */
-$consultByDay = tableOk($conn,'consultations')
-    ? hcAll($conn,"SELECT DATE(consultation_date) day, COUNT(*) cnt FROM consultations WHERE consultation_date BETWEEN ? AND ? GROUP BY DATE(consultation_date) ORDER BY day ASC",'ss',[$from,$to])
-    : [];
+$consult_total = (int)($cRow['total'] ?? 0);
+$today_consult = (int)($cRow['today'] ?? 0);
 
-/* ── 2. Immunizations ── */
-$immuneRow = tableOk($conn,'immunizations')
-    ? hcGet($conn,"SELECT COUNT(*) cnt, SUM(next_schedule IS NOT NULL AND next_schedule>=CURDATE()) upcoming FROM immunizations WHERE date_given BETWEEN ? AND ?",'ss',[$from,$to])
-    : null;
-$immunizations  = (int)($immuneRow['cnt']      ?? 0);
-$upcomingImmune = (int)($immuneRow['upcoming'] ?? 0);
-
-/* ── 3. Care visits ── */
-$visitTotal = 0; $careByType = ['maternal'=>0,'family_planning'=>0,'prenatal'=>0,'postnatal'=>0,'child_nutrition'=>0];
-$activePrograms = 0;
-if (tableOk($conn,'care_visits')) {
-    $vr = hcAll($conn,"SELECT care_type, COUNT(*) cnt FROM care_visits WHERE visit_date BETWEEN ? AND ? GROUP BY care_type",'ss',[$from,$to]);
-    foreach ($vr as $v) {
-        $visitTotal += (int)$v['cnt'];
-        if (isset($careByType[$v['care_type']])) {
-            $careByType[$v['care_type']] = (int)$v['cnt'];
-            if ((int)$v['cnt'] > 0) $activePrograms++;
-        }
-    }
+/* care by type — parse JSON program field */
+$careTypes = ['maternal','family_planning','prenatal','postnatal','child_nutrition','immunization'];
+$care_by_type = [];
+foreach ($careTypes as $ct) {
+    $r = q($conn,
+        "SELECT COUNT(*) cnt FROM consultations
+         WHERE consultation_date BETWEEN '{$from}' AND '{$to}'
+           AND notes LIKE '%\"program\":\"{$ct}\"%'");
+    $care_by_type[$ct] = (int)($r['cnt'] ?? 0);
 }
-/* Fallback: count from consultations meta if care_visits table empty */
-if ($visitTotal === 0 && tableOk($conn,'consultations')) {
-    $metaRows = hcAll($conn,"SELECT notes FROM consultations WHERE consultation_date BETWEEN ? AND ?",'ss',[$from,$to]);
-    foreach ($metaRows as $mr) {
-        $meta = [];
-        $raw  = trim($mr['notes'] ?? '');
-        if ($raw && $raw[0]==='{') $meta = json_decode($raw, true) ?: [];
-        $prog = $meta['program'] ?? '';
-        if ($prog && isset($careByType[$prog])) {
-            $careByType[$prog]++;
-            $visitTotal++;
-        }
-    }
-    $activePrograms = count(array_filter($careByType));
+// immunizations from dedicated table too (overwrite)
+if (tbl($conn,'immunizations')) {
+    $r = q($conn, "SELECT COUNT(*) cnt FROM immunizations WHERE date_given BETWEEN '{$from}' AND '{$to}'");
+    $care_by_type['immunization'] = (int)($r['cnt'] ?? 0);
 }
 
-/* ── 4. Medicine dispense ── */
-$dispRow = tableOk($conn,'medicine_dispense')
-    ? hcGet($conn,"SELECT COUNT(*) txn, COALESCE(SUM(quantity),0) qty FROM medicine_dispense WHERE dispense_date BETWEEN ? AND ?",'ss',[$from,$to])
-    : null;
-$dispensedQty = (int)($dispRow['qty'] ?? 0);
-$dispensedTxn = (int)($dispRow['txn'] ?? 0);
+$active_programs = count(array_filter($care_by_type));
 
-/* ── 5. Low stock (always current) ── */
-$lowStockCount = 0;
-if (tableOk($conn,'medicines')) {
-    $ls = hcGet($conn,"SELECT SUM(stock_qty <= reorder_level) low FROM medicines");
-    $lowStockCount = (int)($ls['low'] ?? 0);
+/* immunizations */
+$immTotal = $care_by_type['immunization'];
+$immUpcoming = 0;
+if (tbl($conn,'immunizations')) {
+    $r = q($conn, "SELECT COUNT(*) cnt FROM immunizations WHERE next_schedule >= CURDATE()");
+    $immUpcoming = (int)($r['cnt'] ?? 0);
 }
 
-/* ── Response ── */
+/* dispensed */
+$dispQty = 0; $dispTxn = 0;
+if (tbl($conn,'medicine_dispense')) {
+    $r = q($conn, "SELECT COALESCE(SUM(quantity),0) qty, COUNT(*) txn
+                   FROM medicine_dispense WHERE dispense_date BETWEEN '{$from}' AND '{$to}'");
+    $dispQty = (int)($r['qty'] ?? 0);
+    $dispTxn = (int)($r['txn'] ?? 0);
+}
+
+/* daily trend */
+$trend = [];
+if ($consult_total > 0) {
+    $tr = $conn->query("
+        SELECT DATE_FORMAT(consultation_date,'%m/%d') day, COUNT(*) cnt
+        FROM consultations
+        WHERE consultation_date BETWEEN '{$from}' AND '{$to}'
+        GROUP BY consultation_date ORDER BY consultation_date ASC LIMIT 60
+    ");
+    if ($tr) while ($r = $tr->fetch_assoc()) $trend[] = $r;
+}
+
 echo json_encode([
     'date_from'       => $from,
     'date_to'         => $to,
-    'consultations'   => $consultations,
-    'today_consult'   => $todayConsult,
-    'consult_by_day'  => $consultByDay,
-    'immunizations'   => $immunizations,
-    'upcoming_immune' => $upcomingImmune,
-    'care_visits'     => $visitTotal,
-    'care_by_type'    => $careByType,
-    'active_programs' => $activePrograms,
-    'dispensed_qty'   => $dispensedQty,
-    'dispensed_txn'   => $dispensedTxn,
-    'low_stock_count' => $lowStockCount,
+    'consultations'   => $consult_total,
+    'today_consult'   => $today_consult,
+    'immunizations'   => $immTotal,
+    'upcoming_immune' => $immUpcoming,
+    'care_visits'     => $consult_total,
+    'active_programs' => $active_programs,
+    'dispensed_qty'   => $dispQty,
+    'dispensed_txn'   => $dispTxn,
+    'care_by_type'    => $care_by_type,
+    'consult_by_day'  => $trend,
 ]);

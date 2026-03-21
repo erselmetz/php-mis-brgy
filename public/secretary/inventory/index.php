@@ -533,11 +533,6 @@ $csrf_token = getCSRFToken();
                         </label>
                         <textarea name="description" id="assetDescription" class="fg-textarea"></textarea>
                     </div>
-                    <button type="button" id="submitInventory" class="btn btn-primary"
-                        style="width:100%;justify-content:center;padding:11px;margin-top:4px;"
-                        onclick="saveInventoryFromBtn()">
-                        Save Asset Record
-                    </button>
                 </div>
             </div>
         </form>
@@ -558,10 +553,6 @@ $csrf_token = getCSRFToken();
                             placeholder="e.g. Furniture, Equipment, Vehicles…">
                     </div>
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                    <button type="submit" class="btn btn-primary"
-                        style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
-                        Add Category
-                    </button>
                 </div>
             </div>
         </form>

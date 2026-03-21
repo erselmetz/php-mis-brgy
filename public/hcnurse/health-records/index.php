@@ -382,26 +382,6 @@ $pageIcon  = $pageIcons[$type]  ?? '🩺';
                         <button class="pb-btn" id="btnPrint" style="display:inline-flex;align-items:center;gap:5px;">↗ Print</button>
                     </div>
                 </div>
-
-                <!-- ── Type tabs ── -->
-                <div class="type-tabs">
-                    <?php
-                    $tabs = [
-                        'maternal'        => ['🤱','Maternal'],
-                        'family_planning' => ['💊','Family Planning'],
-                        'prenatal'        => ['👶','Prenatal'],
-                        'postnatal'       => ['🍼','Postnatal'],
-                        'child_nutrition' => ['🥗','Child Nutrition'],
-                        'immunization'    => ['💉','Immunization'],
-                    ];
-                    foreach ($tabs as $key => [$icon, $label]):
-                    ?>
-                    <a href="?type=<?= $key ?>"
-                       class="type-tab <?= $type === $key ? 'active' : '' ?>">
-                        <?= $icon ?> <?= htmlspecialchars($label) ?>
-                    </a>
-                    <?php endforeach; ?>
-                </div>
             </div>
 
             <!-- ── Filter bar ── -->
