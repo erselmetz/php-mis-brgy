@@ -1,36 +1,20 @@
 <?php
 /**
- * Sidebar — Government-official formal design
+ * Sidebar — Secretary Portal
  * Replaces: public/secretary/layout/sidebar.php
  *
- * Same design language as navbar + certificate page.
- * Active page detection via $_SERVER['REQUEST_URI'].
+ * CHANGE: Scheduling sub-items are now flat links (no dropdown toggle).
+ * The "All Schedules" parent button is removed; each schedule type
+ * is shown directly as a nav item under its own "Scheduling" section label.
  */
 
-$uri = $_SERVER['REQUEST_URI'] ?? '';
-
-// Helper: is this path active?
 function nbActive(string $path): bool {
     return str_starts_with($_SERVER['REQUEST_URI'] ?? '', $path);
 }
-
-// Scheduling sub-paths
-$schedulingPaths = [
-    '/secretary/events-scheduling/',
-    '/secretary/tanod-duty-schedule/',
-    '/secretary/court-schedule/',
-    '/secretary/borrowing-schedule/',
-    '/secretary/patrol-schedule/',
-];
-$schedulingActive = array_reduce(
-    $schedulingPaths,
-    fn($carry, $p) => $carry || nbActive($p),
-    false
-);
 ?>
 
 <style>
-/* ── SIDEBAR ROOT ────────────────────────────────────────── */
+/* ══ SIDEBAR ROOT ─────────────────────────────── */
 .sb-root {
     width: 232px;
     min-width: 232px;
@@ -44,9 +28,9 @@ $schedulingActive = array_reduce(
     font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
     position: relative;
     flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #e0dcd6 transparent;
 }
-
-/* subtle vertical grain line */
 .sb-root::after {
     content: '';
     position: absolute;
@@ -56,9 +40,9 @@ $schedulingActive = array_reduce(
     pointer-events: none;
 }
 
-/* ── SECTION LABEL ───────────────────────────────────────── */
+/* ── Section label ── */
 .sb-section {
-    padding: 20px 16px 7px;
+    padding: 18px 16px 6px;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -77,7 +61,7 @@ $schedulingActive = array_reduce(
     background: #e0dcd6;
 }
 
-/* ── NAV ITEM ────────────────────────────────────────────── */
+/* ── Nav item ── */
 .sb-item {
     display: flex;
     align-items: center;
@@ -104,7 +88,6 @@ $schedulingActive = array_reduce(
     font-weight: 600;
 }
 .sb-item.is-active::before {
-    /* small ruled tick mark — like a document margin annotation */
     content: '';
     position: absolute;
     left: -1px; top: 50%;
@@ -126,88 +109,7 @@ $schedulingActive = array_reduce(
 .sb-item.is-active .sb-icon,
 .sb-item:hover .sb-icon { opacity: 1; }
 
-/* ── DROPDOWN TRIGGER (Scheduling) ───────────────────────── */
-.sb-group {}
-.sb-group-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 9px 16px 9px 14px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #3a3a3a;
-    background: none;
-    border: none;
-    border-left: 2px solid transparent;
-    cursor: pointer;
-    font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
-    text-align: left;
-    transition: background .12s, border-color .12s, color .12s;
-    position: relative;
-}
-.sb-group-btn:hover,
-.sb-group-btn.is-open {
-    background: color-mix(in srgb, var(--theme-primary, #2d5a27) 6%, white);
-    color: var(--theme-primary, #2d5a27);
-    border-left-color: color-mix(in srgb, var(--theme-primary, #2d5a27) 40%, transparent);
-}
-.sb-group-btn.is-active {
-    border-left-color: var(--theme-primary, #2d5a27);
-    color: var(--theme-primary, #2d5a27);
-    background: color-mix(in srgb, var(--theme-primary, #2d5a27) 9%, white);
-    font-weight: 600;
-}
-.sb-group-label { flex: 1; }
-.sb-caret {
-    font-size: 9px;
-    color: #a0a0a0;
-    transition: transform .2s;
-    flex-shrink: 0;
-}
-.sb-group-btn.is-open .sb-caret { transform: rotate(180deg); }
-
-/* Sub-items */
-.sb-sub {
-    display: none;
-    background: #f9f7f4;
-    border-top: 1px solid #ede9e3;
-    border-bottom: 1px solid #ede9e3;
-}
-.sb-sub.is-open { display: block; }
-.sb-sub-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 16px 8px 42px;
-    font-size: 12px;
-    font-weight: 400;
-    color: #5a5a5a;
-    text-decoration: none;
-    border-left: 2px solid transparent;
-    transition: background .12s, border-color .12s, color .12s;
-}
-.sb-sub-item:hover {
-    background: color-mix(in srgb, var(--theme-primary, #2d5a27) 7%, white);
-    color: var(--theme-primary, #2d5a27);
-    border-left-color: color-mix(in srgb, var(--theme-primary, #2d5a27) 35%, transparent);
-}
-.sb-sub-item.is-active {
-    background: color-mix(in srgb, var(--theme-primary, #2d5a27) 10%, white);
-    color: var(--theme-primary, #2d5a27);
-    border-left-color: var(--theme-primary, #2d5a27);
-    font-weight: 600;
-}
-.sb-sub-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-    opacity: .45;
-}
-.sb-sub-item.is-active .sb-sub-dot { opacity: 1; }
-
-/* ── FOOTER ──────────────────────────────────────────────── */
+/* ── Footer ── */
 .sb-footer {
     margin-top: auto;
     border-top: 1px solid #e0dcd6;
@@ -217,7 +119,7 @@ $schedulingActive = array_reduce(
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 8px 14px 8px 14px;
+    padding: 8px 14px;
     font-size: 12.5px;
     font-weight: 500;
     color: #7a1f1a;
@@ -231,7 +133,7 @@ $schedulingActive = array_reduce(
     border-left-color: #7a1f1a;
 }
 
-/* ── DOC REFERENCE ───────────────────────────────────────── */
+/* ── Doc reference ── */
 .sb-docref {
     padding: 10px 16px 14px;
     font-family: 'Courier New', monospace;
@@ -244,7 +146,7 @@ $schedulingActive = array_reduce(
 
 <aside class="sb-root" role="navigation" aria-label="Main navigation">
 
-    <!-- ── Primary Navigation ── -->
+    <!-- ── Primary ── -->
     <div class="sb-section">
         <span class="sb-section-lbl">Navigation</span>
         <div class="sb-section-rule"></div>
@@ -275,47 +177,36 @@ $schedulingActive = array_reduce(
         <span class="sb-icon">⊠</span> Blotter
     </a>
 
-    <!-- ── Scheduling Group ── -->
+    <!-- ── Scheduling (flat — no dropdown) ── -->
     <div class="sb-section" style="padding-top:14px;">
         <span class="sb-section-lbl">Scheduling</span>
         <div class="sb-section-rule"></div>
     </div>
 
-    <div class="sb-group" id="sbSchedulingGroup">
-        <button
-            class="sb-group-btn <?= $schedulingActive ? 'is-active' : '' ?> <?= $schedulingActive ? 'is-open' : '' ?>"
-            id="sbSchedulingBtn"
-            type="button"
-            aria-expanded="<?= $schedulingActive ? 'true' : 'false' ?>"
-        >
-            <span class="sb-icon">▣</span>
-            <span class="sb-group-label">All Schedules</span>
-            <span class="sb-caret">▼</span>
-        </button>
+    <a href="/secretary/events-scheduling/"
+       class="sb-item <?= nbActive('/secretary/events-scheduling/') ? 'is-active' : '' ?>">
+        <span class="sb-icon">📅</span> Events
+    </a>
 
-        <div class="sb-sub <?= $schedulingActive ? 'is-open' : '' ?>" id="sbSchedulingSub">
-            <a href="/secretary/events-scheduling/"
-               class="sb-sub-item <?= nbActive('/secretary/events-scheduling/') ? 'is-active' : '' ?>">
-                <span class="sb-sub-dot"></span> Events &amp; Scheduling
-            </a>
-            <a href="/secretary/tanod-duty-schedule/"
-               class="sb-sub-item <?= nbActive('/secretary/tanod-duty-schedule/') ? 'is-active' : '' ?>">
-                <span class="sb-sub-dot"></span> Tanod Duty
-            </a>
-            <a href="/secretary/court-schedule/"
-               class="sb-sub-item <?= nbActive('/secretary/court-schedule/') ? 'is-active' : '' ?>">
-                <span class="sb-sub-dot"></span> Court / Facility
-            </a>
-            <a href="/secretary/borrowing-schedule/"
-               class="sb-sub-item <?= nbActive('/secretary/borrowing-schedule/') ? 'is-active' : '' ?>">
-                <span class="sb-sub-dot"></span> Borrowing
-            </a>
-            <a href="/secretary/patrol-schedule/"
-               class="sb-sub-item <?= nbActive('/secretary/patrol-schedule/') ? 'is-active' : '' ?>">
-                <span class="sb-sub-dot"></span> Patrol
-            </a>
-        </div>
-    </div>
+    <a href="/secretary/tanod-duty-schedule/"
+       class="sb-item <?= nbActive('/secretary/tanod-duty-schedule/') ? 'is-active' : '' ?>">
+        <span class="sb-icon">🛡</span> Tanod Duty
+    </a>
+
+    <a href="/secretary/court-schedule/"
+       class="sb-item <?= nbActive('/secretary/court-schedule/') ? 'is-active' : '' ?>">
+        <span class="sb-icon">🏀</span> Court / Facility
+    </a>
+
+    <a href="/secretary/borrowing-schedule/"
+       class="sb-item <?= nbActive('/secretary/borrowing-schedule/') ? 'is-active' : '' ?>">
+        <span class="sb-icon">📦</span> Borrowing
+    </a>
+
+    <a href="/secretary/patrol-schedule/"
+       class="sb-item <?= nbActive('/secretary/patrol-schedule/') ? 'is-active' : '' ?>">
+        <span class="sb-icon">🚶</span> Patrol
+    </a>
 
     <!-- ── Resources ── -->
     <div class="sb-section" style="padding-top:14px;">
@@ -339,31 +230,16 @@ $schedulingActive = array_reduce(
         <span class="sb-icon">◎</span> Settings
     </a>
 
-    <!-- ── Footer: Sign Out ── -->
+    <!-- Footer -->
     <div class="sb-footer">
         <a href="/logout.php" class="sb-signout">
             <span style="font-size:13px;">→</span> Sign Out
         </a>
     </div>
 
-    <!-- Doc reference stamp -->
     <div class="sb-docref">
         MIS · BRGY BOMBONGAN<br>
         <?= date('Y') ?> · <?= strtoupper($_SESSION['role'] ?? 'USER') ?>
     </div>
 
 </aside>
-
-<script>
-(function () {
-    const btn = document.getElementById('sbSchedulingBtn');
-    const sub = document.getElementById('sbSchedulingSub');
-    if (!btn || !sub) return;
-
-    btn.addEventListener('click', function () {
-        const open = sub.classList.toggle('is-open');
-        btn.classList.toggle('is-open', open);
-        btn.setAttribute('aria-expanded', String(open));
-    });
-})();
-</script>
