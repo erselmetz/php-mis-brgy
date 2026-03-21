@@ -193,8 +193,8 @@ $initials  = strtoupper(
     <a href="/hcnurse/dashboard/" class="nb-identity">
         <div class="nb-seal">
             <?php
-            $logo1 = __DIR__ . '/../../../assets/images/logo.ico';
-            $logo2 = __DIR__ . '/../../../assets/images/logo.png';
+            $logo1 = __DIR__ . '/../../favicon.ico';
+            $logo2 = __DIR__ . '/../../favicon.png';
             if (file_exists($logo1) || file_exists($logo2)):
             ?>
                 <img src="/assets/images/logo.<?= file_exists($logo1) ? 'ico' : 'png' ?>" alt="Seal">
