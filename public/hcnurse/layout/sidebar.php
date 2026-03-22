@@ -115,11 +115,6 @@ $careTypes = [
         <span class="sb-icon">📁</span> Inventory
     </a>
 
-    <a href="/hcnurse/immunization/"
-       class="sb-item <?= hcActive('/hcnurse/immunization/') ? 'is-active' : '' ?>">
-        <span class="sb-icon">💉</span> Quick Immunization
-    </a>
-
     <div class="sb-section" style="padding-top:14px;">
         <span class="sb-section-lbl">Account</span>
         <div class="sb-section-rule"></div>

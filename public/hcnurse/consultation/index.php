@@ -139,7 +139,8 @@ $typeConfig = [
     .ui-dialog-buttonpane .ui-button{font-family:var(--f-sans)!important;font-size:11px!important;font-weight:700!important;letter-spacing:.5px!important;text-transform:uppercase!important;padding:7px 18px!important;border-radius:2px!important;cursor:pointer!important;}
     .ui-dialog-buttonpane .ui-button:first-child{background:var(--accent)!important;border:1.5px solid var(--accent)!important;color:#fff!important;}
     .ui-dialog-buttonpane .ui-button:not(:first-child){background:#fff!important;border:1.5px solid var(--rule-dk)!important;color:var(--ink-muted)!important;}
-
+    .ui-autocomplete {z-index: 9999 !important;max-height: 220px;overflow-y: auto;overflow-x: hidden;}
+    
     /* ── ADD / EDIT MODAL FORM ── */
     .modal-scroll{max-height:80vh;overflow-y:auto;}
 
