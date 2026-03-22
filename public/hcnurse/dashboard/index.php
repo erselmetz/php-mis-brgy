@@ -248,6 +248,7 @@ if (tblOk($conn,'medicines')) {
                                 <a href="/hcnurse/health-records/?type=immunization"    class="cc cc-imm"><div class="cv" id="cvImm">—</div><div class="cl">Immunization</div></a>
                             </div>
                             <div class="ch180"><canvas id="careChart"></canvas></div>
+                            <div id="dataCoverage" style="font-size:10px;color:var(--ink-muted);line-height:1.55;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);"></div>
                         </div>
                     </div>
 
@@ -336,8 +337,8 @@ if (tblOk($conn,'medicines')) {
             $('#stCs').html(`Today: <strong>${d.today_consult??0}</strong>`);
             $('#stI').text(d.immunizations??0);
             $('#stIs').html(`Upcoming: <strong>${d.upcoming_immune??0}</strong>`);
-            $('#stV').text(d.care_visits??0);
-            $('#stVs').html(`Programs: <strong>${d.active_programs??0}</strong>`);
+            $('#stV').text(d.care_visits_records ?? d.care_visits ?? 0);
+            $('#stVs').html(`Detail: <strong>${d.consultation_detail_count??0}</strong> · Vitals log: <strong>${d.health_metrics_count??0}</strong> · Programs: <strong>${d.active_programs??0}</strong>`);
             $('#stD').text(d.dispensed_qty??0);
             $('#stDs').html(`Txns: <strong>${d.dispensed_txn??0}</strong>`);
 
@@ -368,6 +369,14 @@ if (tblOk($conn,'medicines')) {
                 data:{labels:days.length?days:['No data'],datasets:[{label:'Consultations',data:cnts.length?cnts:[0],borderColor:AC,backgroundColor:AC+'22',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:AC,borderWidth:2}]},
                 options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:12}},y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}}}}
             });
+
+            const m = d.module_table_rows || {};
+            $('#dataCoverage').html(
+                '<span style="font-weight:700;color:var(--ink-muted);letter-spacing:.06em;">Structured care modules (period)</span><br>'+
+                'ANC '+ (m.prenatal_visit||0) +' · PNC '+ (m.postnatal_visit||0) +' · FP '+ (m.family_planning||0) +' · Child nutrition '+ (m.child_nutrition_visit||0) +
+                ' · <span title="National Immunization Program vaccine slots in master schedule">NIP schedule</span> '+ (d.nip_schedule_entries||0) +
+                ' · Maternal profiles '+ (d.maternal_profile_records||0)
+            );
         }
 
         function renderStatic(){

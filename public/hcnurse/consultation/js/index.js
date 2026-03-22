@@ -227,6 +227,9 @@ $(function () {
             ).join(''));
 
             $('#viewModal').dialog('option', 'title', 'Consult — ' + d.fullname).dialog('open');
+
+            /* Optional prefill for Generate → Summary / Certificate */
+            window._lastConsultCtx = { resident_id: d.resident_id, fullname: d.fullname || '' };
         }).fail(() => showAlert('Error', 'Failed to load record.', 'danger'));
     };
 
@@ -313,16 +316,61 @@ $(function () {
     };
 
     /* ── Generate ── */
-    $('#generateModal').dialog({ autoOpen: false, modal: true, width: 500, resizable: false });
-    $('#gen_period').on('change', function () { $('#gen_month_wrap').toggle($(this).val() === 'monthly'); });
-    $('#gen_doc').on('change', function () { $('#gen_purpose_wrap').toggle($(this).val() === 'certificate'); });
+    $('#generateModal').dialog({ autoOpen: false, modal: true, width: 520, resizable: false });
+
+    function syncGenerateDocUi() {
+        const doc = $('#gen_doc').val();
+        $('#gen_month_wrap').toggle($('#gen_period').val() === 'monthly');
+        $('#gen_purpose_wrap').toggle(doc === 'certificate');
+        const needPatient = doc === 'summary' || doc === 'certificate';
+        $('#gen_resident_wrap').toggle(needPatient);
+        if (doc === 'report') {
+            $('#gen_resident_id').val('');
+            $('#gen_res_name').val('');
+        } else if (needPatient && !$('#gen_resident_id').val() && window._lastConsultCtx && window._lastConsultCtx.resident_id) {
+            $('#gen_resident_id').val(window._lastConsultCtx.resident_id);
+            $('#gen_res_name').val(window._lastConsultCtx.fullname || '');
+        }
+    }
+
+    $('#gen_period').on('change', syncGenerateDocUi);
+    $('#gen_doc').on('change', syncGenerateDocUi);
+
+    $('#gen_res_name').autocomplete({
+        minLength: 1,
+        appendTo: '#generateModal',
+        position: { my: 'left top', at: 'left bottom', collision: 'none' },
+        source(req, res) { $.getJSON('api/resident.php', { term: req.term }, res); },
+        select(e, ui) {
+            e.preventDefault();
+            $('#gen_resident_id').val(ui.item.id);
+            $('#gen_res_name').val(ui.item.label);
+            return false;
+        }
+    });
+    $('#gen_res_name').on('input', function () {
+        if (!$(this).val().trim()) $('#gen_resident_id').val('');
+    });
+    $('#gen_res_name').on('autocompleteopen', function () { $('.ui-autocomplete').css('z-index', 10002); });
+
+    $('#generateModal').on('dialogopen', syncGenerateDocUi);
+
     $('#btnGenerateReport').on('click', () => {
         $('#gen_doc').val('report').trigger('change');
         $('#gen_period').val('monthly').trigger('change');
         $('#generateModal').dialog('open');
     });
     window.doGenerate = function () {
+        const doc = $('#gen_doc').val();
+        const rid = parseInt($('#gen_resident_id').val(), 10) || 0;
+        if ((doc === 'summary' || doc === 'certificate') && rid <= 0) {
+            showAlert('Patient required', 'Please search and select a patient for Patient Summary or Health Certificate.', 'danger');
+            return;
+        }
         const p = new URLSearchParams($('#generateForm').serialize());
+        if (doc === 'report') {
+            p.delete('resident_id');
+        }
         window.open('api/generate.php?' + p.toString(), '_blank');
         $('#generateModal').dialog('close');
     };

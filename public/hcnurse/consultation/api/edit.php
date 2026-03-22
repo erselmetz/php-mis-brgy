@@ -7,6 +7,7 @@
  * Always preserves the original consult_type (program) — never overwrites it.
  */
 require_once __DIR__ . '/../../../../includes/app.php';
+require_once __DIR__ . '/../../../../includes/hcnurse_health_metrics.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -149,6 +150,17 @@ try {
             $is->execute();
         }
     }
+
+    hcnurse_sync_health_metrics_from_consultation(
+        $conn,
+        $resident_id,
+        $date,
+        $weight,
+        $height,
+        $bpSys,
+        $bpDia,
+        $temp
+    );
 
     $conn->commit();
     respond(true, 'Consultation updated successfully.');

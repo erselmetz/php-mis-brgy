@@ -11,8 +11,21 @@
  *  - update dispatches per-type to updateFP/Prenatal/etc. or generic
  */
 require_once __DIR__ . '/../../../../includes/app.php';
+require_once __DIR__ . '/../../../../includes/hcnurse_health_metrics.php';
 requireHCNurse();
 header('Content-Type: application/json; charset=utf-8');
+
+/** Push weight/BP from ANC/PNC/child nutrition forms into health_metrics (same path as consultations). */
+function hcnurse_sync_vitals_from_care_module_post(mysqli $conn, string $type, int $rid, string $vDate): void {
+    $P = $_POST;
+    if ($type === 'child_nutrition') {
+        hcnurse_sync_health_metrics_from_consultation($conn, $rid, $vDate, $P['weight_kg'] ?? null, $P['height_cm'] ?? null, null, null, null);
+    } elseif ($type === 'prenatal') {
+        hcnurse_sync_health_metrics_from_consultation($conn, $rid, $vDate, $P['weight_kg'] ?? null, null, $P['bp_systolic'] ?? null, $P['bp_diastolic'] ?? null, null);
+    } elseif ($type === 'postnatal') {
+        hcnurse_sync_health_metrics_from_consultation($conn, $rid, $vDate, $P['weight_kg'] ?? null, null, $P['bp_systolic'] ?? null, $P['bp_diastolic'] ?? null, null);
+    }
+}
 
 $action  = $_GET['action']  ?? ($_POST['action']  ?? '');
 $type    = $_GET['type']    ?? ($_POST['type']    ?? '');
@@ -235,6 +248,7 @@ if ($action === 'save') {
             'immunization'    => saveImm($conn,$visitId,$rid),
             default           => $visitId,  // general, maternal, other → care_visits only
         };
+        hcnurse_sync_vitals_from_care_module_post($conn, $type, $rid, $vDate);
         $conn->commit();
         json_ok_data(['care_visit_id'=>$visitId,'module_id'=>$modId],'Saved.');
     } catch(\Throwable $e){
@@ -278,6 +292,7 @@ if ($action === 'update') {
             'immunization'    => updateImm($conn,$id,$rid),
             default           => null,  // general, maternal, other → notes field only
         };
+        hcnurse_sync_vitals_from_care_module_post($conn, $type, $rid, $vDate);
         $conn->commit();
         json_ok_data(['care_visit_id'=>$id],'Updated.');
     } catch(\Throwable $e){

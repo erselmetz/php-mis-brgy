@@ -256,7 +256,7 @@ body{font-family:var(--f-n);}
                     <div class="page-sub">Schedule, track, and manage patient appointments</div>
                 </div>
                 <div style="display:flex;gap:7px;">
-                    <button class="btn btn-ghost" id="btnPrint">↗ Print</button>
+                    <button class="btn btn-ghost" id="btnPrint">↗ Generate Report</button>
                     <button class="btn btn-acc"   id="btnAdd">+ New Appointment</button>
                 </div>
             </div>

@@ -846,7 +846,7 @@ $typeConfig = [
 <!-- GENERATE MODAL (unchanged) -->
 <div id="generateModal" title="Generate Document" class="hidden">
     <form id="generateForm" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
-        <input type="hidden" id="gen_resident_id" name="resident_id">
+        <input type="hidden" id="gen_resident_id" name="resident_id" value="">
         <div class="fg">
             <label class="fg-label">Document Type</label>
             <select id="gen_doc" name="doc" class="fg-select">
@@ -854,6 +854,11 @@ $typeConfig = [
                 <option value="summary">Patient Summary</option>
                 <option value="certificate">Health Certificate</option>
             </select>
+        </div>
+        <div id="gen_resident_wrap" class="fg" style="display:none;">
+            <label class="fg-label">Patient <span style="color:var(--danger-fg,#b91c1c);">*</span></label>
+            <input type="text" id="gen_res_name" class="fg-input" placeholder="Search name…" autocomplete="off">
+            <p class="fg-hint" style="font-size:11px;color:var(--ink-muted,#6b7280);margin-top:4px;">Required for Patient Summary and Health Certificate. Search and select the resident.</p>
         </div>
         <div class="fg">
             <label class="fg-label">Time Period</label>

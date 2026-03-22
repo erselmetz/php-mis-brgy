@@ -11,6 +11,7 @@
  * New fields are all optional → old forms won't break.
  */
 require_once __DIR__ . '/../../../../includes/app.php';
+require_once __DIR__ . '/../../../../includes/hcnurse_health_metrics.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -160,6 +161,17 @@ try {
         $ds->bind_param($types, ...$values);
         $ds->execute();
     }
+
+    hcnurse_sync_health_metrics_from_consultation(
+        $conn,
+        $resident_id,
+        $date,
+        $weight,
+        $height,
+        $bpSys,
+        $bpDia,
+        $temp
+    );
 
     $conn->commit();
     respond(true, 'Consultation added successfully.', ['id' => $consultId]);

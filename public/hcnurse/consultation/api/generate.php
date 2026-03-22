@@ -34,7 +34,16 @@ function compute_range(string $period, string $month): array {
 }
 [$from, $to, $periodLabel] = compute_range($period, $month);
 
-if ($doc !== 'report' && $resident_id <= 0) die('Invalid resident.');
+if ($doc !== 'report' && $resident_id <= 0) {
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Patient required</title></head><body style="font-family:system-ui,sans-serif;padding:28px;max-width:480px;">';
+    echo '<h1 style="font-size:18px;margin:0 0 12px;">Patient required</h1>';
+    echo '<p style="color:#444;line-height:1.5;">Patient Summary and Health Certificate need a selected resident. ';
+    echo 'Open <strong>Generate Document</strong>, choose the document type, then search and select a patient.</p>';
+    echo '<p style="margin-top:20px;"><a href="javascript:history.back()">← Go back</a></p>';
+    echo '</body></html>';
+    exit;
+}
 
 /* ── Fetch ── */
 $sql  = "SELECT c.id, c.resident_id, c.complaint, c.diagnosis, c.treatment, c.notes, c.consultation_date,

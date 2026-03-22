@@ -31,6 +31,35 @@ $pageTitle = $labels[$type] ?? 'Care Record';
 
 function h($s) { return htmlspecialchars((string)($s ?? ''), ENT_QUOTES, 'UTF-8'); }
 
+/** Notes/remarks for official print: preserve line breaks; empty → blank cell. */
+function printNoteText(?string $s): string {
+    $s = trim((string)($s ?? ''));
+    if ($s === '') {
+        return '';
+    }
+    return nl2br(h($s));
+}
+
+/** Optional table cell: empty or whitespace-only → blank (no placeholder dash). */
+function cellStr(mixed $v): string {
+    if ($v === null) {
+        return '';
+    }
+    if (is_string($v)) {
+        $t = trim($v);
+        return $t === '' ? '' : h($t);
+    }
+    if (is_bool($v)) {
+        return $v ? '1' : '';
+    }
+    if (is_int($v) || is_float($v)) {
+        return h((string)$v);
+    }
+    return h(trim((string)$v)) === '' ? '' : h((string)$v);
+}
+
+require_once __DIR__ . '/print_clinical_render.php';
+
 /* ── Resident info ── */
 $residentName = $birthdate = $address = $gender = '';
 if ($rid > 0) {
@@ -79,8 +108,73 @@ function runQuery(mysqli $conn, string $sql, string $types, array $params): arra
     }
 }
 
+/**
+ * Standalone consultations (+ consultation_detail) for this programme type.
+ * Excludes consults already merged via care_visit_id onto a care_visits row in this report.
+ */
+function fetchConsultationsRichForPrint(
+    mysqli $conn,
+    string $type,
+    string $from,
+    string $to,
+    int $rid,
+    array $excludeCareVisitIds
+): array {
+    $cp = care_print_consult_projection('c');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT {$cp}, {$dp},
+                   c.consultation_date AS visit_date,
+                   c.consult_type,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   'consultation' AS _source
+            FROM consultations c
+            INNER JOIN residents r ON r.id = c.resident_id AND r.deleted_at IS NULL
+            LEFT JOIN consultation_detail cd ON cd.consultation_id = c.id
+            WHERE c.consult_type = ? AND c.consultation_date BETWEEN ? AND ?";
+    $params = [$type, $from, $to];
+    $types  = 'sss';
+    if ($rid > 0) {
+        $sql .= " AND c.resident_id = ?";
+        $params[] = $rid;
+        $types   .= 'i';
+    }
+    $ids = array_values(array_unique(array_filter(array_map('intval', $excludeCareVisitIds))));
+    if ($ids !== []) {
+        $in = implode(',', $ids);
+        $sql .= " AND (c.care_visit_id IS NULL OR c.care_visit_id NOT IN ($in))";
+    }
+    $sql .= " ORDER BY c.consultation_date DESC, c.id DESC";
+    return runQuery($conn, $sql, $types, $params);
+}
+
+function careVisitIdsFromRows(array $rows, string $idKey = 'cv_id'): array {
+    $out = [];
+    foreach ($rows as $r) {
+        $v = (int)($r[$idKey] ?? $r['id'] ?? 0);
+        if ($v > 0) {
+            $out[] = $v;
+        }
+    }
+    return $out;
+}
+
+function sortRowsByVisitDateDesc(array &$rows): void {
+    usort($rows, static function ($a, $b) {
+        $da = $a['visit_date'] ?? '';
+        $db = $b['visit_date'] ?? '';
+        return strcmp((string)$db, (string)$da);
+    });
+}
+
 /* ── Build rows ── */
 $rows = [];
+
+$joinConsCd = "
+    LEFT JOIN consultations cons ON cons.id = (
+        SELECT MAX(c2.id) FROM consultations c2 WHERE c2.care_visit_id = cv.id
+    )
+    LEFT JOIN consultation_detail cd ON cd.consultation_id = cons.id
+";
 
 if ($type === 'immunization') {
 
@@ -101,153 +195,146 @@ if ($type === 'immunization') {
 
 } elseif ($type === 'prenatal') {
 
-    /* With module table */
-    $sql    = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                      CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                      pv.visit_number, pv.lmp_date, pv.edd_date,
-                      pv.aog_weeks, pv.weight_kg, pv.bp_systolic, pv.bp_diastolic,
-                      pv.fundal_height_cm, pv.fetal_heart_rate, pv.fetal_presentation,
-                      pv.tt_dose, pv.risk_level, pv.health_worker,
-                      pv.chief_complaint, pv.assessment, pv.plan
-               FROM care_visits cv
-               INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-               LEFT JOIN prenatal_visit pv ON pv.care_visit_id = cv.id
-               WHERE cv.care_type = 'prenatal' AND cv.visit_date BETWEEN ? AND ?";
+    $cp = care_print_consult_projection('cons');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT cv.id AS cv_id,
+                   cv.visit_date AS visit_date,
+                   cv.notes AS cv_notes,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   pv.visit_number, pv.lmp_date, pv.edd_date,
+                   pv.aog_weeks, pv.weight_kg, pv.bp_systolic, pv.bp_diastolic,
+                   pv.fundal_height_cm, pv.fetal_heart_rate, pv.fetal_presentation,
+                   pv.tt_dose, pv.risk_level, pv.health_worker,
+                   pv.chief_complaint, pv.assessment, pv.plan,
+                   {$cp}, {$dp},
+                   'care_visit' AS _source
+            FROM care_visits cv
+            INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
+            LEFT JOIN prenatal_visit pv ON pv.care_visit_id = cv.id
+            {$joinConsCd}
+            WHERE cv.care_type = 'prenatal' AND cv.visit_date BETWEEN ? AND ?";
     $params = [$from, $to]; $types = 'ss';
     if ($rid > 0) { $sql .= " AND cv.resident_id = ?"; $params[] = $rid; $types .= 'i'; }
-    $sql .= " ORDER BY cv.visit_date DESC";
+    $sql .= " ORDER BY cv.visit_date DESC, cv.id DESC";
     $rows = runQuery($conn, $sql, $types, $params);
 
-    /* Fallback: care_visits only (if module table missing/broken) */
-    if (empty($rows) && empty($queryErrors)) {
-        $sql2   = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                          CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                          NULL AS visit_number, NULL AS aog_weeks, NULL AS weight_kg,
-                          NULL AS bp_systolic, NULL AS bp_diastolic,
-                          NULL AS fetal_heart_rate, NULL AS fundal_height_cm,
-                          NULL AS fetal_presentation, NULL AS risk_level,
-                          NULL AS tt_dose, NULL AS health_worker
-                   FROM care_visits cv
-                   INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-                   WHERE cv.care_type = 'prenatal' AND cv.visit_date BETWEEN ? AND ?";
-        $p2 = [$from, $to]; $t2 = 'ss';
-        if ($rid > 0) { $sql2 .= " AND cv.resident_id = ?"; $p2[] = $rid; $t2 .= 'i'; }
-        $sql2 .= " ORDER BY cv.visit_date DESC";
-        $rows = runQuery($conn, $sql2, $t2, $p2);
+    foreach (fetchConsultationsRichForPrint($conn, 'prenatal', $from, $to, $rid, careVisitIdsFromRows($rows, 'cv_id')) as $c) {
+        $rows[] = $c;
     }
+    sortRowsByVisitDateDesc($rows);
 
 } elseif ($type === 'postnatal') {
 
-    $sql    = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                      CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                      pnv.visit_number, pnv.delivery_date, pnv.delivery_type,
-                      pnv.bp_systolic, pnv.bp_diastolic,
-                      pnv.lochia_type, pnv.breastfeeding_status,
-                      pnv.ppd_score, pnv.newborn_weight_g,
-                      pnv.apgar_1min, pnv.apgar_5min, pnv.health_worker
-               FROM care_visits cv
-               INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-               LEFT JOIN postnatal_visit pnv ON pnv.care_visit_id = cv.id
-               WHERE cv.care_type = 'postnatal' AND cv.visit_date BETWEEN ? AND ?";
+    $cp = care_print_consult_projection('cons');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT cv.id AS cv_id,
+                   cv.visit_date AS visit_date,
+                   cv.notes AS cv_notes,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   pnv.visit_number, pnv.delivery_date, pnv.delivery_type,
+                   pnv.bp_systolic, pnv.bp_diastolic,
+                   pnv.lochia_type, pnv.breastfeeding_status,
+                   pnv.ppd_score, pnv.newborn_weight_g,
+                   pnv.apgar_1min, pnv.apgar_5min, pnv.health_worker,
+                   {$cp}, {$dp},
+                   'care_visit' AS _source
+            FROM care_visits cv
+            INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
+            LEFT JOIN postnatal_visit pnv ON pnv.care_visit_id = cv.id
+            {$joinConsCd}
+            WHERE cv.care_type = 'postnatal' AND cv.visit_date BETWEEN ? AND ?";
     $params = [$from, $to]; $types = 'ss';
     if ($rid > 0) { $sql .= " AND cv.resident_id = ?"; $params[] = $rid; $types .= 'i'; }
-    $sql .= " ORDER BY cv.visit_date DESC";
+    $sql .= " ORDER BY cv.visit_date DESC, cv.id DESC";
     $rows = runQuery($conn, $sql, $types, $params);
 
-    if (empty($rows) && empty($queryErrors)) {
-        $sql2   = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                          CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                          NULL AS visit_number, NULL AS delivery_type,
-                          NULL AS bp_systolic, NULL AS bp_diastolic,
-                          NULL AS lochia_type, NULL AS breastfeeding_status,
-                          NULL AS ppd_score, NULL AS newborn_weight_g,
-                          NULL AS apgar_1min, NULL AS apgar_5min, NULL AS health_worker
-                   FROM care_visits cv
-                   INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-                   WHERE cv.care_type = 'postnatal' AND cv.visit_date BETWEEN ? AND ?";
-        $p2 = [$from, $to]; $t2 = 'ss';
-        if ($rid > 0) { $sql2 .= " AND cv.resident_id = ?"; $p2[] = $rid; $t2 .= 'i'; }
-        $sql2 .= " ORDER BY cv.visit_date DESC";
-        $rows = runQuery($conn, $sql2, $t2, $p2);
+    foreach (fetchConsultationsRichForPrint($conn, 'postnatal', $from, $to, $rid, careVisitIdsFromRows($rows, 'cv_id')) as $c) {
+        $rows[] = $c;
     }
+    sortRowsByVisitDateDesc($rows);
 
 } elseif ($type === 'family_planning') {
 
-    $sql    = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                      CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                      fpr.method, fpr.method_other,
-                      fpr.next_supply_date, fpr.next_checkup_date,
-                      fpr.is_new_acceptor, fpr.is_method_switch,
-                      fpr.side_effects, fpr.pills_given, fpr.health_worker
-               FROM care_visits cv
-               INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-               LEFT JOIN family_planning_record fpr ON fpr.care_visit_id = cv.id
-               WHERE cv.care_type = 'family_planning' AND cv.visit_date BETWEEN ? AND ?";
+    $cp = care_print_consult_projection('cons');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT cv.id AS cv_id,
+                   cv.visit_date AS visit_date,
+                   cv.notes AS cv_notes,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   fpr.method, fpr.method_other,
+                   fpr.next_supply_date, fpr.next_checkup_date,
+                   fpr.is_new_acceptor, fpr.is_method_switch,
+                   fpr.side_effects, fpr.pills_given, fpr.health_worker,
+                   {$cp}, {$dp},
+                   'care_visit' AS _source
+            FROM care_visits cv
+            INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
+            LEFT JOIN family_planning_record fpr ON fpr.care_visit_id = cv.id
+            {$joinConsCd}
+            WHERE cv.care_type = 'family_planning' AND cv.visit_date BETWEEN ? AND ?";
     $params = [$from, $to]; $types = 'ss';
     if ($rid > 0) { $sql .= " AND cv.resident_id = ?"; $params[] = $rid; $types .= 'i'; }
-    $sql .= " ORDER BY cv.visit_date DESC";
+    $sql .= " ORDER BY cv.visit_date DESC, cv.id DESC";
     $rows = runQuery($conn, $sql, $types, $params);
 
-    if (empty($rows) && empty($queryErrors)) {
-        $sql2   = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                          CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                          NULL AS method, NULL AS method_other,
-                          NULL AS next_supply_date, NULL AS next_checkup_date,
-                          NULL AS is_new_acceptor, NULL AS is_method_switch,
-                          NULL AS side_effects, NULL AS pills_given, NULL AS health_worker
-                   FROM care_visits cv
-                   INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-                   WHERE cv.care_type = 'family_planning' AND cv.visit_date BETWEEN ? AND ?";
-        $p2 = [$from, $to]; $t2 = 'ss';
-        if ($rid > 0) { $sql2 .= " AND cv.resident_id = ?"; $p2[] = $rid; $t2 .= 'i'; }
-        $sql2 .= " ORDER BY cv.visit_date DESC";
-        $rows = runQuery($conn, $sql2, $t2, $p2);
+    foreach (fetchConsultationsRichForPrint($conn, 'family_planning', $from, $to, $rid, careVisitIdsFromRows($rows, 'cv_id')) as $c) {
+        $rows[] = $c;
     }
+    sortRowsByVisitDateDesc($rows);
 
 } elseif ($type === 'child_nutrition') {
 
-    $sql    = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                      CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                      cnv.age_months, cnv.weight_kg, cnv.height_cm, cnv.muac_cm,
-                      cnv.waz, cnv.haz,
-                      cnv.stunting_status, cnv.wasting_status,
-                      cnv.vita_supplemented, cnv.deworming_done, cnv.health_worker
-               FROM care_visits cv
-               INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-               LEFT JOIN child_nutrition_visit cnv ON cnv.care_visit_id = cv.id
-               WHERE cv.care_type = 'child_nutrition' AND cv.visit_date BETWEEN ? AND ?";
+    $cp = care_print_consult_projection('cons');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT cv.id AS cv_id,
+                   cv.visit_date AS visit_date,
+                   cv.notes AS cv_notes,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   cnv.age_months, cnv.weight_kg, cnv.height_cm, cnv.muac_cm,
+                   cnv.waz, cnv.haz,
+                   cnv.stunting_status, cnv.wasting_status,
+                   cnv.vita_supplemented, cnv.deworming_done, cnv.health_worker,
+                   {$cp}, {$dp},
+                   'care_visit' AS _source
+            FROM care_visits cv
+            INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
+            LEFT JOIN child_nutrition_visit cnv ON cnv.care_visit_id = cv.id
+            {$joinConsCd}
+            WHERE cv.care_type = 'child_nutrition' AND cv.visit_date BETWEEN ? AND ?";
     $params = [$from, $to]; $types = 'ss';
     if ($rid > 0) { $sql .= " AND cv.resident_id = ?"; $params[] = $rid; $types .= 'i'; }
-    $sql .= " ORDER BY cv.visit_date DESC";
+    $sql .= " ORDER BY cv.visit_date DESC, cv.id DESC";
     $rows = runQuery($conn, $sql, $types, $params);
 
-    if (empty($rows) && empty($queryErrors)) {
-        $sql2   = "SELECT cv.id AS cv_id, cv.visit_date, cv.notes,
-                          CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
-                          NULL AS age_months, NULL AS weight_kg, NULL AS height_cm, NULL AS muac_cm,
-                          NULL AS waz, NULL AS haz,
-                          NULL AS stunting_status, NULL AS wasting_status,
-                          NULL AS vita_supplemented, NULL AS deworming_done, NULL AS health_worker
-                   FROM care_visits cv
-                   INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-                   WHERE cv.care_type = 'child_nutrition' AND cv.visit_date BETWEEN ? AND ?";
-        $p2 = [$from, $to]; $t2 = 'ss';
-        if ($rid > 0) { $sql2 .= " AND cv.resident_id = ?"; $p2[] = $rid; $t2 .= 'i'; }
-        $sql2 .= " ORDER BY cv.visit_date DESC";
-        $rows = runQuery($conn, $sql2, $t2, $p2);
+    foreach (fetchConsultationsRichForPrint($conn, 'child_nutrition', $from, $to, $rid, careVisitIdsFromRows($rows, 'cv_id')) as $c) {
+        $rows[] = $c;
     }
+    sortRowsByVisitDateDesc($rows);
 
 } else {
     /* general, maternal, other */
-    $sql    = "SELECT cv.id, cv.visit_date, cv.notes, cv.care_type,
-                      CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name
-               FROM care_visits cv
-               INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
-               WHERE cv.care_type = ? AND cv.visit_date BETWEEN ? AND ?";
+    $cp = care_print_consult_projection('cons');
+    $dp = care_print_detail_projection();
+    $sql = "SELECT cv.id AS cv_id,
+                   cv.visit_date AS visit_date,
+                   cv.notes AS cv_notes,
+                   cv.care_type,
+                   CONCAT_WS(' ', r.first_name, r.middle_name, r.last_name) AS resident_name,
+                   {$cp}, {$dp},
+                   'care_visit' AS _source
+            FROM care_visits cv
+            INNER JOIN residents r ON r.id = cv.resident_id AND r.deleted_at IS NULL
+            {$joinConsCd}
+            WHERE cv.care_type = ? AND cv.visit_date BETWEEN ? AND ?";
     $params = [$type, $from, $to]; $types = 'sss';
     if ($rid > 0) { $sql .= " AND cv.resident_id = ?"; $params[] = $rid; $types .= 'i'; }
-    $sql .= " ORDER BY cv.visit_date DESC";
+    $sql .= " ORDER BY cv.visit_date DESC, cv.id DESC";
     $rows = runQuery($conn, $sql, $types, $params);
+
+    foreach (fetchConsultationsRichForPrint($conn, $type, $from, $to, $rid, careVisitIdsFromRows($rows, 'cv_id')) as $c) {
+        $rows[] = $c;
+    }
+    sortRowsByVisitDateDesc($rows);
 }
 ?>
 <!DOCTYPE html>
@@ -291,6 +378,24 @@ td{padding:7px 9px;vertical-align:top;}
 .sig-role{font-size:9px;color:#888;margin-top:2px;}
 .footer{margin-top:18px;padding-top:8px;border-top:1px solid #d8d4cc;display:flex;justify-content:space-between;font-size:8px;color:#a0a0a0;}
 .no-data{padding:28px;text-align:center;color:#a0a0a0;font-style:italic;border:1px dashed #d8d4cc;border-radius:2px;margin-top:4px;}
+.note-cell{line-height:1.4;vertical-align:top;}
+.visit-stack{display:flex;flex-direction:column;gap:14px;}
+.visit-card{border:1px solid #d0ccc4;border-radius:4px;background:#fff;break-inside:avoid;page-break-inside:avoid;}
+.vc-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#f7f5f0 0%,#f0ede6 100%);border-bottom:1px solid #d8d4cc;}
+.vc-date{font-weight:700;font-size:11px;color:#1a1a1a;}
+.vc-patient{font-weight:600;font-size:11px;}
+.vc-prog{font-size:9px;color:#5a5a5a;font-weight:600;}
+.vc-src{margin-left:auto;font-size:7.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5a6b52;max-width:55%;text-align:right;line-height:1.3;}
+.vc-body{padding:12px 14px 14px;}
+.vc-sec{margin-bottom:14px;}
+.vc-sec:last-child{margin-bottom:0;}
+.vc-sec-title{font-size:7.5px;font-weight:700;letter-spacing:.95px;text-transform:uppercase;color:#2d5a27;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid #e5e1d8;}
+.vc-dl{display:grid;grid-template-columns:minmax(120px,34%) 1fr;gap:5px 14px;font-size:10px;line-height:1.35;}
+.vc-dl dt{color:#6b6560;font-weight:600;margin:0;}
+.vc-dl dd{margin:0;color:#1a1a1a;}
+.vc-narr{font-size:10px;line-height:1.45;color:#333;}
+.vc-empty{font-size:10px;color:#9a9590;font-style:italic;padding:8px 0;}
+@media print{.visit-card{box-shadow:none;}.vc-head{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 .db-error{padding:14px 16px;background:#fdeeed;border:1px solid #fca5a5;border-radius:2px;color:#7a1f1a;font-size:11px;margin-bottom:12px;}
 .db-error strong{display:block;font-size:12px;margin-bottom:4px;}
 .db-error pre{font-size:9.5px;margin-top:6px;white-space:pre-wrap;word-break:break-all;background:#fff5f5;padding:8px;border-radius:2px;}
@@ -301,14 +406,6 @@ td{padding:7px 9px;vertical-align:top;}
 <div class="no-print">
     <button onclick="window.print()" style="padding:6px 18px;background:#2d5a27;color:#fff;border:none;border-radius:2px;font-weight:700;cursor:pointer;">↗ Print / Save PDF</button>
     <button onclick="window.close()" style="padding:6px 18px;background:#fff;border:1.5px solid #b8b4ac;border-radius:2px;cursor:pointer;">Close</button>
-    <?php if (!$debug): ?>
-    <a href="?<?= h(http_build_query(array_merge($_GET, ['debug' => '1']))) ?>"
-       style="padding:6px 14px;background:#fff3cd;border:1.5px solid #e0a800;border-radius:2px;font-size:10px;font-weight:700;color:#7a5700;text-decoration:none;margin-left:8px;">
-       🔍 Debug (click if no data shows)
-    </a>
-    <?php else: ?>
-    <span style="font-size:10px;color:#7a5700;font-weight:700;margin-left:8px;">⚠ DEBUG MODE ON</span>
-    <?php endif; ?>
 </div>
 
 <?php if (!empty($queryErrors)): ?>
@@ -339,7 +436,7 @@ td{padding:7px 9px;vertical-align:top;}
 <div class="res-block">
     <div><div class="rf-lbl">Patient</div><div class="rf-val"><?= h($residentName) ?></div></div>
     <div><div class="rf-lbl">Age / Birthdate</div><div class="rf-val"><?= h($age) ?><?= $birthdate ? ' · '.h($birthdate) : '' ?></div></div>
-    <div><div class="rf-lbl">Address</div><div class="rf-val"><?= h($address ?: '—') ?></div></div>
+    <div><div class="rf-lbl">Address</div><div class="rf-val"><?= cellStr($address) ?></div></div>
 </div>
 <?php endif; ?>
 
@@ -367,163 +464,26 @@ td{padding:7px 9px;vertical-align:top;}
             <td class="mono"><?= h($r['date_given']) ?></td>
             <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
             <td style="font-weight:600;"><?= h($r['vaccine_name']) ?></td>
-            <td><?= h($r['dose'] ?? '—') ?></td>
-            <td><?= h($r['route'] ?? 'IM') ?></td>
-            <td class="mono"><?= h($r['batch_number'] ?? '—') ?></td>
-            <td class="mono"><?= h($r['next_schedule'] ?? '—') ?></td>
-            <td><?= h($r['administered_by'] ?? '—') ?></td>
-            <td style="color:#d14520;"><?= h($r['adverse_reaction'] ?? '—') ?></td>
+            <td><?= cellStr($r['dose'] ?? null) ?></td>
+            <td><?= cellStr($r['route'] ?? null) ?></td>
+            <td class="mono"><?= cellStr($r['batch_number'] ?? null) ?></td>
+            <td class="mono"><?= cellStr($r['next_schedule'] ?? null) ?></td>
+            <td><?= cellStr($r['administered_by'] ?? null) ?></td>
+            <td style="color:#d14520;"><?= cellStr($r['adverse_reaction'] ?? null) ?></td>
         </tr>
     <?php endforeach; endif; ?>
     </tbody>
 </table>
 
-<!-- ════ PRENATAL ════ -->
-<?php elseif ($type === 'prenatal'): ?>
-<table>
-    <thead><tr>
-        <th>Visit Date</th>
-        <?php if (!$residentName): ?><th>Patient</th><?php endif; ?>
-        <th>Visit #</th><th>AOG</th><th>Weight</th><th>BP</th>
-        <th>FHR</th><th>FH</th><th>Risk</th><th>TT</th><th>Worker</th>
-    </tr></thead>
-    <tbody>
-    <?php if (!$rows): ?>
-        <tr><td colspan="11"><div class="no-data">No prenatal records found for this period.</div></td></tr>
-    <?php else: foreach ($rows as $r):
-        $riskCls = ($r['risk_level'] ?? '') === 'High' ? 'danger' : (($r['risk_level'] ?? '') === 'Moderate' ? 'warn' : 'ok');
-    ?>
-        <tr>
-            <td class="mono"><?= h($r['visit_date']) ?></td>
-            <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
-            <td><?= ($r['visit_number'] ?? '') ? 'Visit '.h($r['visit_number']) : '—' ?></td>
-            <td><?= ($r['aog_weeks'] ?? '') ? h($r['aog_weeks']).' wks' : '—' ?></td>
-            <td><?= ($r['weight_kg'] ?? '') ? h($r['weight_kg']).' kg' : '—' ?></td>
-            <td class="mono"><?= (($r['bp_systolic'] ?? '') && ($r['bp_diastolic'] ?? '')) ? h($r['bp_systolic']).'/'.h($r['bp_diastolic']) : '—' ?></td>
-            <td><?= ($r['fetal_heart_rate'] ?? '') ? h($r['fetal_heart_rate']).' bpm' : '—' ?></td>
-            <td><?= ($r['fundal_height_cm'] ?? '') ? h($r['fundal_height_cm']).' cm' : '—' ?></td>
-            <td><?php if ($r['risk_level'] ?? ''): ?><span class="badge <?= $riskCls ?>"><?= h($r['risk_level']) ?></span><?php else: ?>—<?php endif; ?></td>
-            <td><?= h($r['tt_dose'] ?? '—') ?></td>
-            <td><?= h($r['health_worker'] ?? '—') ?></td>
-        </tr>
-    <?php endforeach; endif; ?>
-    </tbody>
-</table>
-
-<!-- ════ POSTNATAL ════ -->
-<?php elseif ($type === 'postnatal'): ?>
-<table>
-    <thead><tr>
-        <th>Visit Date</th>
-        <?php if (!$residentName): ?><th>Patient</th><?php endif; ?>
-        <th>Visit #</th><th>Delivery Type</th><th>BP</th>
-        <th>Lochia</th><th>BF Status</th><th>PPD Score</th>
-        <th>NB Weight</th><th>APGAR</th>
-    </tr></thead>
-    <tbody>
-    <?php if (!$rows): ?>
-        <tr><td colspan="10"><div class="no-data">No postnatal records found for this period.</div></td></tr>
-    <?php else: foreach ($rows as $r): ?>
-        <tr>
-            <td class="mono"><?= h($r['visit_date']) ?></td>
-            <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
-            <td><?= ($r['visit_number'] ?? '') ? 'PNC '.h($r['visit_number']) : '—' ?></td>
-            <td><?= h($r['delivery_type'] ?? '—') ?></td>
-            <td class="mono"><?= (($r['bp_systolic'] ?? '') && ($r['bp_diastolic'] ?? '')) ? h($r['bp_systolic']).'/'.h($r['bp_diastolic']) : '—' ?></td>
-            <td><?= h($r['lochia_type'] ?? '—') ?></td>
-            <td><?= h($r['breastfeeding_status'] ?? '—') ?></td>
-            <td><?= isset($r['ppd_score']) && $r['ppd_score'] !== null ? h($r['ppd_score']) : '—' ?></td>
-            <td><?= ($r['newborn_weight_g'] ?? '') ? number_format((int)$r['newborn_weight_g']).'g' : '—' ?></td>
-            <td><?= (isset($r['apgar_1min']) && $r['apgar_1min'] !== null) ? h($r['apgar_1min']).' / '.h($r['apgar_5min']) : '—' ?></td>
-        </tr>
-    <?php endforeach; endif; ?>
-    </tbody>
-</table>
-
-<!-- ════ FAMILY PLANNING ════ -->
-<?php elseif ($type === 'family_planning'): ?>
-<table>
-    <thead><tr>
-        <th>Visit Date</th>
-        <?php if (!$residentName): ?><th>Patient</th><?php endif; ?>
-        <th>Method</th><th>New Acceptor</th><th>Method Switch</th>
-        <th>Next Supply</th><th>Next Checkup</th>
-        <th>Pills Given</th><th>Side Effects</th>
-    </tr></thead>
-    <tbody>
-    <?php if (!$rows): ?>
-        <tr><td colspan="9"><div class="no-data">No family planning records found for this period.</div></td></tr>
-    <?php else: foreach ($rows as $r): ?>
-        <tr>
-            <td class="mono"><?= h($r['visit_date']) ?></td>
-            <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
-            <td style="font-weight:600;"><?= h($r['method'] ?? '—') ?><?= ($r['method_other'] ?? '') ? ' ('.h($r['method_other']).')' : '' ?></td>
-            <td><?= ($r['is_new_acceptor'] ?? 0) ? '<span class="badge ok">Yes</span>' : 'No' ?></td>
-            <td><?= ($r['is_method_switch'] ?? 0) ? '<span class="badge warn">Yes</span>' : 'No' ?></td>
-            <td class="mono"><?= h($r['next_supply_date'] ?? '—') ?></td>
-            <td class="mono"><?= h($r['next_checkup_date'] ?? '—') ?></td>
-            <td><?= (int)($r['pills_given'] ?? 0) ?> pks</td>
-            <td style="color:#d14520;font-size:10px;"><?= h(($r['side_effects'] ?? '') ? mb_substr($r['side_effects'], 0, 60).'…' : '—') ?></td>
-        </tr>
-    <?php endforeach; endif; ?>
-    </tbody>
-</table>
-
-<!-- ════ CHILD NUTRITION ════ -->
-<?php elseif ($type === 'child_nutrition'): ?>
-<table>
-    <thead><tr>
-        <th>Visit Date</th>
-        <?php if (!$residentName): ?><th>Patient</th><?php endif; ?>
-        <th>Age</th><th>Weight</th><th>Height</th><th>MUAC</th>
-        <th>WAZ</th><th>HAZ</th><th>Stunting</th><th>Wasting</th>
-        <th>Vit A</th><th>Deworming</th>
-    </tr></thead>
-    <tbody>
-    <?php if (!$rows): ?>
-        <tr><td colspan="12"><div class="no-data">No child nutrition records found for this period.</div></td></tr>
-    <?php else: foreach ($rows as $r):
-        $stunCls = match($r['stunting_status'] ?? '') { 'Normal'=>'ok','Mild'=>'warn','Moderate'=>'warn','Severe'=>'danger', default=>'' };
-        $wastCls = match($r['wasting_status']  ?? '') { 'Normal'=>'ok','Mild'=>'warn','Moderate'=>'warn','Severe'=>'danger', default=>'' };
-    ?>
-        <tr>
-            <td class="mono"><?= h($r['visit_date']) ?></td>
-            <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
-            <td><?= isset($r['age_months']) && $r['age_months'] !== null ? h($r['age_months']).' mo' : '—' ?></td>
-            <td><?= ($r['weight_kg'] ?? '') ? h($r['weight_kg']).' kg' : '—' ?></td>
-            <td><?= ($r['height_cm'] ?? '') ? h($r['height_cm']).' cm' : '—' ?></td>
-            <td><?= ($r['muac_cm']   ?? '') ? h($r['muac_cm']).' cm'   : '—' ?></td>
-            <td class="mono"><?= (($r['waz'] ?? '') !== '') ? h($r['waz']) : '—' ?></td>
-            <td class="mono"><?= (($r['haz'] ?? '') !== '') ? h($r['haz']) : '—' ?></td>
-            <td><?= ($r['stunting_status'] ?? '') ? '<span class="badge '.$stunCls.'">'.h($r['stunting_status']).'</span>' : '—' ?></td>
-            <td><?= ($r['wasting_status']  ?? '') ? '<span class="badge '.$wastCls.'">'.h($r['wasting_status']).'</span>'  : '—' ?></td>
-            <td><?= ($r['vita_supplemented'] ?? 0) ? '<span class="badge ok">✓</span>' : '—' ?></td>
-            <td><?= ($r['deworming_done']    ?? 0) ? '<span class="badge ok">✓</span>' : '—' ?></td>
-        </tr>
-    <?php endforeach; endif; ?>
-    </tbody>
-</table>
-
-<!-- ════ GENERAL / MATERNAL / OTHER ════ -->
+<!-- ════ PROGRAMME VISITS (care_visits modules + linked / standalone consultations) ════ -->
 <?php else: ?>
-<table>
-    <thead><tr>
-        <th>Visit Date</th>
-        <?php if (!$residentName): ?><th>Patient</th><?php endif; ?>
-        <th>Notes / Remarks</th>
-    </tr></thead>
-    <tbody>
+<div class="visit-stack">
     <?php if (!$rows): ?>
-        <tr><td colspan="3"><div class="no-data">No <?= h(str_replace('_', ' ', $type)) ?> records found for this period.</div></td></tr>
+        <div class="no-data">No <?= h(str_replace('_', ' ', $type)) ?> records found for this period.</div>
     <?php else: foreach ($rows as $r): ?>
-        <tr>
-            <td class="mono" style="white-space:nowrap;"><?= h($r['visit_date']) ?></td>
-            <?php if (!$residentName): ?><td style="font-weight:600;"><?= h($r['resident_name']) ?></td><?php endif; ?>
-            <td style="color:#5a5a5a;"><?= h($r['notes'] ?? '—') ?></td>
-        </tr>
+        <?= care_print_render_visit_card($r, $type, (bool)$residentName) ?>
     <?php endforeach; endif; ?>
-    </tbody>
-</table>
+</div>
 <?php endif; ?>
 
 <div class="sigs">
