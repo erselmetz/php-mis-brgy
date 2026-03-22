@@ -1,74 +1,159 @@
 <?php
 /**
- * Consultation Edit API
+ * Enhanced Consultation Edit API
  * Replaces: public/hcnurse/consultation/api/edit.php
  *
- * BUG FIXES:
- * 1. Always reads existing notes first → preserves program field
- * 2. respond() fallback defined inline
+ * Updates consultations + consultation_detail atomically.
+ * Always preserves the original consult_type (program) — never overwrites it.
  */
 require_once __DIR__ . '/../../../../includes/app.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (!function_exists('respond')) {
-    function respond(bool $ok, string $msg, array $data = []): never {
-        echo json_encode(['success' => $ok, 'message' => $msg] + ($data ? ['data' => $data] : []));
-        exit;
-    }
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'Invalid request');
 
-$id          = (int)($_POST['id']             ?? 0);
-$resident_id = (int)($_POST['resident_id']    ?? 0);
+$id          = (int)($_POST['id'] ?? 0);
+$resident_id = (int)($_POST['resident_id'] ?? 0);
 $date        = trim($_POST['consultation_date'] ?? '');
 
-// Convert mm/dd/yyyy → yyyy-mm-dd
 if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $date)) {
     [$mm, $dd, $yyyy] = explode('/', $date);
     $date = sprintf('%04d-%02d-%02d', (int)$yyyy, (int)$mm, (int)$dd);
 }
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) respond(false, 'Invalid date format.');
 
-$complaint = trim($_POST['complaint']         ?? '');
-$diagnosis = trim($_POST['diagnosis']         ?? '');
-$treatment = trim($_POST['treatment']         ?? '');
-$time      = trim($_POST['consultation_time'] ?? '');
-$worker    = trim($_POST['health_worker']     ?? '');
-$status    = trim($_POST['status']            ?? 'Completed');
-$remarks   = trim($_POST['remarks']           ?? '');
-
 if ($id <= 0)          respond(false, 'Invalid consultation id.');
 if ($resident_id <= 0) respond(false, 'Resident is required.');
-if ($complaint === '')  respond(false, 'Chief complaint is required.');
 
-// CRITICAL: Read existing notes first to preserve program
-$existing = $conn->query("SELECT notes FROM consultations WHERE id = " . (int)$id . " LIMIT 1")->fetch_assoc();
+$complaint = trim($_POST['complaint'] ?? '');
+if ($complaint === '') respond(false, 'Chief complaint is required.');
+
+/* Read existing to preserve consult_type */
+$existing = $conn->query("SELECT * FROM consultations WHERE id = {$id} LIMIT 1")->fetch_assoc();
 if (!$existing) respond(false, 'Consultation not found.');
 
-$oldMeta = meta_normalize(meta_decode($existing['notes'] ?? ''));
-$program = $oldMeta['program'] ?? ''; // preserved — never overwritten
+$oldMeta     = meta_normalize(meta_decode($existing['notes'] ?? ''));
+$consultType = $existing['consult_type'] ?: ($oldMeta['program'] ?? 'general');
 
+/* New form fields */
+$diagnosis     = trim($_POST['diagnosis']         ?? '');
+$treatment     = trim($_POST['treatment']         ?? '');
+$healthWorker  = trim($_POST['health_worker']     ?? ($oldMeta['health_worker'] ?? ''));
+$consultStatus = trim($_POST['consult_status']    ?? $_POST['status'] ?? ($oldMeta['status'] ?? 'Ongoing'));
+$time          = trim($_POST['consultation_time'] ?? ($oldMeta['time'] ?? ''));
+$subType       = trim($_POST['sub_type']          ?? ($oldMeta['sub_type'] ?? 'all'));
+$remarks       = trim($_POST['remarks']           ?? ($oldMeta['remarks'] ?? ''));
+
+/* Vitals */
+$temp   = $_POST['temp_celsius']     ?: null;
+$bpSys  = $_POST['bp_systolic']      ?: null;
+$bpDia  = $_POST['bp_diastolic']     ?: null;
+$pulse  = $_POST['pulse_rate']       ?: null;
+$rr     = $_POST['respiratory_rate'] ?: null;
+$spo2   = $_POST['o2_saturation']    ?: null;
+
+/* Measurements */
+$weight = $_POST['weight_kg'] ?: null;
+$height = $_POST['height_cm'] ?: null;
+$waist  = $_POST['waist_cm']  ?: null;
+$bmi    = null;
+if ($weight && $height && (float)$height > 0) {
+    $hm  = (float)$height / 100;
+    $bmi = round((float)$weight / ($hm * $hm), 1);
+}
+
+/* Clinical */
+$riskLevel    = trim($_POST['risk_level']    ?? 'Low');
+$isReferred   = (int)($_POST['is_referred']  ?? 0);
+$referredTo   = trim($_POST['referred_to']   ?? '');
+$followUpDt   = $_POST['follow_up_date']     ?: null;
+$healthAdvice = trim($_POST['health_advice'] ?? '');
+
+/* Rebuild notes JSON (backward compat) */
 $notes = meta_encode([
-    'program'       => $program,  // always locked to original value
-    'sub_type'      => trim($_POST['sub_type'] ?? $oldMeta['sub_type'] ?? 'all'),
-    'status'        => $status,
+    'program'       => $consultType,
+    'sub_type'      => $subType ?: 'all',
+    'status'        => $consultStatus,
     'time'          => $time,
-    'health_worker' => $worker,
+    'health_worker' => $healthWorker,
     'remarks'       => $remarks,
 ]);
 
-$stmt = $conn->prepare("
-    UPDATE consultations
-    SET resident_id = ?, complaint = ?, diagnosis = ?, treatment = ?,
-        notes = ?, consultation_date = ?
-    WHERE id = ?
-    LIMIT 1
-");
-$stmt->bind_param('isssssi', $resident_id, $complaint, $diagnosis, $treatment, $notes, $date, $id);
+$conn->begin_transaction();
+try {
+    /* Update consultations */
+    $stmt = $conn->prepare("
+        UPDATE consultations SET
+            resident_id=?, complaint=?, diagnosis=?, treatment=?,
+            notes=?, consultation_date=?,
+            consult_type=?, consult_status=?, health_worker=?,
+            temp_celsius=?, bp_systolic=?, bp_diastolic=?,
+            pulse_rate=?, respiratory_rate=?, o2_saturation=?,
+            weight_kg=?, height_cm=?, bmi=?, waist_cm=?,
+            health_advice=?, risk_level=?, is_referred=?,
+            referred_to=?, follow_up_date=?
+        WHERE id=? LIMIT 1
+    ");
+    $stmt->bind_param(
+        'issssssssssssssddddssissi',
+        $resident_id, $complaint, $diagnosis, $treatment,
+        $notes, $date,
+        $consultType, $consultStatus, $healthWorker,
+        $temp, $bpSys, $bpDia, $pulse, $rr, $spo2,
+        $weight, $height, $bmi, $waist,
+        $healthAdvice, $riskLevel, $isReferred,
+        $referredTo, $followUpDt, $id
+    );
+    $stmt->execute();
 
-if (!$stmt->execute()) respond(false, 'Update failed: ' . $stmt->error);
+    /* Upsert consultation_detail */
+    $detailFields = [
+        'chief_complaint','complaint_duration','complaint_onset',
+        'primary_diagnosis','secondary_diagnosis','icd_code',
+        'treatment','medicines_prescribed','procedures_done',
+        'health_advice','lifestyle_advice','patient_education',
+        'smoking_status','alcohol_use','physical_activity',
+        'nutritional_status','mental_health_screen',
+        'past_medical_history','family_history','current_medications',
+        'known_allergies','immunization_history',
+        'occupation','civil_status','educational_attainment','living_conditions',
+        'assessment','plan','prognosis',
+    ];
+    $dd = [];
+    foreach ($detailFields as $f) {
+        $v = trim($_POST[$f] ?? '');
+        if ($v !== '') $dd[$f] = $v;
+    }
+    if (!isset($dd['chief_complaint']) && $complaint) $dd['chief_complaint'] = $complaint;
+    if (!isset($dd['primary_diagnosis']) && $diagnosis) $dd['primary_diagnosis'] = $diagnosis;
 
-respond(true, 'Consultation updated successfully.');
+    if (!empty($dd)) {
+        /* Check if detail row exists */
+        $exists = $conn->query("SELECT id FROM consultation_detail WHERE consultation_id={$id} LIMIT 1")->num_rows > 0;
+        if ($exists) {
+            $sets   = implode(', ', array_map(fn($k) => "`{$k}`=?", array_keys($dd)));
+            $types  = str_repeat('s', count($dd)) . 'i';
+            $vals   = array_merge(array_values($dd), [$id]);
+            $us = $conn->prepare("UPDATE consultation_detail SET {$sets} WHERE consultation_id=? LIMIT 1");
+            $us->bind_param($types, ...$vals);
+            $us->execute();
+        } else {
+            $dd['consultation_id'] = $id;
+            $cols  = implode(', ', array_keys($dd));
+            $phs   = implode(', ', array_fill(0, count($dd), '?'));
+            $types = str_repeat('s', count($dd));
+            $vals  = array_values($dd);
+            $is = $conn->prepare("INSERT INTO consultation_detail ({$cols}) VALUES ({$phs})");
+            $is->bind_param($types, ...$vals);
+            $is->execute();
+        }
+    }
+
+    $conn->commit();
+    respond(true, 'Consultation updated successfully.');
+
+} catch (Throwable $e) {
+    $conn->rollback();
+    respond(false, 'Update failed: ' . $e->getMessage());
+}

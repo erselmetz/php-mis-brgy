@@ -10,13 +10,23 @@ CREATE TABLE IF NOT EXISTS immunizations (
 
     vaccine_name VARCHAR(100) NOT NULL,
     dose VARCHAR(50) DEFAULT NULL,
+    schedule_id      INT UNSIGNED NULL,
 
     date_given DATE NOT NULL,
     next_schedule DATE DEFAULT NULL,
 
     administered_by VARCHAR(100) DEFAULT NULL,
     remarks TEXT DEFAULT NULL,
-
+    batch_number     VARCHAR(50)  NULL,
+    expiry_date      DATE         NULL,
+    site_given       VARCHAR(100) NULL,
+    
+    route            ENUM('IM','SC','ID','Oral','Nasal') DEFAULT 'IM',
+    adverse_reaction TEXT         NULL,
+    is_defaulter     TINYINT(1)   DEFAULT 0,
+    catch_up         TINYINT(1)   DEFAULT 0 COMMENT 'Given outside normal schedule',
+    care_visit_id    INT          NULL,
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
