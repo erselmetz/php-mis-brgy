@@ -11,7 +11,7 @@ function dlgCfg(opts) {
     }, opts);
 }
 function showAlert(title, msg, type) {
-    const id  = 'a_' + Date.now();
+    const id = 'a_' + Date.now();
     const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--danger-fg)' : 'var(--accent)';
     $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
         <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">${esc(msg)}</div>
@@ -27,14 +27,14 @@ function fmtDateTime(s) {
     if (!s) return '—';
     const d = new Date(s);
     return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-         + ' ' + d.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+        + ' ' + d.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 }
 
 const STATUS_CONF = {
-    pending:            { label: 'Pending',            cls: 'bs-pending' },
-    under_investigation:{ label: 'Under Investigation', cls: 'bs-invest' },
-    resolved:           { label: 'Resolved',           cls: 'bs-resolved' },
-    dismissed:          { label: 'Dismissed',          cls: 'bs-dismissed' },
+    pending: { label: 'Pending', cls: 'bs-pending' },
+    under_investigation: { label: 'Under Investigation', cls: 'bs-invest' },
+    resolved: { label: 'Resolved', cls: 'bs-resolved' },
+    dismissed: { label: 'Dismissed', cls: 'bs-dismissed' },
 };
 const SF_CLASS = {
     pending: 'sf-pending', under_investigation: 'sf-invest',
@@ -84,15 +84,15 @@ $(function () {
     // Listen to the button click (type="button") — NOT form submit
     // This completely avoids any native form POST
     $('#submitAddBlotter').on('click', function () {
-        const $btn    = $(this);
-        const $form   = $('#addBlotterForm');
+        const $btn = $(this);
+        const $form = $('#addBlotterForm');
         const origTxt = $btn.html();
 
         // Client-side validation
         const complainant = $form.find('[name="complainant_name"]').val().trim();
-        const respondent  = $form.find('[name="respondent_name"]').val().trim();
-        const date        = $form.find('[name="incident_date"]').val().trim();
-        const location    = $form.find('[name="incident_location"]').val().trim();
+        const respondent = $form.find('[name="respondent_name"]').val().trim();
+        const date = $form.find('[name="incident_date"]').val().trim();
+        const location = $form.find('[name="incident_location"]').val().trim();
         const description = $form.find('[name="incident_description"]').val().trim();
 
         if (!complainant || !respondent || !date || !location || !description) {
@@ -127,16 +127,14 @@ $(function () {
        VIEW / EDIT CASE MODAL
     ═══════════════════════════════════════ */
     $('#viewBlotterModal').dialog(dlgCfg({
-        width: 860,
-        buttons: {
-            'Close':        function () { $(this).dialog('close'); }
-        },
-        open: function () {
-            const $btns = $(this).dialog('widget').find('.ui-dialog-buttonpane .ui-button');
-            $btns.eq(1).css({ background: 'var(--danger-bg)', borderColor: 'var(--danger-fg)', color: 'var(--danger-fg)' });
-            $btns.eq(2).css({ background: '#fff', borderColor: 'var(--rule-dk)', color: 'var(--ink-muted)' });
-        }
+        width: 780,
+        buttons: {},   // no default buttons — footer has its own
+        open: function () { }
     }));
+    // Close button
+    $(document).on('click', '#vcCloseBtn', function () {
+        $('#viewBlotterModal').dialog('close');
+    });
 
     $(document).on('click', '.view-blotter-btn', function () {
         loadBlotterData($(this).data('id'));
@@ -152,30 +150,89 @@ $(function () {
 
     function populateViewModal(d) {
         $('#vc-id').val(d.id);
+
+        // Header
         $('#vc-case-no').text(d.case_number);
-        $('#vc-parties').text(d.complainant_name + ' vs. ' + d.respondent_name);
-        $('#vc-date').text('📅 ' + fmtDate(d.incident_date));
-        $('#vc-filed').text('Filed by: ' + (d.created_by_name || '—'));
+        $('#vc-parties').text((d.complainant_name || '—') + ' vs. ' + (d.respondent_name || '—'));
+        $('#vc-date').text(d.incident_date ? fmtDate(d.incident_date) : '—');
+        $('#vc-filed').text(d.created_by_name || '—');
 
         const sc = STATUS_CONF[d.status] || { label: d.status, cls: 'bs-dismissed' };
         $('#vc-status-badge').html(`<span class="bs ${sc.cls}">${sc.label}</span>`);
         $('#vc-status-select').val(d.status);
         $('#vc-resolved-date').val(d.resolved_date || '');
 
-        $('#vc-comp-name').val(d.complainant_name || '');
-        $('#vc-comp-contact').val(d.complainant_contact || '');
-        $('#vc-comp-addr').val(d.complainant_address || '');
-        $('#vc-resp-name').val(d.respondent_name || '');
-        $('#vc-resp-contact').val(d.respondent_contact || '');
-        $('#vc-resp-addr').val(d.respondent_address || '');
+        // Complainant display
+        $('#vc-comp-name-display').text(d.complainant_name || '—');
+        $('#vc-comp-contact-display').text(d.complainant_contact || '—');
+        $('#vc-comp-addr-display').text(d.complainant_address || '—');
 
+        // Respondent display
+        $('#vc-resp-name-display').text(d.respondent_name || '—');
+        $('#vc-resp-contact-display').text(d.respondent_contact || '—');
+        $('#vc-resp-addr-display').text(d.respondent_address || '—');
+
+        // Incident display
+        const rawDate = d.incident_date || '';
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        let formattedDate = '—';
+        if (rawDate) {
+            const parts = rawDate.split('-');
+            if (parts.length === 3) {
+                formattedDate = months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[2]) + ', ' + parts[0];
+            }
+        }
+        $('#vc-inc-date-display').text(formattedDate);
+
+        const rawTime = d.incident_time || '';
+        let formattedTime = '—';
+        if (rawTime) {
+            const [h, m] = rawTime.split(':');
+            const hr = parseInt(h);
+            const ap = hr >= 12 ? 'PM' : 'AM';
+            formattedTime = (hr % 12 || 12) + ':' + m + ' ' + ap;
+        }
+        $('#vc-inc-time-display').text(formattedTime);
+        $('#vc-inc-loc-display').text(d.incident_location || '—');
+        $('#vc-inc-desc-display').text(d.incident_description || '—');
+
+        // Resolution block — show only if there's content
+        if (d.resolution && d.resolution.trim() !== '') {
+            $('#vc-resolution-display').text(d.resolution);
+            $('#vc-res-date-display').text(
+                d.resolved_date ? 'Resolved: ' + fmtDate(d.resolved_date) : 'Resolved date not set'
+            );
+            $('#vc-resolution-block').removeClass('empty');
+        } else {
+            $('#vc-resolution-block').addClass('empty');
+        }
+
+        // Footer meta
+        const createdAt = d.created_at ? new Date(d.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+        const updatedAt = d.updated_at ? new Date(d.updated_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+        $('#vc-footer-meta').text(
+            d.case_number + '  ·  Created ' + createdAt + '  ·  Updated ' + updatedAt
+        );
+
+        // Archive button data
+        $('#vcArchiveBtn').data('id', d.id).data('case', d.case_number)
+            .attr('data-id', d.id).attr('data-case', d.case_number);
+
+        // Hidden fields for full save (blotterForm serialize)
+        $('#vc-comp-name').val(d.complainant_name || '');
+        $('#vc-comp-addr').val(d.complainant_address || '');
+        $('#vc-comp-contact').val(d.complainant_contact || '');
+        $('#vc-resp-name').val(d.respondent_name || '');
+        $('#vc-resp-addr').val(d.respondent_address || '');
+        $('#vc-resp-contact').val(d.respondent_contact || '');
         $('#vc-inc-date').val(d.incident_date || '');
         $('#vc-inc-time').val(d.incident_time || '');
         $('#vc-inc-loc').val(d.incident_location || '');
         $('#vc-inc-desc').val(d.incident_description || '');
         $('#vc-status').val(d.status || 'pending');
-        $('#vc-res-date').val(d.resolved_date || '');
         $('#vc-resolution').val(d.resolution || '');
+        $('#vc-res-date').val(d.resolved_date || '');
     }
 
     // Quick status save
@@ -186,24 +243,24 @@ $(function () {
             return;
         }
 
-        const status  = $('#vc-status-select').val();
+        const status = $('#vc-status-select').val();
         const resDate = $('#vc-resolved-date').val();
 
         $.post('update_blotter.php', {
             id, status,
-            resolved_date:        status === 'resolved' ? resDate : '',
-            csrf_token:           $('[name="csrf_token"]').val(),
-            complainant_name:     $('#vc-comp-name').val(),
-            respondent_name:      $('#vc-resp-name').val(),
-            incident_date:        $('#vc-inc-date').val(),
-            incident_location:    $('#vc-inc-loc').val(),
+            resolved_date: status === 'resolved' ? resDate : '',
+            csrf_token: $('[name="csrf_token"]').val(),
+            complainant_name: $('#vc-comp-name').val(),
+            respondent_name: $('#vc-resp-name').val(),
+            incident_date: $('#vc-inc-date').val(),
+            incident_location: $('#vc-inc-loc').val(),
             incident_description: $('#vc-inc-desc').val(),
-            incident_time:        $('#vc-inc-time').val(),
-            complainant_address:  $('#vc-comp-addr').val(),
-            complainant_contact:  $('#vc-comp-contact').val(),
-            respondent_address:   $('#vc-resp-addr').val(),
-            respondent_contact:   $('#vc-resp-contact').val(),
-            resolution:           $('#vc-resolution').val(),
+            incident_time: $('#vc-inc-time').val(),
+            complainant_address: $('#vc-comp-addr').val(),
+            complainant_contact: $('#vc-comp-contact').val(),
+            respondent_address: $('#vc-resp-addr').val(),
+            respondent_contact: $('#vc-resp-contact').val(),
+            resolution: $('#vc-resolution').val(),
         }, function (res) {
             if (res.success) {
                 const sc = STATUS_CONF[status] || { label: status, cls: 'bs-dismissed' };
@@ -311,7 +368,7 @@ $(function () {
             $body.empty();
             cases.forEach((c, i) => {
                 $body.append(`<tr>
-                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i+1}</td>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i + 1}</td>
                     <td style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${esc(c.case_number)}</td>
                     <td>
                         <div style="font-weight:500;">${esc(c.parties)}</div>
@@ -327,9 +384,9 @@ $(function () {
     }
 
     $(document).on('click', '.restore-case-btn', function () {
-        const id      = $(this).data('id');
-        const caseNo  = $(this).data('case');
-        const dlgId   = 'rst_' + Date.now();
+        const id = $(this).data('id');
+        const caseNo = $(this).data('case');
+        const dlgId = 'rst_' + Date.now();
         $('body').append(`<div id="${dlgId}" title="Restore Case" style="display:none;">
             <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
                 Restore case <strong style="font-family:var(--f-mono);">${esc(caseNo)}</strong> to active register?
@@ -381,11 +438,11 @@ $(function () {
             $body.empty();
             res.history.forEach(h => {
                 const actionMap = {
-                    status_changed: ['ap-status',  'Status Changed'],
-                    archived:       ['ap-archived', 'Archived'],
-                    restored:       ['ap-restored', 'Restored'],
-                    created:        ['ap-other',    'Created'],
-                    updated:        ['ap-other',    'Updated'],
+                    status_changed: ['ap-status', 'Status Changed'],
+                    archived: ['ap-archived', 'Archived'],
+                    restored: ['ap-restored', 'Restored'],
+                    created: ['ap-other', 'Created'],
+                    updated: ['ap-other', 'Updated'],
                 };
                 const [apCls, apLbl] = actionMap[h.action_type] || ['ap-other', h.action_type];
 
