@@ -59,7 +59,8 @@ $migrations = [
             'create_patrol_schedule_table.php',
             'create_tanod_duty_schedule_table.php',
             'create_court_schedule_table.php',
-            'create_borrowing_schedule_table.php'
+            'create_borrowing_schedule_table.php',
+            'create_appointments_table.php',
         ]
     ],
     'Feature Additions' => [

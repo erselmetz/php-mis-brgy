@@ -170,8 +170,8 @@ function h($s){ return htmlspecialchars((string)($s??''), ENT_QUOTES, 'UTF-8'); 
 <body>
 
 <div class="no-print" style="margin-bottom:16px;display:flex;gap:8px;">
-    <button onclick="safePrint()" style="padding:7px 18px;background:#2d5a27;color:#fff;border:none;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">↗ Print</button>
-    <button onclick="safeClose()" style="padding:7px 18px;background:#fff;color:#555;border:1.5px solid #ccc;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">✕ Close</button>
+    <button onclick="window.print()" style="padding:7px 18px;background:#2d5a27;color:#fff;border:none;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">↗ Print</button>
+    <button onclick="window.close()" style="padding:7px 18px;background:#fff;color:#555;border:1.5px solid #ccc;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">✕ Close</button>
 </div>
 
 <!-- Header -->
@@ -336,7 +336,5 @@ function h($s){ return htmlspecialchars((string)($s??''), ENT_QUOTES, 'UTF-8'); 
     <span>Barangay Bombongan Health Center — MIS</span>
     <span>Printed: <?= date('d F Y h:i A') ?></span>
 </div>
-
-<script>window.onload = function(){ window.print(); }</script>
 </body>
 </html>

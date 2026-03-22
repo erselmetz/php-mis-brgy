@@ -146,7 +146,7 @@ td{padding:7px 9px;vertical-align:top;}
 </div>
 
 <div class="lh">
-    <div><div class="lh-brgy">Barangay Bombongan</div><div class="lh-addr">San Pablo City, Laguna · Barangay Health Center</div></div>
+    <div><div class="lh-brgy">Barangay Bombongan</div><div class="lh-addr">Morong, Rizal · Barangay Health Center</div></div>
     <div class="lh-right"><div class="lh-doc-title"><?= h($pageTitle) ?></div><div class="lh-doc-sub">Printed: <?= date('d F Y, h:i A') ?></div></div>
 </div>
 
@@ -306,6 +306,5 @@ td{padding:7px 9px;vertical-align:top;}
     <span>Barangay Bombongan Health Center · Official Record</span>
     <span>Generated: <?= date('d F Y h:i A') ?></span>
 </div>
-<script>window.onload=function(){window.print();}</script>
 </body>
 </html>
