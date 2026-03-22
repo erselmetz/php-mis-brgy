@@ -210,11 +210,6 @@ $(function () {
     $('#viewDutyModal').dialog({
         autoOpen: false, modal: true, width: 560, resizable: false,
         buttons: {
-            'Edit':  function() {
-                $(this).dialog('close');
-                const row = table.rows().data().toArray().find(r => r.id == currentViewId);
-                if (row) fillForm(row);
-            },
             'Close': function() { $(this).dialog('close'); }
         }
     });

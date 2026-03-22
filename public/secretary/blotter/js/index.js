@@ -55,10 +55,8 @@ $(function () {
         }
     });
 
-    // Text search
     $('#bltTableSearch').on('input', function () { table.search($(this).val()).draw(); });
 
-    // Status filter pills
     $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
         if (settings.nTable.id !== 'blotterTable') return true;
         const activeStatus = $('#statusFilters .sf-pill.active').data('status');
@@ -74,30 +72,30 @@ $(function () {
     });
 
     /* ═══════════════════════════════════════
-       ADD NEW CASE MODAL — AJAX SUBMIT
-       Prevents the native form POST from firing
-       which was causing duplicate submissions.
+       ADD NEW CASE MODAL
     ═══════════════════════════════════════ */
     $('#addBlotterModal').dialog(dlgCfg({ width: 720 }));
-    $('#openBlotterModalBtn').on('click', () => $('#addBlotterModal').dialog('open'));
+    $('#openBlotterModalBtn').on('click', function () {
+        // Reset form before opening
+        $('#addBlotterForm')[0].reset();
+        $('#addBlotterModal').dialog('open');
+    });
 
-    // Intercept the add form submit — use AJAX instead of native POST
-    $(document).on('submit', '#addBlotterModal form', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const $form   = $(this);
-        const $btn    = $form.find('button[type="submit"]');
+    // Listen to the button click (type="button") — NOT form submit
+    // This completely avoids any native form POST
+    $('#submitAddBlotter').on('click', function () {
+        const $btn    = $(this);
+        const $form   = $('#addBlotterForm');
         const origTxt = $btn.html();
 
         // Client-side validation
-        const required = ['complainant_name', 'respondent_name', 'incident_date', 'incident_location', 'incident_description'];
-        let missing = false;
-        required.forEach(function (name) {
-            if (!$form.find('[name="' + name + '"]').val().trim()) missing = true;
-        });
+        const complainant = $form.find('[name="complainant_name"]').val().trim();
+        const respondent  = $form.find('[name="respondent_name"]').val().trim();
+        const date        = $form.find('[name="incident_date"]').val().trim();
+        const location    = $form.find('[name="incident_location"]').val().trim();
+        const description = $form.find('[name="incident_description"]').val().trim();
 
-        if (missing) {
+        if (!complainant || !respondent || !date || !location || !description) {
             showAlert('Validation', 'Please fill in all required fields.', 'danger');
             return;
         }
@@ -112,8 +110,7 @@ $(function () {
             success: function (res) {
                 if (res.success) {
                     $('#addBlotterModal').dialog('close');
-                    // Reload page to show new record
-                    location.reload();
+                    window.location.assign(window.location.href);
                 } else {
                     $btn.prop('disabled', false).html(origTxt);
                     showAlert('Error', res.message || 'Failed to save case.', 'danger');
@@ -143,7 +140,6 @@ $(function () {
         }
     }));
 
-    // Open from case number click or View button
     $(document).on('click', '.view-blotter-btn', function () {
         loadBlotterData($(this).data('id'));
     });
@@ -184,10 +180,9 @@ $(function () {
         $('#vc-resolution').val(d.resolution || '');
     }
 
-    // Quick status save from top bar
+    // Quick status save
     $('#vcSaveStatus').on('click', function () {
         const id = $('#vc-id').val();
-
         if (!id || id === '0' || id === '') {
             showAlert('Error', 'No case selected. Please reopen the case and try again.', 'danger');
             return;
@@ -198,8 +193,8 @@ $(function () {
 
         $.post('update_blotter.php', {
             id, status,
-            resolved_date: status === 'resolved' ? resDate : '',
-            csrf_token: $('[name="csrf_token"]').val(),
+            resolved_date:        status === 'resolved' ? resDate : '',
+            csrf_token:           $('[name="csrf_token"]').val(),
             complainant_name:     $('#vc-comp-name').val(),
             respondent_name:      $('#vc-resp-name').val(),
             incident_date:        $('#vc-inc-date').val(),
@@ -217,7 +212,7 @@ $(function () {
                 $('#vc-status-badge').html(`<span class="bs ${sc.cls}">${sc.label}</span>`);
                 $('#vc-status').val(status);
                 showAlert('Saved', 'Status updated.', 'success');
-                location.reload();
+                window.location.assign(window.location.href);
             } else {
                 showAlert('Error', res.message || 'Update failed.', 'danger');
             }
@@ -227,7 +222,6 @@ $(function () {
     // Full save (all fields)
     function saveBlotter() {
         const id = $('#vc-id').val();
-
         if (!id || id === '0' || id === '') {
             showAlert('Error', 'No case selected. Please reopen the case and try again.', 'danger');
             return;
@@ -237,7 +231,7 @@ $(function () {
             if (res.success) {
                 $('#viewBlotterModal').dialog('close');
                 showAlert('Saved', 'Case record updated.', 'success');
-                location.reload();
+                window.location.assign(window.location.href);
             } else {
                 showAlert('Error', res.message || 'Update failed.', 'danger');
             }
@@ -256,7 +250,6 @@ $(function () {
             showAlert('Error', 'Invalid case ID.', 'danger');
             return;
         }
-
         const dlgId = 'arc_' + Date.now();
         $('body').append(`<div id="${dlgId}" title="Archive Case" style="display:none;">
             <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
@@ -273,7 +266,7 @@ $(function () {
                         if (res.success) {
                             $('#viewBlotterModal').dialog('close');
                             showAlert('Archived', res.message, 'success');
-                            location.reload();
+                            window.location.assign(window.location.href);
                         } else {
                             showAlert('Error', res.message, 'danger');
                         }
@@ -341,7 +334,6 @@ $(function () {
         });
     }
 
-    // Restore case
     $(document).on('click', '.restore-case-btn', function () {
         const id      = $(this).data('id');
         const caseNo  = $(this).data('case');
