@@ -12,6 +12,7 @@
  */
 require_once __DIR__ . '/../../../../includes/app.php';
 require_once __DIR__ . '/../../../../includes/hcnurse_health_metrics.php';
+require_once __DIR__ . '/../../../../includes/hcnurse_care_visit_sync.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'Invalid request');
 ══════════════════════════════════ */
 $resident_id    = (int)($_POST['resident_id'] ?? 0);
 $date           = trim($_POST['consultation_date'] ?? '');
-$care_visit_id  = $_POST['care_visit_id'] ?: null;
+$care_visit_id  = !empty($_POST['care_visit_id']) ? (int)$_POST['care_visit_id'] : null;
 $health_worker  = trim($_POST['health_worker'] ?? '');
 
 /* Convert mm/dd/yyyy → yyyy-mm-dd */
@@ -97,6 +98,32 @@ if ($complaint === '')  respond(false, 'Chief complaint is required.');
 ════════════════════════ */
 $conn->begin_transaction();
 try {
+    /* 0. Auto-create care_visit + module when program type and no existing link */
+    if ($care_visit_id <= 0) {
+        $synced = hcnurse_sync_care_visit_from_consultation($conn, [
+            'resident_id'    => $resident_id,
+            'visit_date'     => $date,
+            'consult_type'   => $consultType,
+            'weight_kg'      => $weight,
+            'height_cm'      => $height,
+            'bp_systolic'    => $bpSys,
+            'bp_diastolic'   => $bpDia,
+            'complaint'      => $complaint,
+            'diagnosis'      => $diagnosis,
+            'assessment'     => trim($_POST['assessment'] ?? ''),
+            'plan'           => trim($_POST['plan'] ?? ''),
+            'health_worker'  => $health_worker,
+            'created_by'     => (int)($_SESSION['user_id'] ?? 0),
+            'lmp_date'       => $_POST['lmp_date'] ?? null,
+            'aog_weeks'      => $_POST['aog_weeks'] ?? null,
+            'visit_number'   => $_POST['visit_number'] ?? 1,
+            'risk_level'     => $riskLevel,
+        ]);
+        if ($synced) {
+            $care_visit_id = $synced;
+        }
+    }
+
     /* 1. Insert consultations */
     $stmt = $conn->prepare("
         INSERT INTO consultations

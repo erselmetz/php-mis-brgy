@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/../../../../includes/app.php';
 require_once __DIR__ . '/../../../../includes/hcnurse_health_metrics.php';
+require_once __DIR__ . '/../../../../includes/hcnurse_care_visit_sync.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -81,14 +82,43 @@ $notes = meta_encode([
     'remarks'       => $remarks,
 ]);
 
+$care_visit_id = !empty($existing['care_visit_id']) ? (int)$existing['care_visit_id'] : 0;
+$syncData = $care_visit_id <= 0 ? [
+        'resident_id'   => $resident_id,
+        'visit_date'    => $date,
+        'consult_type'  => $consultType,
+        'weight_kg'     => $weight,
+        'height_cm'     => $height,
+        'bp_systolic'   => $bpSys,
+        'bp_diastolic'  => $bpDia,
+        'complaint'     => $complaint,
+        'diagnosis'     => $diagnosis,
+        'assessment'    => trim($_POST['assessment'] ?? ''),
+        'plan'          => trim($_POST['plan'] ?? ''),
+        'health_worker' => $healthWorker,
+        'created_by'    => (int)($_SESSION['user_id'] ?? 0),
+        'lmp_date'      => $_POST['lmp_date'] ?? null,
+        'aog_weeks'     => $_POST['aog_weeks'] ?? null,
+        'visit_number'  => $_POST['visit_number'] ?? 1,
+        'risk_level'    => $riskLevel,
+] : null;
+
 $conn->begin_transaction();
 try {
-    /* Update consultations */
+    if ($syncData) {
+        $synced = hcnurse_sync_care_visit_from_consultation($conn, $syncData);
+        if ($synced) {
+            $care_visit_id = $synced;
+        }
+    }
+
+    /* Update consultations (include care_visit_id if we just created one) */
     $stmt = $conn->prepare("
         UPDATE consultations SET
             resident_id=?, complaint=?, diagnosis=?, treatment=?,
             notes=?, consultation_date=?,
             consult_type=?, consult_status=?, health_worker=?,
+            care_visit_id=?,
             temp_celsius=?, bp_systolic=?, bp_diastolic=?,
             pulse_rate=?, respiratory_rate=?, o2_saturation=?,
             weight_kg=?, height_cm=?, bmi=?, waist_cm=?,
@@ -97,10 +127,11 @@ try {
         WHERE id=? LIMIT 1
     ");
     $stmt->bind_param(
-        'issssssssssssssddddssissi',
+        'issssssssissssssddddssissi',
         $resident_id, $complaint, $diagnosis, $treatment,
         $notes, $date,
         $consultType, $consultStatus, $healthWorker,
+        $care_visit_id > 0 ? $care_visit_id : null,
         $temp, $bpSys, $bpDia, $pulse, $rr, $spo2,
         $weight, $height, $bmi, $waist,
         $healthAdvice, $riskLevel, $isReferred,

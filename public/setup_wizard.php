@@ -132,6 +132,14 @@ body{font-family:var(--f-sans);background:#edeae4;min-height:100vh;}
 .htm{font-size:12.5px;color:var(--ink-muted);line-height:1.55;}
 code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);padding:1px 5px;border-radius:2px;color:var(--ink);}
 
+/* Config form */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+@media(max-width:500px){.cfg-grid{grid-template-columns:1fr;}}
+.cfg-grid .fg{min-width:0;}
+.fg-lbl{display:block;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:4px;}
+.fg-inp{width:100%;padding:8px 11px;border:1.5px solid var(--rule-dk);border-radius:2px;font-family:var(--f-sans);font-size:13px;color:var(--ink);background:#fff;}
+.fg-inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent);}
+
 /* Table grid */
 .tg{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;}
 .ti{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--ink-muted);padding:2px 0;}
@@ -235,7 +243,26 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
             </div>
 
             <div class="card">
-                <div class="ch"><div class="ct">How to Fix</div></div>
+                <div class="ch"><div class="ct">Quick Setup — Enter Your Database Details</div><span class="cn">No tech skills needed</span></div>
+                <div class="cb">
+                    <p style="font-size:12px;color:var(--ink-muted);margin-bottom:14px;line-height:1.6;">
+                        If you use <strong>Laragon</strong>, XAMPP, or similar: start Apache &amp; MySQL first, then fill the form below. We will create the database for you.
+                    </p>
+                    <form id="cfgForm" class="cfg-grid">
+                        <div class="fg"><label class="fg-lbl">MySQL Host</label><input type="text" name="host" id="cfg_host" class="fg-inp" value="<?= htmlspecialchars($DB_HOST) ?>" placeholder="localhost or 127.0.0.1"></div>
+                        <div class="fg"><label class="fg-lbl">Username</label><input type="text" name="user" id="cfg_user" class="fg-inp" value="<?= htmlspecialchars($DB_USER) ?>" placeholder="root"></div>
+                        <div class="fg"><label class="fg-lbl">Password</label><input type="password" name="pass" id="cfg_pass" class="fg-inp" value="" placeholder="(usually empty for local)"></div>
+                        <div class="fg"><label class="fg-lbl">Database Name</label><input type="text" name="dbname" id="cfg_dbname" class="fg-inp" value="<?= htmlspecialchars($DB_NAME) ?>" placeholder="php_mis_brgy"></div>
+                    </form>
+                    <div class="brow" style="margin-top:14px;">
+                        <button type="button" class="btn btn-p" id="btnSaveConfig"><span class="btn-txt">Save &amp; Install</span></button>
+                        <span id="cfgMsg" style="font-size:12px;margin-left:8px;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <details class="card" style="margin-top:12px;">
+                <summary class="ch" style="cursor:pointer;user-select:none;"><div class="ct">Manual Setup (if above does not work)</div></summary>
                 <div class="cb">
                     <div class="ht">
                         <div class="hi"><div class="hn">1</div><div class="htm">Install <strong>Laragon</strong> or any local server with Apache + MySQL.</div></div>
@@ -244,16 +271,16 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
                             Create a database named <code>php_mis_brgy</code> using HeidiSQL or MySQL CLI:<br>
                             <code style="display:block;margin-top:5px;padding:6px 8px;">CREATE DATABASE php_mis_brgy;</code>
                         </div></div>
-                  
+                        <div class="hi"><div class="hn">4</div><div class="htm">Edit <code>config.php</code> in the project folder with your database details.</div></div>
                     </div>
                 </div>
-            </div>
+            </details>
 
             <?php else: ?>
             <div class="al al-ok">
                 <span class="ali">✓</span>
                 <div><div class="alt">Database Connected Successfully</div>
-                <div class="alm">MySQL is running. Click <strong>Next</strong> below to run migrations.</div></div>
+                <div class="alm">MySQL is running. Click <strong>Next</strong> to install the database tables.</div></div>
             </div>
 
             <div class="card">
@@ -285,23 +312,21 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
             <div class="al al-warn">
                 <span class="ali">!</span>
                 <div><div class="alt">Tables Not Found</div>
-                <div class="alm">Click <strong>Run Migrations</strong> to create all required database tables.</div></div>
+                <div class="alm">Click <strong>Install Tables</strong> below to create all required database tables.</div></div>
             </div>
             <?php endif; ?>
 
             <div class="card">
                 <div class="ch">
-                    <div class="ct">Migration Runner</div>
-                    <span class="cn">Shortcut for <code>schema\run.bat</code></span>
+                    <div class="ct">Database Tables</div>
+                    <span class="cn">Creates users, residents, consultations, etc.</span>
                 </div>
                 <div class="cb">
                     <p style="font-size:12.5px;color:var(--ink-muted);line-height:1.65;margin-bottom:14px;">
-                        Runs every script in the <code>schema/</code> folder — same result as
-                        <strong>run.bat</strong>. Uses <code>IF NOT EXISTS</code> so it's always safe to re-run.
+                        Click <strong>Install Tables</strong> to create all required database tables. Safe to run again.
                     </p>
                     <div class="brow" style="margin-top:0;">
-                        <!-- Always enabled — it's a shortcut, never disabled -->
-                        <button class="btn btn-p" id="btnRun">▶ Run Migrations</button>
+                        <button class="btn btn-p" id="btnRun">▶ Install Tables</button>
                         <button class="btn btn-g" id="btnClear" style="display:none;">✕ Clear</button>
                         <span id="migStat" style="font-size:11.5px;"></span>
                     </div>
@@ -484,7 +509,7 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
 
                 const failed=text.includes('❌')||text.includes('FAILED')||text.includes('✗');
                 btnRun.disabled=false;
-                btnRun.innerHTML='▶ Run Migrations';
+                btnRun.innerHTML='▶ Install Tables';
                 if(btnClear) btnClear.style.display='inline-flex';
                 if(migStat){
                     migStat.textContent=failed?'⚠ Some errors — see output above':'✓ All migrations done';
@@ -492,13 +517,13 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
                 }
                 // Update badge live
                 const b2=document.getElementById('b2');
-                if(b2&&!failed){b2.textContent='✓ Done';b2.className='wsbadge bok';}
+                if(b2&&!failed){b2.textContent='✓ Done';b2.className='wsbadge bok'; goto(3);}
             })
             .catch(err=>{
                 line('le','✗ '+err.message);
                 line('lw','  Make sure public/schema_ajax.php is deployed.');
                 btnRun.disabled=false;
-                btnRun.innerHTML='▶ Run Migrations';
+                btnRun.innerHTML='▶ Install Tables';
                 if(migStat){migStat.textContent='✗ Request failed';migStat.style.color='var(--danger-fg)';}
             });
         });
@@ -512,7 +537,70 @@ code{font-family:var(--f-mono);font-size:10.5px;background:var(--paper-dk);paddi
         }
     }
 
-    goto(1);
+    try {
+        if (sessionStorage.getItem('setup_wizard_after_install') === '1') {
+            sessionStorage.removeItem('setup_wizard_after_install');
+            goto(2);
+        } else {
+            goto(1);
+        }
+    } catch (e) {
+        goto(1);
+    }
+
+    /* ── Save Config (Step 1 when DB fails) ── */
+    const btnSaveCfg = document.getElementById('btnSaveConfig');
+    if (btnSaveCfg) {
+        btnSaveCfg.addEventListener('click', function (e) {
+            e.preventDefault();
+            const host = document.getElementById('cfg_host')?.value?.trim() || 'localhost';
+            const user = document.getElementById('cfg_user')?.value?.trim() || 'root';
+            const pass = document.getElementById('cfg_pass')?.value || '';
+            const dbname = document.getElementById('cfg_dbname')?.value?.trim() || 'php_mis_brgy';
+            const msgEl = document.getElementById('cfgMsg');
+            if (!host || !user || !dbname) {
+                if (msgEl) { msgEl.textContent = 'Please fill Host, Username, and Database name.'; msgEl.style.color = 'var(--danger-fg)'; }
+                return;
+            }
+            btnSaveCfg.disabled = true;
+            const txt = btnSaveCfg.querySelector('.btn-txt');
+            if (txt) txt.textContent = 'Installing…';
+            if (msgEl) { msgEl.textContent = ''; msgEl.style.color = ''; }
+            const fd = new FormData();
+            fd.append('action', 'save_config');
+            fd.append('host', host);
+            fd.append('user', user);
+            fd.append('pass', pass);
+            fd.append('dbname', dbname);
+            const apiUrl = (window.location.pathname.replace(/[^/]*$/, '') || '/') + 'setup_api.php';
+            fetch(apiUrl, { method: 'POST', body: fd })
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.text();
+                })
+                .then(text => {
+                    let d;
+                    try { d = JSON.parse(text); } catch (_) { throw new Error('Invalid response: ' + text.slice(0, 80)); }
+                    return d;
+                })
+                .then(d => {
+                    if (d && d.ok) {
+                        if (msgEl) { msgEl.textContent = '✓ ' + (d.msg || 'Saved') + ' Reloading…'; msgEl.style.color = 'var(--ok-fg)'; }
+                        try { sessionStorage.setItem('setup_wizard_after_install', '1'); } catch (e) {}
+                        setTimeout(() => location.reload(), 800);
+                    } else {
+                        if (msgEl) { msgEl.textContent = (d && d.msg) || 'Failed'; msgEl.style.color = 'var(--danger-fg)'; }
+                        btnSaveCfg.disabled = false;
+                        if (txt) txt.textContent = 'Save & Install';
+                    }
+                })
+                .catch(err => {
+                    if (msgEl) { msgEl.textContent = 'Error: ' + (err.message || 'Request failed'); msgEl.style.color = 'var(--danger-fg)'; }
+                    btnSaveCfg.disabled = false;
+                    if (txt) txt.textContent = 'Save & Install';
+                });
+        });
+    }
 })();
 </script>
 </body>

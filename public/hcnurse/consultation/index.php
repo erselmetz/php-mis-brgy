@@ -141,8 +141,12 @@ $typeConfig = [
     .ui-dialog-buttonpane .ui-button:not(:first-child){background:#fff!important;border:1.5px solid var(--rule-dk)!important;color:var(--ink-muted)!important;}
     .ui-autocomplete {z-index: 9999 !important;max-height: 220px;overflow-y: auto;overflow-x: hidden;}
     
-    /* ── ADD / EDIT MODAL FORM ── */
-    .modal-scroll{max-height:80vh;overflow-y:auto;}
+    /* ── ADD / EDIT MODAL FORM (scrollable on small screens) ── */
+    .consult-form-dialog{max-width:95vw;}
+    .consult-form-dialog .ui-dialog-content{display:flex;flex-direction:column;max-height:min(85vh, 720px);overflow:hidden;}
+    .consult-form-dialog #consultModal,.consult-form-dialog #consultForm{display:flex;flex-direction:column;min-height:0;flex:1;}
+    .consult-form-dialog .form-stepper{flex-shrink:0;}
+    .consult-form-dialog .modal-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
     /* Section stepper in modal header */
     .form-stepper{display:flex;gap:0;padding:0 18px;background:var(--paper-lt);border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none;}
@@ -318,11 +322,11 @@ $typeConfig = [
      ADD / EDIT CONSULTATION MODAL
 ══════════════════════════════════════════════ -->
 <div id="consultModal" title="New Consultation" class="hidden">
-    <form id="consultForm">
+    <form id="consultForm" style="max-height:74vh;overflow-y:auto;">
         <input type="hidden" name="id"          id="cf_id">
         <input type="hidden" name="resident_id" id="cf_res_id">
 
-        <!-- Section stepper -->
+        <!-- Section stepper (sticky at top) -->
         <div class="form-stepper" id="formStepper">
             <div class="fs-step active" data-step="1"><span class="fs-step-num">1</span> Patient</div>
             <div class="fs-step"        data-step="2"><span class="fs-step-num">2</span> Consult Details</div>
@@ -333,6 +337,8 @@ $typeConfig = [
             <div class="fs-step"        data-step="7"><span class="fs-step-num">7</span> Medical History</div>
         </div>
 
+        <!-- Scrollable panels area -->
+        <div class="modal-scroll">
         <!-- ══ PANEL 1: Patient ══ -->
         <div class="form-panel active" id="panel1">
             <div class="form-section" style="border-top:none;padding-top:16px;">
@@ -764,6 +770,7 @@ $typeConfig = [
                 </div>
             </div>
         </div>
+        </div><!-- /.modal-scroll -->
     </form>
 </div>
 

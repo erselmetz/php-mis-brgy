@@ -118,7 +118,9 @@ $(function () {
 
     /* ── Open Add modal ── */
     $('#consultModal').dialog({
-        autoOpen: false, modal: true, width: 860, resizable: false,
+        autoOpen: false, modal: true, width: 860, resizable: false,height: 'auto',
+        dialogClass: 'consult-form-dialog',
+        position: { my: 'center top', at: 'center top+24', of: window },
         open: function () { /* handled by goStep */ }
     });
     $('#btnAdd').on('click', function () {
