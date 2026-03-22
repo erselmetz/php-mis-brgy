@@ -72,6 +72,7 @@ $pageTitle = $typeLabels[$type] ?? 'Health Records';
 <head>
 <meta charset="UTF-8">
 <title><?= htmlspecialchars($pageTitle) ?> — Print</title>
+<?= loadAsset('css','style.css') ?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@400;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}

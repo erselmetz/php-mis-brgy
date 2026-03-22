@@ -72,6 +72,7 @@ $migrations = [
             'add_archived_at_to_officers.php',
             'create_term_history_table.php',
             'add_archived_at_to_households.php',
+            'fix_immunizations_columns.php'
         ]
     ],
     'Structural Changes' => [
@@ -79,6 +80,7 @@ $migrations = [
         'files' => [
             'merge_staff_officers.php',
             'make_officer_term_nullable.php',
+            'create_care_visits_enhanced.php',
         ]
     ]
 ];

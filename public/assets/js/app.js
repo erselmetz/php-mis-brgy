@@ -41,6 +41,7 @@ $(function () {
         </div>
     `);
 
+    printPage();
 
 });
 
@@ -195,4 +196,60 @@ function add_global_footer() {
             }
         `;
     $("<style></style>").text(style).appendTo("head");
+}
+
+function printPage() {
+    document.addEventListener("DOMContentLoaded", () => {
+        const hideForPrint = () => {
+            document.querySelectorAll('.no-print').forEach(el => {
+                el.setAttribute('data-preprint-display', el.style.display || '');
+                el.style.display = 'none';
+            });
+        };
+
+        const restoreAfterPrint = () => {
+            document.querySelectorAll('.no-print').forEach(el => {
+                const prev = el.getAttribute('data-preprint-display');
+                el.style.display = prev;
+                el.removeAttribute('data-preprint-display');
+            });
+        };
+
+        /* Browser events for print start/end */
+        window.addEventListener('beforeprint', hideForPrint);
+        window.addEventListener('afterprint', restoreAfterPrint);
+
+        /* Fallback for browsers without afterprint */
+        if (window.matchMedia) {
+            window.matchMedia('print').addListener(mql => {
+                if (mql.matches) hideForPrint();
+                else restoreAfterPrint();
+            });
+        }
+    });
+}
+
+function safePrint() {
+    // 1. Hide all .no-print
+    const toHide = document.querySelectorAll('.no-print');
+    toHide.forEach(el => {
+        el.dataset.prevDisplay = el.style.display;
+        el.style.display = 'none';
+    });
+
+    // 2. Small delay to ensure elements disappear in the PDF
+    setTimeout(() => {
+        window.print();
+
+        // 3. Restore AFTER print is triggered (printing is async)
+        setTimeout(() => {
+            toHide.forEach(el => {
+                el.style.display = el.dataset.prevDisplay || '';
+            });
+        }, 500);
+    }, 150);
+}
+
+function safeClose() {
+    window.close();
 }

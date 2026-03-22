@@ -79,6 +79,7 @@ $migrations = [
     'Structural Changes' => [
         'merge_staff_officers.php',
         'make_officer_term_nullable.php',
+        'create_care_visits_enhanced.php',
     ],
 ];
 

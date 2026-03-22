@@ -98,6 +98,7 @@ function h($s){ return htmlspecialchars((string)($s??''), ENT_QUOTES, 'UTF-8'); 
 <head>
     <meta charset="UTF-8">
     <title><?= h($docTitle) ?></title>
+    <?= loadAsset('css','style.css') ?>
     <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;padding:26px 30px;background:#fff;}
@@ -164,14 +165,13 @@ function h($s){ return htmlspecialchars((string)($s??''), ENT_QUOTES, 'UTF-8'); 
     /* ── Footer ── */
     .rpt-footer{margin-top:18px;padding-top:10px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:8.5px;color:#aaa;}
 
-    @media print{body{padding:14px;} .no-print{display:none;}}
     </style>
 </head>
 <body>
 
 <div class="no-print" style="margin-bottom:16px;display:flex;gap:8px;">
-    <button onclick="window.print()" style="padding:7px 18px;background:#2d5a27;color:#fff;border:none;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">↗ Print</button>
-    <button onclick="window.close()" style="padding:7px 18px;background:#fff;color:#555;border:1.5px solid #ccc;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">✕ Close</button>
+    <button onclick="safePrint()" style="padding:7px 18px;background:#2d5a27;color:#fff;border:none;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">↗ Print</button>
+    <button onclick="safeClose()" style="padding:7px 18px;background:#fff;color:#555;border:1.5px solid #ccc;border-radius:2px;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;">✕ Close</button>
 </div>
 
 <!-- Header -->
