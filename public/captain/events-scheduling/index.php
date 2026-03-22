@@ -499,7 +499,6 @@ $csrf_token = getCSRFToken();
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-ghost" id="btnPrintEvents">↗ Print</button>
-                        <button class="btn btn-primary" id="btnNewEvent">+ New Event</button>
                     </div>
                 </div>
             </div>
