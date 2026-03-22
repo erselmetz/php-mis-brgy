@@ -2,65 +2,9 @@
 require_once __DIR__ . '/../../../includes/app.php';
 requireSecretary();
 
-$success = '';
-$error   = '';
+// NO MORE POST HANDLER HERE — add_blotter.php handles inserts via AJAX
 
-// ── Handle new blotter submission ──
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_blotter') {
-    $complainant_name    = sanitizeString($_POST['complainant_name']    ?? '', false);
-    $complainant_address = sanitizeString($_POST['complainant_address'] ?? '');
-    $complainant_contact = sanitizeString($_POST['complainant_contact'] ?? '');
-    $respondent_name     = sanitizeString($_POST['respondent_name']     ?? '', false);
-    $respondent_address  = sanitizeString($_POST['respondent_address']  ?? '');
-    $respondent_contact  = sanitizeString($_POST['respondent_contact']  ?? '');
-    $incident_date       = $_POST['incident_date'] ?? '';
-    $incident_time       = $_POST['incident_time'] ?? '';
-    $incident_location   = sanitizeString($_POST['incident_location']   ?? '', false);
-    $incident_description= sanitizeString($_POST['incident_description']?? '', false);
-    $status              = $_POST['status'] ?? 'pending';
-
-    if (empty($complainant_name) || empty($respondent_name) || empty($incident_date) || empty($incident_location) || empty($incident_description)) {
-        $error = "Please fill in all required fields.";
-    } elseif (!validateDateFormat($incident_date)) {
-        $error = "Invalid incident date format.";
-    } else {
-        $year    = date('Y');
-        $stmt    = $conn->prepare("SELECT COUNT(*) as count FROM blotter WHERE case_number LIKE ?");
-        $pattern = "BLT-$year-%";
-        $stmt->bind_param("s", $pattern);
-        $stmt->execute();
-        $row     = $stmt->get_result()->fetch_assoc();
-        $count   = ($row['count'] ?? 0) + 1;
-        $case_number = "BLT-$year-" . str_pad($count, 4, '0', STR_PAD_LEFT);
-
-        $allowed = ['pending','under_investigation','resolved','dismissed'];
-        if (!in_array($status, $allowed)) $status = 'pending';
-
-        $stmt = $conn->prepare("
-            INSERT INTO blotter (
-                case_number, complainant_name, complainant_address, complainant_contact,
-                respondent_name, respondent_address, respondent_contact,
-                incident_date, incident_time, incident_location, incident_description,
-                status, created_by
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ");
-        $created_by = $_SESSION['user_id'];
-        $stmt->bind_param("ssssssssssssi",
-            $case_number, $complainant_name, $complainant_address, $complainant_contact,
-            $respondent_name, $respondent_address, $respondent_contact,
-            $incident_date, $incident_time, $incident_location, $incident_description,
-            $status, $created_by
-        );
-        if ($stmt->execute()) {
-            $success = "Case $case_number recorded successfully.";
-        } else {
-            $error = "Error recording case. Please try again.";
-        }
-        $stmt->close();
-    }
-}
-
-// ── Fetch active (non-archived) blotter cases ──
+// Fetch active (non-archived) blotter cases
 $stmt = $conn->prepare("
     SELECT b.*, u.name as created_by_name
     FROM blotter b
@@ -72,10 +16,10 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 $statusConf = [
-    'pending'           => ['label' => 'Pending',            'cls' => 'bs-pending'],
+    'pending'            => ['label' => 'Pending',            'cls' => 'bs-pending'],
     'under_investigation'=> ['label' => 'Under Investigation','cls' => 'bs-invest'],
-    'resolved'          => ['label' => 'Resolved',           'cls' => 'bs-resolved'],
-    'dismissed'         => ['label' => 'Dismissed',          'cls' => 'bs-dismissed'],
+    'resolved'           => ['label' => 'Resolved',           'cls' => 'bs-resolved'],
+    'dismissed'          => ['label' => 'Dismissed',          'cls' => 'bs-dismissed'],
 ];
 ?>
 <!DOCTYPE html>
@@ -258,7 +202,6 @@ $statusConf = [
     #blotterTable tbody tr:hover { background: var(--accent-lt); }
     #blotterTable td { padding: 10px 14px; font-size: 12.5px; color: var(--ink); vertical-align: middle; }
 
-    /* Case number cell */
     .td-case-no {
         font-family: var(--f-mono); font-size: 12px; font-weight: 700;
         color: var(--accent); letter-spacing: .5px; white-space: nowrap;
@@ -273,7 +216,6 @@ $statusConf = [
     .td-location { font-size: 12px; color: var(--ink-muted); max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .td-filed-by { font-size: 11.5px; color: var(--ink-faint); }
 
-    /* Actions */
     .td-actions { display: flex; gap: 5px; }
     .act-btn {
         display: inline-flex; align-items: center; gap: 4px;
@@ -385,7 +327,6 @@ $statusConf = [
     .case-meta    { font-size: 11px; color: var(--ink-faint); }
     .case-meta span { margin-right: 12px; }
 
-    /* Two-pane layout inside view modal */
     .view-two-col {
         display: grid; grid-template-columns: 1fr 1fr;
         border-bottom: 1px solid var(--rule);
@@ -402,7 +343,6 @@ $statusConf = [
     .vd-lbl { font-size: 8.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 2px; }
     .vd-val { font-size: 12.5px; font-weight: 500; color: var(--ink); line-height: 1.5; }
 
-    /* Inline status update */
     .status-update-bar {
         padding: 14px 20px;
         background: var(--paper-lt);
@@ -453,7 +393,6 @@ $statusConf = [
         font-family: var(--f-mono); font-size: 9px; color: var(--ink-faint); letter-spacing: .5px;
     }
 
-    /* History */
     .hist-toolbar { padding: 11px 16px; background: var(--paper-lt); border-bottom: 1px solid var(--rule); }
     .hist-scroll  { overflow-y: auto; max-height: 400px; }
     .hist-table   { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -469,7 +408,6 @@ $statusConf = [
     .hist-table td { padding: 10px 14px; vertical-align: middle; }
     .hist-footer { padding: 9px 16px; border-top: 1px solid var(--rule); background: var(--paper-lt); font-family: var(--f-mono); font-size: 9px; color: var(--ink-faint); letter-spacing: .5px; }
 
-    /* Status flow arrows */
     .status-flow { display: flex; align-items: center; gap: 5px; }
     .sf-badge { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
     .sf-pending    { background: var(--warn-bg); color: var(--warn-fg); }
@@ -531,17 +469,6 @@ $statusConf = [
                     </div>
                 </div>
             </div>
-
-            <?php if ($success): ?>
-            <div style="margin:16px 28px 0;padding:12px 16px;background:var(--ok-bg);border:1px solid color-mix(in srgb,var(--ok-fg) 25%,transparent);border-radius:2px;font-size:12.5px;color:var(--ok-fg);font-weight:500;">
-                ✓ <?= htmlspecialchars($success) ?>
-            </div>
-            <?php endif; ?>
-            <?php if ($error): ?>
-            <div style="margin:16px 28px 0;padding:12px 16px;background:var(--danger-bg);border:1px solid color-mix(in srgb,var(--danger-fg) 25%,transparent);border-radius:2px;font-size:12.5px;color:var(--danger-fg);font-weight:500;">
-                ⚠ <?= htmlspecialchars($error) ?>
-            </div>
-            <?php endif; ?>
 
             <!-- ── Blotter Table ── -->
             <div class="blt-table-wrap" style="margin:22px 28px;">
@@ -613,16 +540,16 @@ $statusConf = [
 
     <!-- ════════════════════════════
          MODAL: FILE NEW CASE
+         NOTE: No method="POST" — submitted via AJAX in index.js
     ════════════════════════════ -->
     <div id="addBlotterModal" title="File New Case" class="hidden">
-        <form method="POST" class="modal-form">
-            <input type="hidden" name="action" value="add_blotter">
+        <form id="addBlotterForm" class="modal-form">
 
             <div class="form-section">
                 <div class="form-section-lbl">Complainant</div>
                 <div class="form-section-body">
                     <div class="form-grid-2">
-                        <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="complainant_name" class="fg-input" required autocomplete="off"></div>
+                        <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="complainant_name" class="fg-input" autocomplete="off"></div>
                         <div class="fg"><label class="fg-label">Contact No.</label><input type="text" name="complainant_contact" class="fg-input" autocomplete="off"></div>
                     </div>
                     <div class="fg"><label class="fg-label">Address</label><textarea name="complainant_address" class="fg-textarea" style="min-height:52px;"></textarea></div>
@@ -633,7 +560,7 @@ $statusConf = [
                 <div class="form-section-lbl">Respondent</div>
                 <div class="form-section-body">
                     <div class="form-grid-2">
-                        <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="respondent_name" class="fg-input" required autocomplete="off"></div>
+                        <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="respondent_name" class="fg-input" autocomplete="off"></div>
                         <div class="fg"><label class="fg-label">Contact No.</label><input type="text" name="respondent_contact" class="fg-input" autocomplete="off"></div>
                     </div>
                     <div class="fg"><label class="fg-label">Address</label><textarea name="respondent_address" class="fg-textarea" style="min-height:52px;"></textarea></div>
@@ -644,7 +571,7 @@ $statusConf = [
                 <div class="form-section-lbl">Incident Details</div>
                 <div class="form-section-body">
                     <div class="form-grid-3">
-                        <div class="fg"><label class="fg-label">Date <span class="req">*</span></label><input type="date" name="incident_date" class="fg-input" required></div>
+                        <div class="fg"><label class="fg-label">Date <span class="req">*</span></label><input type="date" name="incident_date" class="fg-input"></div>
                         <div class="fg"><label class="fg-label">Time</label><input type="time" name="incident_time" class="fg-input"></div>
                         <div class="fg"><label class="fg-label">Initial Status</label>
                             <select name="status" class="fg-select">
@@ -653,9 +580,9 @@ $statusConf = [
                             </select>
                         </div>
                     </div>
-                    <div class="fg"><label class="fg-label">Location <span class="req">*</span></label><input type="text" name="incident_location" class="fg-input" required autocomplete="off"></div>
-                    <div class="fg"><label class="fg-label">Description <span class="req">*</span></label><textarea name="incident_description" class="fg-textarea" required></textarea></div>
-                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
+                    <div class="fg"><label class="fg-label">Location <span class="req">*</span></label><input type="text" name="incident_location" class="fg-input" autocomplete="off"></div>
+                    <div class="fg"><label class="fg-label">Description <span class="req">*</span></label><textarea name="incident_description" class="fg-textarea"></textarea></div>
+                    <button type="button" id="submitAddBlotter" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-top:4px;">
                         File Case &amp; Assign Case Number
                     </button>
                 </div>
@@ -667,7 +594,6 @@ $statusConf = [
          MODAL: VIEW / EDIT CASE
     ════════════════════════════ -->
     <div id="viewBlotterModal" title="Case Record" class="hidden">
-        <!-- Case header -->
         <div class="case-header">
             <div class="case-no-block">
                 <div class="case-no-lbl">Case No.</div>
@@ -683,7 +609,6 @@ $statusConf = [
             <div id="vc-status-badge"></div>
         </div>
 
-        <!-- Inline status update -->
         <div class="status-update-bar">
             <span class="sub-label">Update Status</span>
             <select id="vc-status-select" class="fg-select" style="width:auto;padding:5px 10px;font-size:12px;">
@@ -700,28 +625,26 @@ $statusConf = [
             <?= csrfTokenField() ?>
             <input type="hidden" name="id" id="vc-id">
 
-            <!-- Parties -->
             <div class="view-two-col">
                 <div class="view-pane">
                     <div class="vp-title">Complainant</div>
-                    <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="complainant_name" id="vc-comp-name" class="fg-input" required></div>
+                    <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="complainant_name" id="vc-comp-name" class="fg-input"></div>
                     <div class="fg"><label class="fg-label">Contact</label><input type="text" name="complainant_contact" id="vc-comp-contact" class="fg-input"></div>
                     <div class="fg"><label class="fg-label">Address</label><textarea name="complainant_address" id="vc-comp-addr" class="fg-textarea" style="min-height:52px;"></textarea></div>
                 </div>
                 <div class="view-pane">
                     <div class="vp-title">Respondent</div>
-                    <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="respondent_name" id="vc-resp-name" class="fg-input" required></div>
+                    <div class="fg"><label class="fg-label">Full Name <span class="req">*</span></label><input type="text" name="respondent_name" id="vc-resp-name" class="fg-input"></div>
                     <div class="fg"><label class="fg-label">Contact</label><input type="text" name="respondent_contact" id="vc-resp-contact" class="fg-input"></div>
                     <div class="fg"><label class="fg-label">Address</label><textarea name="respondent_address" id="vc-resp-addr" class="fg-textarea" style="min-height:52px;"></textarea></div>
                 </div>
             </div>
 
-            <!-- Incident -->
             <div class="form-section">
                 <div class="form-section-lbl">Incident Details</div>
                 <div class="form-section-body">
                     <div class="form-grid-3">
-                        <div class="fg"><label class="fg-label">Date <span class="req">*</span></label><input type="date" name="incident_date" id="vc-inc-date" class="fg-input" required></div>
+                        <div class="fg"><label class="fg-label">Date <span class="req">*</span></label><input type="date" name="incident_date" id="vc-inc-date" class="fg-input"></div>
                         <div class="fg"><label class="fg-label">Time</label><input type="time" name="incident_time" id="vc-inc-time" class="fg-input"></div>
                         <div class="fg"><label class="fg-label">Status</label>
                             <select name="status" id="vc-status" class="fg-select">
@@ -732,12 +655,11 @@ $statusConf = [
                             </select>
                         </div>
                     </div>
-                    <div class="fg"><label class="fg-label">Location <span class="req">*</span></label><input type="text" name="incident_location" id="vc-inc-loc" class="fg-input" required></div>
-                    <div class="fg"><label class="fg-label">Description <span class="req">*</span></label><textarea name="incident_description" id="vc-inc-desc" class="fg-textarea" required></textarea></div>
+                    <div class="fg"><label class="fg-label">Location <span class="req">*</span></label><input type="text" name="incident_location" id="vc-inc-loc" class="fg-input"></div>
+                    <div class="fg"><label class="fg-label">Description <span class="req">*</span></label><textarea name="incident_description" id="vc-inc-desc" class="fg-textarea"></textarea></div>
                 </div>
             </div>
 
-            <!-- Resolution -->
             <div class="form-section">
                 <div class="form-section-lbl">Resolution</div>
                 <div class="form-section-body">
@@ -754,7 +676,6 @@ $statusConf = [
          MODAL: ARCHIVED CASES
     ════════════════════════════ -->
     <div id="archivedCasesDialog" title="Archived Cases" class="hidden">
-        <!-- Stats row -->
         <div class="arc-stats-row">
             <div class="arc-stat-cell"><div class="arc-stat-val" id="arc-total">—</div><div class="arc-stat-lbl">Total Archived</div></div>
             <div class="arc-stat-cell"><div class="arc-stat-val" id="arc-resolved">—</div><div class="arc-stat-lbl">Resolved</div></div>

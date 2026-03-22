@@ -58,7 +58,7 @@ $(function () {
     // Text search
     $('#bltTableSearch').on('input', function () { table.search($(this).val()).draw(); });
 
-    // Status filter pills — use DataTables column search on hidden data-status
+    // Status filter pills
     $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
         if (settings.nTable.id !== 'blotterTable') return true;
         const activeStatus = $('#statusFilters .sf-pill.active').data('status');
@@ -74,10 +74,57 @@ $(function () {
     });
 
     /* ═══════════════════════════════════════
-       ADD NEW CASE MODAL
+       ADD NEW CASE MODAL — AJAX SUBMIT
+       Prevents the native form POST from firing
+       which was causing duplicate submissions.
     ═══════════════════════════════════════ */
     $('#addBlotterModal').dialog(dlgCfg({ width: 720 }));
     $('#openBlotterModalBtn').on('click', () => $('#addBlotterModal').dialog('open'));
+
+    // Intercept the add form submit — use AJAX instead of native POST
+    $(document).on('submit', '#addBlotterModal form', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $form   = $(this);
+        const $btn    = $form.find('button[type="submit"]');
+        const origTxt = $btn.html();
+
+        // Client-side validation
+        const required = ['complainant_name', 'respondent_name', 'incident_date', 'incident_location', 'incident_description'];
+        let missing = false;
+        required.forEach(function (name) {
+            if (!$form.find('[name="' + name + '"]').val().trim()) missing = true;
+        });
+
+        if (missing) {
+            showAlert('Validation', 'Please fill in all required fields.', 'danger');
+            return;
+        }
+
+        $btn.prop('disabled', true).html('Saving…');
+
+        $.ajax({
+            url: 'add_blotter.php',
+            type: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            success: function (res) {
+                if (res.success) {
+                    $('#addBlotterModal').dialog('close');
+                    // Reload page to show new record
+                    location.reload();
+                } else {
+                    $btn.prop('disabled', false).html(origTxt);
+                    showAlert('Error', res.message || 'Failed to save case.', 'danger');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html(origTxt);
+                showAlert('Error', 'Failed to connect to server.', 'danger');
+            }
+        });
+    });
 
     /* ═══════════════════════════════════════
        VIEW / EDIT CASE MODAL
@@ -90,7 +137,6 @@ $(function () {
             'Close':        function () { $(this).dialog('close'); }
         },
         open: function () {
-            // Style buttons
             const $btns = $(this).dialog('widget').find('.ui-dialog-buttonpane .ui-button');
             $btns.eq(1).css({ background: 'var(--danger-bg)', borderColor: 'var(--danger-fg)', color: 'var(--danger-fg)' });
             $btns.eq(2).css({ background: '#fff', borderColor: 'var(--rule-dk)', color: 'var(--ink-muted)' });
@@ -140,27 +186,31 @@ $(function () {
 
     // Quick status save from top bar
     $('#vcSaveStatus').on('click', function () {
-        const id     = $('#vc-id').val();
-        const status = $('#vc-status-select').val();
-        const resDate= $('#vc-resolved-date').val();
-        if (!id) return;
+        const id = $('#vc-id').val();
+
+        if (!id || id === '0' || id === '') {
+            showAlert('Error', 'No case selected. Please reopen the case and try again.', 'danger');
+            return;
+        }
+
+        const status  = $('#vc-status-select').val();
+        const resDate = $('#vc-resolved-date').val();
 
         $.post('update_blotter.php', {
             id, status,
             resolved_date: status === 'resolved' ? resDate : '',
             csrf_token: $('[name="csrf_token"]').val(),
-            // fill required fields from current form
-            complainant_name: $('#vc-comp-name').val(),
-            respondent_name:  $('#vc-resp-name').val(),
-            incident_date:    $('#vc-inc-date').val(),
+            complainant_name:     $('#vc-comp-name').val(),
+            respondent_name:      $('#vc-resp-name').val(),
+            incident_date:        $('#vc-inc-date').val(),
             incident_location:    $('#vc-inc-loc').val(),
             incident_description: $('#vc-inc-desc').val(),
-            incident_time:    $('#vc-inc-time').val(),
-            complainant_address: $('#vc-comp-addr').val(),
-            complainant_contact: $('#vc-comp-contact').val(),
-            respondent_address:  $('#vc-resp-addr').val(),
-            respondent_contact:  $('#vc-resp-contact').val(),
-            resolution: $('#vc-resolution').val(),
+            incident_time:        $('#vc-inc-time').val(),
+            complainant_address:  $('#vc-comp-addr').val(),
+            complainant_contact:  $('#vc-comp-contact').val(),
+            respondent_address:   $('#vc-resp-addr').val(),
+            respondent_contact:   $('#vc-resp-contact').val(),
+            resolution:           $('#vc-resolution').val(),
         }, function (res) {
             if (res.success) {
                 const sc = STATUS_CONF[status] || { label: status, cls: 'bs-dismissed' };
@@ -176,6 +226,13 @@ $(function () {
 
     // Full save (all fields)
     function saveBlotter() {
+        const id = $('#vc-id').val();
+
+        if (!id || id === '0' || id === '') {
+            showAlert('Error', 'No case selected. Please reopen the case and try again.', 'danger');
+            return;
+        }
+
         $.post('update_blotter.php', $('#blotterForm').serialize(), function (res) {
             if (res.success) {
                 $('#viewBlotterModal').dialog('close');
@@ -195,6 +252,11 @@ $(function () {
     });
 
     function archiveCase(id, caseNo) {
+        if (!id || id === '0' || id === '') {
+            showAlert('Error', 'Invalid case ID.', 'danger');
+            return;
+        }
+
         const dlgId = 'arc_' + Date.now();
         $('body').append(`<div id="${dlgId}" title="Archive Case" style="display:none;">
             <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
@@ -247,9 +309,7 @@ $(function () {
             const cases = res.blotters || [];
             const total = res.total || cases.length;
 
-            // Stats
             $('#arc-total').text(total);
-            // We don't have full status from list endpoint — just show totals
             $('#arc-latest').text(cases[0]?.archived_date || '—');
 
             if (!cases.length) {
@@ -257,7 +317,6 @@ $(function () {
                 $('#arcFooter').text('0 RECORDS'); return;
             }
 
-            let resolved = 0, dismissed = 0;
             $body.empty();
             cases.forEach((c, i) => {
                 $body.append(`<tr>
@@ -338,15 +397,14 @@ $(function () {
             $body.empty();
             res.history.forEach(h => {
                 const actionMap = {
-                    status_changed: ['ap-status',   'Status Changed'],
-                    archived:       ['ap-archived',  'Archived'],
-                    restored:       ['ap-restored',  'Restored'],
-                    created:        ['ap-other',     'Created'],
-                    updated:        ['ap-other',     'Updated'],
+                    status_changed: ['ap-status',  'Status Changed'],
+                    archived:       ['ap-archived', 'Archived'],
+                    restored:       ['ap-restored', 'Restored'],
+                    created:        ['ap-other',    'Created'],
+                    updated:        ['ap-other',    'Updated'],
                 };
                 const [apCls, apLbl] = actionMap[h.action_type] || ['ap-other', h.action_type];
 
-                // Status flow
                 let flow = '—';
                 if (h.old_status && h.new_status && h.old_status !== h.new_status) {
                     const oSF = SF_CLASS[h.old_status] || 'sf-dismissed';
