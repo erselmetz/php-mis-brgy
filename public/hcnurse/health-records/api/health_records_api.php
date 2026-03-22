@@ -4,35 +4,18 @@
  * Replaces: public/hcnurse/health-records/api/health_records_api.php
  *
  * BUG FIXES:
- * 1. json_ok() / json_err() helpers now defined locally (were missing → PHP Fatal Error → blank page)
- * 2. compute_date_range('all') now returns 2000-01-01 → today (was returning current month only!)
+ * 1. Removed local json_ok/json_err definitions — already in meta_helper.php
+ * 2. compute_date_range('all') returns 2000-01-01 → today (was current month only!)
  * 3. program value ALWAYS preserved on update
- * 4. list_subtypes queries DB (not static)
- * 5. list action id param read correctly from POST on update
+ * 4. list_subtypes queries DB with LIKE (no JSON_EXTRACT — works on MySQL 5.6+)
  */
 require_once __DIR__ . '/../../../../includes/app.php';
 requireHCNurse();
 
 header('Content-Type: application/json; charset=utf-8');
 
-/* ════════════════════════════════════
-   HELPERS — defined here because
-   app.php only defines respond(), not
-   json_ok() / json_err()
-════════════════════════════════════ */
-function json_ok(array $data = [], string $message = 'OK'): never {
-    echo json_encode(['status' => 'ok', 'message' => $message, 'data' => $data]);
-    exit;
-}
-function json_err(string $message, int $code = 400): never {
-    http_response_code($code);
-    echo json_encode(['status' => 'error', 'message' => $message]);
-    exit;
-}
+// json_ok() and json_err() come from includes/meta_helper.php — DO NOT redefine here
 
-/* ════════════════════════════════════
-   CONSTANTS
-════════════════════════════════════ */
 $ALLOWED_PROGRAMS = ['immunization','maternal','family_planning','prenatal','postnatal','child_nutrition'];
 
 function safe_program(string $t, array $allowed): string {
@@ -62,7 +45,7 @@ function compute_date_range(string $period, string $month): array {
         $to   = date('Y-m-t', strtotime($from));
         return [$from, $to, $month];
     }
-    // 'all' — FIX: return all records from year 2000 to today
+    // 'all' — return everything from 2000 to today
     return ['2000-01-01', $today, null];
 }
 
@@ -96,18 +79,13 @@ $id     = (int)($_GET['id']    ?? 0);
 
 /* ════════════════════════════════════
    list_subtypes — DB-driven
-   BUG FIX: was static array before
+   Uses LIKE (MySQL 5.6+ compatible)
 ════════════════════════════════════ */
 if ($action === 'list_subtypes') {
-    $subs = [['value' => 'all', 'label' => 'All']];
-
-    // Use LIKE pattern — safe, works on MySQL 5.6+
+    $subs    = [['value' => 'all', 'label' => 'All']];
     $pattern = '%"program":"' . $conn->real_escape_string($type) . '"%';
-    $stmt = $conn->prepare("
-        SELECT notes FROM consultations
-        WHERE notes LIKE ?
-        LIMIT 500
-    ");
+
+    $stmt = $conn->prepare("SELECT notes FROM consultations WHERE notes LIKE ? LIMIT 500");
     $stmt->bind_param('s', $pattern);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -121,7 +99,7 @@ if ($action === 'list_subtypes') {
             $subs[]    = ['value' => $sv, 'label' => ucwords(str_replace('_', ' ', $sv))];
         }
     }
-    json_ok(['subtypes' => $subs]);
+    json_ok_data(['subtypes' => $subs]);
 }
 
 /* ════════════════════════════════════
@@ -147,19 +125,16 @@ if ($action === 'get') {
     $prog = $row['meta']['program'] ?? '';
     if ($prog && $prog !== $type) json_err('Record does not match requested type', 404);
 
-    json_ok(['data' => $row]);
+    json_ok_data(['data' => $row]);
 }
 
 /* ════════════════════════════════════
-   UPDATE
-   BUG FIX: program always preserved
-   BUG FIX: id read from GET (correct)
+   UPDATE — program always preserved
 ════════════════════════════════════ */
 if ($action === 'update') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Invalid method', 405);
     if ($id <= 0) json_err('Invalid id');
 
-    // Fetch existing row to preserve program
     $stmt = $conn->prepare("SELECT * FROM consultations WHERE id = ? LIMIT 1");
     $stmt->bind_param('i', $id);
     $stmt->execute();
@@ -169,10 +144,7 @@ if ($action === 'update') {
     $oldMeta    = meta_normalize(meta_decode($existing['notes'] ?? ''));
     $oldProgram = $oldMeta['program'] ?? '';
 
-    // Reject if type mismatch
-    if ($oldProgram && $oldProgram !== $type) {
-        json_err('Record type mismatch', 404);
-    }
+    if ($oldProgram && $oldProgram !== $type) json_err('Record type mismatch', 404);
 
     $resident_id = (int)($_POST['resident_id'] ?? $existing['resident_id']);
     $complaint   = trim($_POST['complaint']   ?? $existing['complaint']);
@@ -187,7 +159,7 @@ if ($action === 'update') {
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $consultation_date)) json_err('Invalid date format');
 
     $newMeta                  = $oldMeta;
-    $newMeta['program']       = $type; // lock to page type
+    $newMeta['program']       = $type;
     $newMeta['sub_type']      = trim($_POST['sub_type']          ?? $oldMeta['sub_type']      ?? 'all');
     $newMeta['status']        = trim($_POST['status']            ?? $oldMeta['status']        ?? 'Completed');
     $newMeta['time']          = trim($_POST['consultation_time'] ?? $oldMeta['time']          ?? '');
@@ -209,12 +181,11 @@ if ($action === 'update') {
     $stmt->bind_param('isssssi', $resident_id, $complaint, $diagnosis, $treatment, $notes, $consultation_date, $id);
     if (!$stmt->execute()) json_err('Update failed: ' . $stmt->error, 500);
 
-    json_ok(['id' => $id], 'Record updated.');
+    json_ok_data(['id' => $id], 'Record updated.');
 }
 
 /* ════════════════════════════════════
-   LIST records
-   BUG FIX: 'all' period now works
+   LIST — 'all' period now works
 ════════════════════════════════════ */
 [$from, $to, $monthOut] = compute_date_range($period, $month);
 
@@ -247,17 +218,12 @@ $data = [];
 while ($row = $res->fetch_assoc()) {
     $row  = row_with_meta($row);
     $prog = $row['meta']['program'] ?? '';
-
-    // Skip records that don't belong to this program type
     if ($prog !== $type) continue;
-
-    // Skip if sub-type filter active and doesn't match
     if ($sub !== '' && $sub !== 'all' && ($row['meta']['sub_type'] ?? '') !== $sub) continue;
-
     $data[] = $row;
 }
 
-json_ok([
+json_ok_data([
     'filters' => [
         'type'   => $type,
         'period' => $period,

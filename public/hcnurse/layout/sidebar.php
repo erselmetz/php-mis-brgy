@@ -3,16 +3,20 @@
  * HC Nurse Sidebar
  * Replaces: public/hcnurse/layout/sidebar.php
  *
- * CHANGE: Care Records sub-items are now flat links (no dropdown).
- * Immunization is listed directly under a "Care Records" section label.
+ * BUG FIX: foreach loop variable renamed from $type to $careType
+ * to stop it overwriting the $type variable set in the parent page
+ * (health-records/index.php). PHP include() shares scope, so the
+ * last loop iteration ($type = 'immunization') was clobbering the
+ * page's own $type = $_GET['type'], making HEALTH_RECORD_TYPE
+ * always equal 'immunization' regardless of which link was clicked.
  */
 
 function hcActive(string $path): bool {
     return str_starts_with($_SERVER['REQUEST_URI'] ?? '', $path);
 }
 
-$uri   = $_SERVER['REQUEST_URI'] ?? '';
-$qtype = $_GET['type'] ?? '';
+$uri      = $_SERVER['REQUEST_URI'] ?? '';
+$qtype    = $_GET['type'] ?? '';   // for sidebar active-state detection only
 
 $careTypes = [
     'maternal'        => ['🤱', 'Maternal'],
@@ -25,7 +29,6 @@ $careTypes = [
 ?>
 
 <style>
-/* ══ SIDEBAR ROOT ─────────────────────────────── */
 .sb-root {
     width: 232px;
     min-width: 232px;
@@ -50,8 +53,6 @@ $careTypes = [
     background: linear-gradient(to bottom, #c8c4bc, #e8e4de 40%, #c8c4bc);
     pointer-events: none;
 }
-
-/* ── Section label ── */
 .sb-section {
     padding: 18px 16px 6px;
     display: flex;
@@ -71,8 +72,6 @@ $careTypes = [
     height: 1px;
     background: #e0dcd6;
 }
-
-/* ── Nav item ── */
 .sb-item {
     display: flex;
     align-items: center;
@@ -107,8 +106,6 @@ $careTypes = [
     background: var(--theme-primary, #2d5a27);
     border-radius: 0 2px 2px 0;
 }
-
-/* Icon */
 .sb-icon {
     font-size: 14px;
     width: 20px;
@@ -119,8 +116,6 @@ $careTypes = [
 }
 .sb-item.is-active .sb-icon,
 .sb-item:hover .sb-icon { opacity: 1; }
-
-/* ── Footer ── */
 .sb-footer {
     margin-top: auto;
     border-top: 1px solid #e0dcd6;
@@ -143,8 +138,6 @@ $careTypes = [
     background: #fdeeed;
     border-left-color: #7a1f1a;
 }
-
-/* ── Doc reference ── */
 .sb-docref {
     padding: 10px 16px 14px;
     font-family: 'Courier New', monospace;
@@ -157,7 +150,6 @@ $careTypes = [
 
 <aside class="sb-root" role="navigation" aria-label="HC Nurse navigation">
 
-    <!-- ── Primary ── -->
     <div class="sb-section">
         <span class="sb-section-lbl">Navigation</span>
         <div class="sb-section-rule"></div>
@@ -178,16 +170,20 @@ $careTypes = [
         <span class="sb-icon">📝</span> Consultation
     </a>
 
-    <!-- ── Care Records (flat) ── -->
+    <!-- Care Records (flat — no dropdown) -->
     <div class="sb-section" style="padding-top:14px;">
         <span class="sb-section-lbl">Care Records</span>
         <div class="sb-section-rule"></div>
     </div>
 
-    <?php foreach ($careTypes as $type => [$icon, $label]):
-        $href      = "/hcnurse/health-records/?type={$type}";
-        $isHRPage  = hcActive('/hcnurse/health-records/');
-        $isSubActive = $isHRPage && $qtype === $type;
+    <?php
+    // BUG FIX: loop variable is $careType, NOT $type.
+    // Using $type here would overwrite the parent page's $type = $_GET['type'],
+    // causing HEALTH_RECORD_TYPE to always equal the last array key ('immunization').
+    foreach ($careTypes as $careType => [$icon, $label]):
+        $href        = "/hcnurse/health-records/?type={$careType}";
+        $isHRPage    = hcActive('/hcnurse/health-records/');
+        $isSubActive = $isHRPage && $qtype === $careType;
     ?>
     <a href="<?= $href ?>"
        class="sb-item <?= $isSubActive ? 'is-active' : '' ?>">
@@ -195,7 +191,6 @@ $careTypes = [
     </a>
     <?php endforeach; ?>
 
-    <!-- ── Resources ── -->
     <div class="sb-section" style="padding-top:14px;">
         <span class="sb-section-lbl">Resources</span>
         <div class="sb-section-rule"></div>
@@ -206,7 +201,6 @@ $careTypes = [
         <span class="sb-icon">📁</span> Inventory
     </a>
 
-    <!-- ── Account ── -->
     <div class="sb-section" style="padding-top:14px;">
         <span class="sb-section-lbl">Account</span>
         <div class="sb-section-rule"></div>
@@ -217,7 +211,6 @@ $careTypes = [
         <span class="sb-icon">⚙️</span> Settings
     </a>
 
-    <!-- Footer -->
     <div class="sb-footer">
         <a href="/logout.php" class="sb-signout">
             <span style="font-size:13px;">→</span> Sign Out

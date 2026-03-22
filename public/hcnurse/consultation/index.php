@@ -316,10 +316,10 @@ function safeNotes(string $raw): array {
                         <div class="fg">
                             <label class="fg-label">Status</label>
                             <select name="status" class="fg-select">
-                                <option value="Completed" selected>Completed</option>
-                                <option value="Ongoing">Ongoing</option>
+                                <option value="Ongoing" selected>Ongoing</option>
                                 <option value="Dismissed">Dismissed</option>
                                 <option value="Follow-up">Follow-up</option>
+                                <option value="Completed">Completed</option>
                             </select>
                         </div>
                     </div>
@@ -440,10 +440,10 @@ function safeNotes(string $raw): array {
                         <div class="fg">
                             <label class="fg-label">Status</label>
                             <select name="status" id="edit_status" class="fg-select">
-                                <option value="Completed">Completed</option>
                                 <option value="Ongoing">Ongoing</option>
                                 <option value="Dismissed">Dismissed</option>
                                 <option value="Follow-up">Follow-up</option>
+                                <option value="Completed">Completed</option>
                             </select>
                         </div>
                     </div>
