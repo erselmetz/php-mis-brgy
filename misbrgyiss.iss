@@ -3,8 +3,8 @@
 ; Non-commercial use only
 
 #define MyAppName "MIS-BRGY"
-#define MyAppVersion "1.7"
-#define MyAppExeName "MIS - Barangay Bombongan.exe"
+#define MyAppVersion "2.0"
+#define MyAppExeName "MIS-BRGY.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".myp"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt

@@ -31,6 +31,19 @@ function getResidentFullName(mysqli $conn, int $residentId): ?string
     return $full !== '' ? $full : null;
 }
 
+/** Default position label from account role (Officials & Staff). */
+function default_officer_position_for_role(string $role): string
+{
+    $role = strtolower(trim($role));
+    $map = [
+        'captain'   => 'Barangay Captain',
+        'kagawad'   => 'Barangay Kagawad',
+        'secretary' => 'Barangay Secretary',
+        'hcnurse'   => 'Barangay HC Nurse',
+    ];
+    return $map[$role] ?? '';
+}
+
 function mapUserStatusToOfficerStatus(string $userStatus): string
 {
     $userStatus = strtolower(trim($userStatus));

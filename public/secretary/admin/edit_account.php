@@ -45,7 +45,10 @@ if ($action === 'edit_account') {
                 $isOfficer = true;
 
                 $officerId = !empty($_POST['officer_id']) ? sanitizeInt($_POST['officer_id'], 1) : null;
-                $officerPosition = sanitizeString($_POST['officer_position'] ?? '');
+                $officerPosition = trim(sanitizeString($_POST['officer_position'] ?? ''));
+                if ($officerPosition === '') {
+                    $officerPosition = default_officer_position_for_role($role);
+                }
                 $termStart = $_POST['term_start'] ?? '';
                 $termEnd = $_POST['term_end'] ?? '';
                 $officerStatus = mapUserStatusToOfficerStatus($status);

@@ -23,9 +23,12 @@ if ($action === 'add_account') {
     $role        = sanitizeString($_POST['role'] ?? '');
     $status      = sanitizeString($_POST['status'] ?? 'active');
 
-    // Always officer
+    // Always officer — position defaults from role if empty
     $isOfficer       = true;
-    $officerPosition = sanitizeString($_POST['officer_position'] ?? '');
+    $officerPosition = trim(sanitizeString($_POST['officer_position'] ?? ''));
+    if ($officerPosition === '') {
+        $officerPosition = default_officer_position_for_role($role);
+    }
     $officerStatus   = mapUserStatusToOfficerStatus($status);
 
     // hcnurse has no elected term

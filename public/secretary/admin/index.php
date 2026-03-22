@@ -537,7 +537,7 @@ $roleMeta = [
                         <div class="fg">
                             <label class="fg-label">Role <span class="req">*</span></label>
                             <select name="role" id="addRole" class="fg-select" required>
-                                <option value="captain">Barangay Captain</option>
+                                <option value="captain">Captain</option>
                                 <option value="kagawad">Kagawad</option>
                                 <option value="secretary">Secretary</option>
                                 <option value="hcnurse">HC Nurse</option>
@@ -628,7 +628,7 @@ $roleMeta = [
                         <div class="fg">
                             <label class="fg-label">Role <span class="req">*</span></label>
                             <select name="role" id="editRole" class="fg-select" required>
-                                <option value="captain">Barangay Captain</option>
+                                <option value="captain">Captain</option>
                                 <option value="kagawad">Kagawad</option>
                                 <option value="secretary">Secretary</option>
                                 <option value="hcnurse">HC Nurse</option>
