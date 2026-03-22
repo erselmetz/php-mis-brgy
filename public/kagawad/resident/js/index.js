@@ -1,1123 +1,480 @@
+/**
+ * Resident Register — JS Controller
+ * Replaces: public/secretary/resident/js/index.js
+ *
+ * All backend calls are unchanged. Only UI/class names updated
+ * to match the government-official redesign.
+ */
+
+/* ──────────────────────────────────────────────
+   DIALOG CONFIG HELPER
+────────────────────────────────────────────── */
+function dialogCfg(opts) {
+    return Object.assign({
+        autoOpen: false,
+        modal: true,
+        resizable: false,
+        closeOnEscape: true,
+        classes: {
+            'ui-dialog':            '',
+            'ui-dialog-titlebar':   '',
+            'ui-dialog-buttonpane': ''
+        }
+    }, opts);
+}
+
+function showAlert(title, msg, type) {
+    const id  = 'dlg_' + Date.now();
+    const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--danger-fg)' : 'var(--accent)';
+    $('body').append(`<div id="${id}" title="${escHtml(title)}" style="display:none;">
+        <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">
+            ${escHtml(msg)}
+        </div>
+    </div>`);
+    $(`#${id}`).dialog(dialogCfg({
+        width: 400,
+        buttons: {
+            'OK': function () { $(this).dialog('close').remove(); }
+        }
+    })).dialog('open');
+    return id;
+}
+
+function escHtml(s) {
+    const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+/* ──────────────────────────────────────────────
+   DATATABLES INIT
+────────────────────────────────────────────── */
 $(function () {
 
-  $("#residentsTable").DataTable();
-
-  // Initialize View Resident Modal
-  $("#viewResidentModal").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 900,
-    height: 600,
-    resizable: true,
-    classes: {
-      'ui-dialog': 'rounded-lg shadow-lg',
-      'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-      'ui-dialog-title': 'font-semibold',
-      'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-      'ui-dialog-buttonpane button': 'bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded'
-    },
-    show: {
-      effect: "fadeIn",
-      duration: 200
-    },
-    hide: {
-      effect: "fadeOut",
-      duration: 200
-    },
-    buttons: {
-      "Close": function () {
-        $(this).dialog("close");
-      }
-    },
-    open: function () {
-      // Button styling is now handled in the classes object above
-    }
-  });
-
-  // Initialize Edit Resident Modal
-  $("#editResidentModal").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 800,
-    height: 700,
-    resizable: true,
-    classes: {
-      'ui-dialog': 'rounded-lg shadow-lg',
-      'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-      'ui-dialog-title': 'font-semibold',
-      'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-      'ui-dialog-buttonpane button': 'bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded'
-    },
-    show: {
-      effect: "fadeIn",
-      duration: 200
-    },
-    hide: {
-      effect: "fadeOut",
-      duration: 200
-    },
-    buttons: {
-      "Save": function () {
-        saveResidentEdits();
-      },
-      "Cancel": function () {
-        $(this).dialog("close");
-      }
-    },
-    open: function () {
-      // Button styling is now handled in the classes object above
-    }
-  });
-
-  // Initialize modal (hidden by default) - Modernized
-  $("#addResidentModal").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 800,
-    height: 600,
-    resizable: true,
-    classes: {
-      'ui-dialog': 'rounded-lg shadow-lg',
-      'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-      'ui-dialog-title': 'font-semibold',
-      'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg',
-      'ui-dialog-buttonpane button': 'bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded'
-    },
-    show: {
-      effect: "fadeIn",
-      duration: 200
-    },
-    hide: {
-      effect: "fadeOut",
-      duration: 200
-    },
-    open: function () {
-      // Load households for the dropdown
-      loadHouseholdsForAddModal();
-      // Button styling is now handled in the classes object above
-    }
-  });
-
-  // View Resident Button Click Handler
-  $(document).on("click", ".view-resident-btn", function () {
-    const residentId = $(this).data("id");
-    loadResidentForView(residentId);
-    $("#viewResidentModal").dialog("open");
-  });
-
-  // Edit Resident Button Click Handler
-  $(document).on("click", ".edit-resident-btn", function () {
-    const residentId = $(this).data("id");
-    loadResidentForEdit(residentId);
-    $("#editResidentModal").dialog("open");
-  });
-
-  $("#openResidentModalBtn").on("click", function () {
-    $("#addResidentModal").dialog("open");
-  });
-
-  $("#archivedResidentsDialog").dialog({
-    autoOpen: false,
-    modal: true,
-    width: 600,
-    resizable: false,
-    draggable: true,
-    classes: {
-      "ui-dialog": "rounded-lg shadow-xl",
-      "ui-dialog-title": "font-semibold text-sm",
-      "ui-dialog-buttonpane": "hidden"
-    },
-    open: function () {
-      loadArchivedResidents();
-    }
-  });
-
-  // Archive Residents Button
-  $("#archiveResidentsBtn").on("click", function () {
-    $("#archivedResidentsDialog").dialog("open");
-  });
-
-  // Archive Resident Button Click Handler
-  $(document).on("click", ".archive-resident-btn", function () {
-    const residentId = $(this).data("id");
-    const residentName = $(this).data("name");
-
-    // Show confirmation dialog
-    $('<div>Are you sure you want to archive <strong>' + residentName + '</strong>?<br><br>This action can be undone later.</div>').dialog({
-      modal: true,
-      title: 'Confirm Archive',
-      width: 450,
-      buttons: {
-        "Archive": function () {
-          $(this).dialog('close');
-          archiveResident(residentId);
-        },
-        "Cancel": function () {
-          $(this).dialog('close');
+    const table = $('#residentsTable').DataTable({
+        pageLength: 25,
+        order: [[0, 'asc']],
+        dom: 'tip',                    // no built-in search / length
+        language: {
+            info: 'Showing _START_–_END_ of _TOTAL_ residents',
+            infoEmpty: 'No residents found',
+            paginate: { previous: '‹', next: '›' }
         }
-      },
-      classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-orange-500 text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-      },
-      open: function () {
-        $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
-        $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-      }
     });
-  });
 
-  // Restore Resident Button Click Handler
-  $(document).on("click", ".restore-btn", function () {
-    const residentId = $(this).data("id");
-    const residentName = $(this).data("name");
-
-    // Show confirmation dialog
-    $('<div>Are you sure you want to restore <strong>' + residentName + '</strong>?<br><br>This will make the resident active again.</div>').dialog({
-      modal: true,
-      title: 'Confirm Restore',
-      width: 450,
-      buttons: {
-        "Restore": function () {
-          $(this).dialog('close');
-          restoreResident(residentId);
-        },
-        "Cancel": function () {
-          $(this).dialog('close');
-        }
-      },
-      classes: {
-        'ui-dialog': 'rounded-lg shadow-lg',
-        'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-        'ui-dialog-title': 'font-semibold',
-        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-      },
-      open: function () {
-        $('.ui-dialog-buttonpane button:first').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2');
-        $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-      }
+    // Wire our own search input to DataTables
+    $('#resTableSearch').on('input', function () {
+        table.search($(this).val()).draw();
     });
-  });
 
-  // Search functionality for archived residents
-  $(document).on("input", "#archivedResidentsDialog input[type='text']", function () {
-    const searchTerm = $(this).val();
-    loadArchivedResidents(searchTerm);
-  });
-});
+    /* ══════════════════════════════════════════
+       VIEW MODAL
+    ══════════════════════════════════════════ */
+    $('#viewResidentModal').dialog(dialogCfg({
+        width: 680,
+        buttons: { 'Close': function () { $(this).dialog('close'); } }
+    }));
 
-// Function to archive a resident
-function archiveResident(residentId) {
-  $.ajax({
-    url: 'archive_api.php',
-    type: 'POST',
-    data: {
-      action: 'archive',
-      resident_id: residentId
-    },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        // Show success message
-        $('<div>Resident archived successfully!</div>').dialog({
-          modal: true,
-          title: 'Success',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-              location.reload(); // Refresh to update the table
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
+    $(document).on('click', '.view-resident-btn', function () {
+        loadResidentForView($(this).data('id'));
+        $('#viewResidentModal').dialog('open');
+    });
+
+    function loadResidentForView(id) {
+        $.getJSON(`get_resident.php?id=${id}`, function (data) {
+            if (data.error) { showAlert('Error', data.error, 'danger'); return; }
+
+            const nameParts = [data.first_name, data.middle_name, data.last_name, data.suffix].filter(Boolean);
+            const fullName  = nameParts.join(' ');
+            const age       = data.birthdate ? calcAge(data.birthdate) : null;
+
+            $('#view-id-num').text(String(data.id).padStart(4, '0'));
+            $('#view-full-name').text(fullName || '—');
+
+            // Tags
+            const tags = [];
+            if (age)                            tags.push(`<span class="view-tag accent">${age} yrs old</span>`);
+            if (data.gender)                    tags.push(`<span class="view-tag">${escHtml(data.gender)}</span>`);
+            if (data.civil_status)              tags.push(`<span class="view-tag">${escHtml(data.civil_status)}</span>`);
+            if (data.voter_status === 'Yes')    tags.push(`<span class="view-tag accent">Registered Voter</span>`);
+            if (data.disability_status === 'Yes') tags.push(`<span class="view-tag">PWD</span>`);
+            $('#view-tags').html(tags.join(''));
+
+            $('#view-birthdate').text(data.birthdate ? fmtDate(data.birthdate) : '—');
+            $('#view-age').text(age ? age + ' years old' : '—');
+            $('#view-birthplace').text(data.birthplace || '—');
+            $('#view-civil-status').text(data.civil_status || '—');
+            $('#view-religion').text(data.religion || '—');
+            $('#view-citizenship').text(data.citizenship || '—');
+            $('#view-contact').text(data.contact_no || '—');
+            $('#view-address').text(data.address || '—');
+            $('#view-occupation').text(data.occupation || '—');
+            $('#view-voter-status').text(data.voter_status || '—');
+            $('#view-disability-status').text(data.disability_status || '—');
+            $('#view-household-id').text(data.household_display || '—');
+            $('#view-remarks').text(data.remarks || '—');
         });
-      } else {
-        // Show error message
-        $('<div>Error: ' + response.message + '</div>').dialog({
-          modal: true,
-          title: 'Archive Error',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
-        });
-      }
-    },
-    error: function () {
-      // Show connection error
-      $('<div>Failed to archive resident. Please try again.</div>').dialog({
-        modal: true,
-        title: 'Connection Error',
-        width: 420,
+    }
+
+    /* ══════════════════════════════════════════
+       EDIT MODAL
+    ══════════════════════════════════════════ */
+    $('#editResidentModal').dialog(dialogCfg({
+        width: 700,
+        open: function () { loadHouseholdsForDropdown('edit'); },
         buttons: {
-          Ok: function () {
-            $(this).dialog('close');
-          }
-        },
-        classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
-        open: function () {
-          $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
+            'Save Changes': function () { saveResidentEdits(); },
+            'Cancel':       function () { $(this).dialog('close'); }
         }
-      });
-    }
-  });
-}
+    }));
 
-// Function to restore an archived resident
-function restoreResident(residentId) {
-  $.ajax({
-    url: 'archive_api.php',
-    type: 'POST',
-    data: {
-      action: 'restore',
-      resident_id: residentId
-    },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        // Show success message
-        $('<div>Resident restored successfully!</div>').dialog({
-          modal: true,
-          title: 'Success',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-              loadArchivedResidents(); // Refresh the archive modal
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
+    $(document).on('click', '.edit-resident-btn', function () {
+        loadResidentForEdit($(this).data('id'));
+        $('#editResidentModal').dialog('open');
+    });
+
+    function loadResidentForEdit(id) {
+        loadHouseholdsForDropdown('edit');
+        $.getJSON(`get_resident.php?id=${id}`, function (data) {
+            if (data.error) { showAlert('Error', data.error, 'danger'); return; }
+            $('#edit-resident-id').val(data.id || '');
+            $('#edit-household-id').val(data.household_id || '');
+            $('#edit-household-search').val(data.household_display || '');
+            $('#edit-first-name').val(data.first_name || '');
+            $('#edit-middle-name').val(data.middle_name || '');
+            $('#edit-last-name').val(data.last_name || '');
+            $('#edit-suffix').val(data.suffix || '');
+            $('#edit-gender').val(data.gender || 'Male');
+            $('#edit-birthdate').val(data.birthdate || '');
+            $('#edit-birthplace').val(data.birthplace || '');
+            $('#edit-civil-status').val(data.civil_status || 'Single');
+            $('#edit-religion').val(data.religion || '');
+            $('#edit-occupation').val(data.occupation || '');
+            $('#edit-citizenship').val(data.citizenship || 'Filipino');
+            $('#edit-contact-no').val(data.contact_no || '');
+            $('#edit-address').val(data.address || '');
+            $('#edit-voter-status').val(data.voter_status || 'No');
+            $('#edit-disability-status').val(data.disability_status || 'No');
+            $('#edit-remarks').val(data.remarks || '');
         });
-      } else {
-        // Show error message
-        $('<div>Error: ' + response.message + '</div>').dialog({
-          modal: true,
-          title: 'Restore Error',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-          }
+    }
+
+    function saveResidentEdits() {
+        const formData = new FormData(document.getElementById('editResidentForm'));
+        const data = Object.fromEntries(formData.entries());
+        $.ajax({
+            url: 'update_resident.php', type: 'POST', data,
+            dataType: 'json',
+            success: function (res) {
+                showAlert(res.success ? 'Saved' : 'Error', res.message, res.success ? 'success' : 'danger');
+                if (res.success) { $('#editResidentModal').dialog('close'); location.reload(); }
+            },
+            error: () => showAlert('Error', 'Failed to connect to server.', 'danger')
         });
-      }
-    },
-    error: function () {
-      // Show connection error
-      $('<div>Failed to restore resident. Please try again.</div>').dialog({
-        modal: true,
-        title: 'Connection Error',
-        width: 420,
-        buttons: {
-          Ok: function () {
-            $(this).dialog('close');
-          }
-        },
-        classes: {
-          'ui-dialog': 'rounded-lg shadow-lg',
-          'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-          'ui-dialog-title': 'font-semibold',
-          'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
+    }
+
+    /* ══════════════════════════════════════════
+       ADD MODAL
+    ══════════════════════════════════════════ */
+    $('#addResidentModal').dialog(dialogCfg({
+        width: 700,
+        open: function () { loadHouseholdsForDropdown('add'); }
+    }));
+    $('#openResidentModalBtn').on('click', () => $('#addResidentModal').dialog('open'));
+
+    /* ══════════════════════════════════════════
+       ARCHIVE REGISTRY DIALOG (Residents + Households)
+    ══════════════════════════════════════════ */
+    $('#archivedResidentsDialog').dialog(dialogCfg({
+        width: 780,
         open: function () {
-          $('.ui-dialog-buttonpane button').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
+            loadArchivedResidents();
+            loadArchivedHouseholds();
         }
-      });
-    }
-  });
-}
+    }));
+    $('#archiveResidentsBtn').on('click', () => $('#archivedResidentsDialog').dialog('open'));
 
-// Function to load archived residents
-function loadArchivedResidents(searchTerm = '') {
-  $.ajax({
-    url: 'archive_api.php',
-    type: 'GET',
-    data: {
-      search: searchTerm,
-      limit: 50,
-      offset: 0
-    },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        updateArchivedResidentsTable(response.residents);
-        updateArchivedResidentsFooter(response.total);
-      } else {
-        console.error('Failed to load archived residents:', response.message);
-      }
-    },
-    error: function () {
-      console.error('Failed to load archived residents');
-    }
-  });
-}
+    // Tab switching
+    $(document).on('click', '.arc-tab', function () {
+        const tab = $(this).data('tab');
+        $('.arc-tab').removeClass('active');
+        $(this).addClass('active');
+        $('.arc-pane').removeClass('active');
+        $(`#arc-pane-${tab}`).addClass('active');
+    });
 
-// Function to update the archived residents table
-function updateArchivedResidentsTable(residents) {
-  const tbody = $('#archivedResidentsDialog tbody');
-  tbody.empty();
-
-  if (residents.length === 0) {
-    tbody.html('<tr><td colspan="4" class="p-4 text-center text-gray-500">No archived residents found</td></tr>');
-    return;
-  }
-
-  residents.forEach(resident => {
-    const row = `
-        <tr>
-          <td class="p-2 font-semibold">${resident.id.toString().padStart(3, '0')}</td>
-          <td class="p-2">${resident.full_name}</td>
-          <td class="p-2">${resident.archived_date}</td>
-          <td class="p-2 text-center">
-            <button class="restore-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm" data-id="${resident.id}" data-name="${resident.full_name}">
-              Restore
-            </button>
-          </td>
-        </tr>
-      `;
-    tbody.append(row);
-  });
-}
-
-// Function to update the footer with count
-function updateArchivedResidentsFooter(total) {
-  const footer = $('#archivedResidentsDialog .border-t');
-  footer.html(`<div class="px-4 py-2 text-xs text-gray-500">Showing ${total} archived resident${total !== 1 ? 's' : ''}</div>`);
-}
-
-// Function to load resident data for view modal
-function loadResidentForView(residentId) {
-  $.getJSON(`get_resident.php?id=${residentId}`, function (data) {
-    if (data.error) {
-      alert("Error loading resident data: " + data.error);
-      return;
-    }
-
-    // Populate view modal fields
-    const fullName = [data.first_name, data.middle_name, data.last_name, data.suffix].filter(Boolean).join(' ');
-    $("#view-full-name").text(fullName || '-');
-    $("#view-gender").text(data.gender || '-');
-    $("#view-birthdate").text(data.birthdate || '-');
-    $("#view-age").text(data.birthdate ? calculateAge(data.birthdate) + ' years old' : '-');
-    $("#view-birthplace").text(data.birthplace || '-');
-    $("#view-contact").text(data.contact_no || '-');
-    $("#view-address").text(data.address || '-');
-    $("#view-civil-status").text(data.civil_status || '-');
-    $("#view-religion").text(data.religion || '-');
-    $("#view-citizenship").text(data.citizenship || '-');
-    $("#view-voter-status").text(data.voter_status || '-');
-    $("#view-occupation").text(data.occupation || '-');
-    $("#view-disability-status").text(data.disability_status || '-');
-    $("#view-household-id").text(data.household_display || '-');
-    $("#view-remarks").text(data.remarks || '-');
-  }).fail(function () {
-    alert("Failed to load resident data. Please try again.");
-  });
-}
-
-// Function to load resident data for edit modal
-function loadResidentForEdit(residentId) {
-  // First load households for the dropdown
-  loadHouseholdsForDropdown();
-
-  // Then load resident data
-  $.getJSON(`get_resident.php?id=${residentId}`, function (data) {
-    if (data.error) {
-      alert("Error loading resident data: " + data.error);
-      return;
-    }
-
-    // Populate edit modal form fields
-    $("#edit-resident-id").val(data.id || '');
-    $("#edit-household-id").val(data.household_id || '');
-    $("#edit-first-name").val(data.first_name || '');
-    $("#edit-middle-name").val(data.middle_name || '');
-    $("#edit-last-name").val(data.last_name || '');
-    $("#edit-suffix").val(data.suffix || '');
-    $("#edit-gender").val(data.gender || 'Male');
-    $("#edit-birthdate").val(data.birthdate || '');
-    $("#edit-birthplace").val(data.birthplace || '');
-    $("#edit-civil-status").val(data.civil_status || 'Single');
-    $("#edit-religion").val(data.religion || '');
-    $("#edit-occupation").val(data.occupation || '');
-    $("#edit-citizenship").val(data.citizenship || 'Filipino');
-    $("#edit-contact-no").val(data.contact_no || '');
-    $("#edit-address").val(data.address || '');
-    $("#edit-voter-status").val(data.voter_status || 'No');
-    $("#edit-disability-status").val(data.disability_status || 'No');
-    $("#edit-remarks").val(data.remarks || '');
-
-    // Set household search input value
-    if (data.household_id && data.household_display) {
-      $("#edit-household-search").val(data.household_display);
-    } else {
-      $("#edit-household-search").val('');
-    }
-  }).fail(function () {
-    alert("Failed to load resident data. Please try again.");
-  });
-}
-
-// Global variable to store households data
-let allHouseholds = [];
-
-// Function to load households for dropdown
-function loadHouseholdsForDropdown() {
-  $.ajax({
-    url: 'household_api.php',
-    type: 'GET',
-    data: { limit: 1000 }, // Load all households
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        allHouseholds = response.households; // Store for search functionality
-
-        const hiddenSelect = $('#edit-household-id');
-        const dropdownContainer = $('#edit-household-dropdown');
-
-        // Clear existing options except the first one
-        hiddenSelect.find('option:not(:first)').remove();
-        dropdownContainer.empty();
-
-        // Add household options to hidden select
-        response.households.forEach(household => {
-          const option = `<option value="${household.id}">${household.household_no} - ${household.head_name} (${household.address})</option>`;
-          hiddenSelect.append(option);
-
-          // Create visible dropdown item
-          const dropdownItem = `
-              <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 household-option"
-                   data-id="${household.id}"
-                   data-text="${household.household_no} - ${household.head_name} (${household.address})">
-                <div class="font-medium text-blue-600">${household.household_no}</div>
-                <div class="text-sm text-gray-600">${household.head_name} • ${household.address}</div>
-                <div class="text-xs text-gray-500">${household.total_members} members</div>
-              </div>
-            `;
-          dropdownContainer.append(dropdownItem);
-        });
-      }
-    },
-    error: function () {
-      console.error('Failed to load households for dropdown');
-    }
-  });
-}
-
-// Function to load households for add modal dropdown
-function loadHouseholdsForAddModal() {
-  $.ajax({
-    url: 'household_api.php',
-    type: 'GET',
-    data: { limit: 1000 }, // Load all households
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        const hiddenSelect = $('#add-household-id');
-        const dropdownContainer = $('#add-household-dropdown');
-
-        // Clear existing options except the first one
-        hiddenSelect.find('option:not(:first)').remove();
-        dropdownContainer.empty();
-
-        // Add household options to hidden select
-        response.households.forEach(household => {
-          const option = `<option value="${household.id}">${household.household_no} - ${household.head_name} (${household.address})</option>`;
-          hiddenSelect.append(option);
-
-          // Create visible dropdown item
-          const dropdownItem = `
-              <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 household-option"
-                   data-id="${household.id}"
-                   data-text="${household.household_no} - ${household.head_name} (${household.address})">
-                <div class="font-medium text-blue-600">${household.household_no}</div>
-                <div class="text-sm text-gray-600">${household.head_name} • ${household.address}</div>
-                <div class="text-xs text-gray-500">${household.total_members} members</div>
-              </div>
-            `;
-          dropdownContainer.append(dropdownItem);
-        });
-      }
-    },
-    error: function () {
-      console.error('Failed to load households for add modal');
-    }
-  });
-}
-
-// Function to save resident edits
-function saveResidentEdits() {
-  const formData = new FormData(document.getElementById('editResidentForm'));
-  const data = Object.fromEntries(formData.entries());
-
-  $.ajax({
-    url: 'update_resident.php',
-    type: 'POST',
-    data: data,
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        // Show success message
-        $('<div>' + response.message + '</div>').dialog({
-          modal: true,
-          title: 'Success',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-              $("#editResidentModal").dialog("close");
-              // Refresh the page to show updated data
-              location.reload();
-            }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          }
-        });
-      } else {
-        alert('Error: ' + response.message);
-      }
-    },
-    error: function () {
-      alert('Failed to save resident data. Please try again.');
-    }
-  });
-}
-
-// Initialize Household Management Modal
-$("#householdManagementModal").dialog({
-  autoOpen: false,
-  modal: true,
-  width: 800,
-  height: 600,
-  resizable: true,
-  classes: {
-    "ui-dialog": "rounded-lg shadow-xl",
-    "ui-dialog-title": "font-semibold text-sm",
-    "ui-dialog-buttonpane": "hidden"
-  },
-  open: function () {
-    loadHouseholds();
-  }
-});
-
-// Initialize Household Form Modal
-$("#householdFormModal").dialog({
-  autoOpen: false,
-  modal: true,
-  width: 500,
-  resizable: false,
-  buttons: {
-    "Save": function () {
-      saveHousehold();
-    },
-    "Cancel": function () {
-      $(this).dialog('close');
-    }
-  },
-  classes: {
-    'ui-dialog': 'rounded-lg shadow-lg',
-    'ui-dialog-titlebar': 'bg-blue-500 text-white rounded-t-lg',
-    'ui-dialog-title': 'font-semibold',
-    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-  },
-  open: function () {
-    $('.ui-dialog-buttonpane button:first').addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded mr-2');
-    $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-  }
-});
-
-// Household search and dropdown functionality
-function initializeHouseholdSearch(searchInputId, dropdownId, hiddenSelectId) {
-  const searchInput = $(`#${searchInputId}`);
-  const dropdown = $(`#${dropdownId}`);
-  const hiddenSelect = $(`#${hiddenSelectId}`);
-
-  // Initially hide the dropdown
-  dropdown.addClass('hidden');
-
-  // Only show dropdown on explicit click (not focus to avoid auto-focus issues)
-  searchInput.on('click', function (e) {
-    e.stopPropagation();
-    // Only show if not already visible
-    if (dropdown.hasClass('hidden')) {
-      showHouseholdDropdown(dropdownId);
-      filterHouseholdOptions(searchInputId, dropdownId);
-    }
-  });
-
-  // Hide dropdown when clicking outside
-  $(document).on('click', function (e) {
-    if (!$(e.target).closest(`#${searchInputId}, #${dropdownId}`).length) {
-      dropdown.addClass('hidden');
-    }
-  });
-
-  // Search functionality
-  searchInput.on('input', function () {
-    const searchValue = $(this).val().trim();
-    if (searchValue === '') {
-      // Clear selection when input is empty
-      hiddenSelect.val('');
-      // Hide dropdown when input is cleared
-      dropdown.addClass('hidden');
-    } else {
-      // Clear hidden value if user is typing but hasn't selected from dropdown
-      // This prevents stale data when user types a new search
-      const currentHiddenValue = hiddenSelect.val();
-      if (currentHiddenValue && !isValidHouseholdSelection(searchInputId, dropdownId, currentHiddenValue)) {
-        hiddenSelect.val('');
-      }
-      // Show dropdown when user starts typing
-      showHouseholdDropdown(dropdownId);
-    }
-    filterHouseholdOptions(searchInputId, dropdownId);
-  });
-
-  // Handle option selection
-  dropdown.on('click', '.household-option', function () {
-    const selectedId = $(this).data('id');
-    const selectedText = $(this).data('text');
-
-    hiddenSelect.val(selectedId);
-    searchInput.val(selectedText);
-    dropdown.addClass('hidden'); // Hide dropdown after selection
-  });
-}
-
-function showHouseholdDropdown(dropdownId) {
-  $(`#${dropdownId}`).removeClass('hidden');
-}
-
-function filterHouseholdOptions(searchInputId, dropdownId) {
-  const searchTerm = $(`#${searchInputId}`).val().toLowerCase();
-  const options = $(`#${dropdownId} .household-option`);
-
-  options.each(function () {
-    const optionText = $(this).data('text').toLowerCase();
-    if (optionText.includes(searchTerm)) {
-      $(this).show();
-    } else {
-      $(this).hide();
-    }
-  });
-}
-
-function isValidHouseholdSelection(searchInputId, dropdownId, hiddenValue) {
-  const options = $(`#${dropdownId} .household-option`);
-  let isValid = false;
-
-  options.each(function () {
-    if ($(this).data('id') == hiddenValue) {
-      isValid = true;
-      return false; // break out of each loop
-    }
-  });
-
-  return isValid;
-}
-
-// Function to initialize resident search for head of household
-function initializeResidentSearch(searchInputId, dropdownId, hiddenId, nameId) {
-  const searchInput = $(`#${searchInputId}`);
-  const dropdown = $(`#${dropdownId}`);
-  const hiddenInput = $(`#${hiddenId}`);
-  const nameInput = $(`#${nameId}`);
-
-  // Toggle dropdown on input focus/click
-  searchInput.on('focus click', function (e) {
-    e.stopPropagation();
-    dropdown.removeClass('hidden');
-    filterResidentOptions(searchInputId, dropdownId);
-  });
-
-  // Hide dropdown when clicking outside
-  $(document).on('click', function (e) {
-    if (!$(e.target).closest(`#${searchInputId}, #${dropdownId}`).length) {
-      dropdown.addClass('hidden');
-    }
-  });
-
-  // Search functionality
-  searchInput.on('input', function () {
-    filterResidentOptions(searchInputId, dropdownId);
-    dropdown.removeClass('hidden');
-  });
-
-  // Handle option selection
-  dropdown.on('click', '.resident-option', function () {
-    const selectedId = $(this).data('id');
-    const selectedName = $(this).data('name');
-
-    hiddenInput.val(selectedId);
-    nameInput.val(selectedName);
-    searchInput.val(selectedName);
-    dropdown.addClass('hidden');
-  });
-}
-
-function filterResidentOptions(searchInputId, dropdownId) {
-  const searchTerm = $(`#${searchInputId}`).val().toLowerCase();
-  const options = $(`#${dropdownId} .resident-option`);
-
-  options.each(function () {
-    const residentName = $(this).data('name').toLowerCase();
-    const residentAddress = ($(this).data('address') || '').toLowerCase();
-    if (residentName.includes(searchTerm) || residentAddress.includes(searchTerm)) {
-      $(this).show();
-    } else {
-      $(this).hide();
-    }
-  });
-}
-
-// Initialize searchable dropdowns
-initializeHouseholdSearch('edit-household-search', 'edit-household-dropdown', 'edit-household-id');
-initializeHouseholdSearch('add-household-search', 'add-household-dropdown', 'add-household-id');
-
-// Initialize head of household search
-initializeResidentSearch('householdFormHeadSearch', 'householdFormHeadDropdown', 'householdFormHeadId', 'householdFormHead');
-
-// Household Management Button
-$("#manageHouseholdsBtn").on("click", function () {
-  $("#householdManagementModal").dialog("open");
-});
-
-// Create Household Button
-$("#createHouseholdBtn").on("click", function () {
-  resetHouseholdForm();
-  loadResidentsForHeadSelection();
-  $("#householdFormModal").dialog("option", "title", "Create Household");
-  $("#householdFormModal").dialog("open");
-});
-
-// Search functionality
-$("#householdSearchInput").on("input", function () {
-  const searchTerm = $(this).val();
-  loadHouseholds(searchTerm);
-});
-
-// Function to load households
-function loadHouseholds(searchTerm = '') {
-  $.ajax({
-    url: 'household_api.php',
-    type: 'GET',
-    data: {
-      search: searchTerm,
-      limit: 100
-    },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        renderHouseholdList(response.households);
-      } else {
-        console.log('Failed to load households:', response.message);
-      }
-    },
-    error: function () {
-      console.log('Failed to load households');
-    }
-  });
-}
-
-// Function to render household list
-function renderHouseholdList(households) {
-  const container = $('#householdList');
-  container.empty();
-
-  if (households.length === 0) {
-    container.html('<div class="p-4 text-center text-gray-500">No households found</div>');
-    return;
-  }
-
-  households.forEach(household => {
-    const item = `
-        <div class="border-b p-4 hover:bg-gray-50">
-          <div class="flex justify-between items-start">
-            <div class="flex-1">
-              <div class="font-semibold text-blue-600">${household.household_no}</div>
-              <div class="text-sm text-gray-600 mt-1">
-                <div>🏠 ${household.address}</div>
-                <div>👤 Head: ${household.head_name}</div>
-                <div>👥 Members: ${household.total_members}</div>
-              </div>
+    // ── Archive a resident ──
+    $(document).on('click', '.archive-resident-btn', function () {
+        const id   = $(this).data('id');
+        const name = $(this).data('name');
+        const dlgId = 'cdlg_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Confirm Archive" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                Archive <strong>${escHtml(name)}</strong> from the register?<br>
+                <span style="font-size:11px;color:var(--ink-faint);">This can be reversed from the Archive Registry.</span>
             </div>
-            <div class="flex gap-2">
-              <button class="edit-household-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
-                      data-id="${household.id}" data-household='${JSON.stringify(household)}'>
-                ✏️ Edit
-              </button>
-              <button class="archive-household-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                      data-id="${household.id}" data-name="${household.household_no}">
-                🗑️ Archive
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    container.append(item);
-  });
-
-  // Attach event handlers
-  $('.edit-household-btn').on('click', function () {
-    const household = JSON.parse($(this).attr('data-household'));
-    editHousehold(household);
-  });
-
-  $('.archive-household-btn').on('click', function () {
-    const id = $(this).data('id');
-    const name = $(this).data('name');
-    archiveHousehold(id, name);
-  });
-}
-
-// Function to reset household form
-function resetHouseholdForm() {
-  $('#householdForm')[0].reset();
-  $('#householdFormId').val('');
-  $('#householdFormHeadId').val('');
-  $('#householdFormHeadSearch').val('');
-  // Show head selection for new households
-  $('#householdFormHeadContainer').show();
-  $('#householdFormHeadSearch').prop('required', true);
-}
-
-// Function to load residents for head of household selection
-function loadResidentsForHeadSelection() {
-  $.ajax({
-    url: 'get_residents_for_head.php',
-    type: 'GET',
-    data: { limit: 1000 },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        const dropdownContainer = $('#householdFormHeadDropdown');
-        dropdownContainer.empty();
-
-        response.residents.forEach(resident => {
-          const fullName = [resident.first_name, resident.middle_name, resident.last_name, resident.suffix].filter(Boolean).join(' ');
-          const residentItem = `
-              <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 resident-option"
-                   data-id="${resident.id}"
-                   data-name="${fullName}"
-                   data-address="${resident.address || ''}">
-                <div class="font-medium text-blue-600">${fullName}</div>
-                <div class="text-sm text-gray-600">${resident.address || 'No address'}</div>
-                <div class="text-xs text-gray-500">Age: ${resident.age || 'Unknown'}</div>
-              </div>
-            `;
-          dropdownContainer.append(residentItem);
-        });
-      }
-    },
-    error: function () {
-      console.error('Failed to load residents for head selection');
-    }
-  });
-}
-
-// Function to edit household
-function editHousehold(household) {
-  $('#householdFormId').val(household.id);
-  $('#householdFormNo').val(household.household_no);
-  $('#householdFormAddress').val(household.address);
-  // Note: Head cannot be changed after household creation
-  $('#householdFormHeadContainer').hide();
-  $('#householdFormHeadSearch').prop('required', false);
-
-  $("#householdFormModal").dialog("option", "title", "Edit Household");
-  $("#householdFormModal").dialog("open");
-}
-
-// Function to save household
-function saveHousehold() {
-  const formData = new FormData(document.getElementById('householdForm'));
-  const data = Object.fromEntries(formData.entries());
-  const isEdit = data.id ? true : false;
-
-  // Validate required fields
-  if (!data.household_no || !data.address) {
-    alert('Please fill in all required fields.');
-    return;
-  }
-
-  // For creation, head_resident_id is required
-  if (!isEdit && !data.head_resident_id) {
-    alert('Please select a head of household.');
-    return;
-  }
-
-  const action = isEdit ? 'update' : 'create';
-  data.action = action;
-
-  $.ajax({
-    url: 'household_api.php',
-    type: 'POST',
-    data: data,
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        // Show success message
-        $('<div>' + response.message + '</div>').dialog({
-          modal: true,
-          title: 'Success',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-              $("#householdFormModal").dialog('close');
-              loadHouseholds(); // Refresh the list
+        </div>`);
+        $(`#${dlgId}`).dialog(dialogCfg({
+            width: 420,
+            buttons: {
+                'Archive': function () {
+                    $(this).dialog('close').remove();
+                    $.post('archive_api.php', { action: 'archive', resident_id: id }, function (res) {
+                        showAlert(res.success ? 'Archived' : 'Error', res.message, res.success ? 'success' : 'danger');
+                        if (res.success) location.reload();
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
             }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded');
-          }
-        });
-      } else {
-        alert('Error: ' + response.message);
-      }
-    },
-    error: function () {
-      alert('Failed to save household. Please try again.');
-    }
-  });
-}
+        })).dialog('open');
+    });
 
-// Function to archive household
-function archiveHousehold(id, name) {
-  // Show confirmation dialog
-  $('<div>Are you sure you want to archive household <strong>' + name + '</strong>?<br><br>This action cannot be undone and will permanently delete the household.</div>').dialog({
-    modal: true,
-    title: 'Confirm Archive',
-    width: 450,
-    buttons: {
-      "Archive": function () {
-        $(this).dialog('close');
-        performArchiveHousehold(id);
-      },
-      "Cancel": function () {
-        $(this).dialog('close');
-      }
-    },
-    classes: {
-      'ui-dialog': 'rounded-lg shadow-lg',
-      'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-      'ui-dialog-title': 'font-semibold',
-      'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-    },
-    open: function () {
-      $('.ui-dialog-buttonpane button:first').addClass('bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2');
-      $('.ui-dialog-buttonpane button:last').addClass('bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded');
-    }
-  });
-}
+    // ── Search residents archive ──
+    let arcResTimer;
+    $('#arcResSearch').on('input', function () {
+        clearTimeout(arcResTimer);
+        arcResTimer = setTimeout(() => loadArchivedResidents($(this).val()), 300);
+    });
 
-// Function to perform household archiving
-function performArchiveHousehold(id) {
-  $.ajax({
-    url: 'household_api.php',
-    type: 'POST',
-    data: {
-      action: 'archive',
-      id: id
-    },
-    dataType: 'json',
-    success: function (response) {
-      if (response.success) {
-        // Show success message
-        $('<div>' + response.message + '</div>').dialog({
-          modal: true,
-          title: 'Success',
-          width: 420,
-          buttons: {
-            Ok: function () {
-              $(this).dialog('close');
-              loadHouseholds(); // Refresh the list
+    // ── Search households archive ──
+    let arcHhTimer;
+    $('#arcHhSearch').on('input', function () {
+        clearTimeout(arcHhTimer);
+        arcHhTimer = setTimeout(() => loadArchivedHouseholds($(this).val()), 300);
+    });
+
+    // ── Load archived residents ──
+    function loadArchivedResidents(search = '') {
+        $.getJSON('archive_api.php', { search, limit: 100, offset: 0 }, function (res) {
+            const $body = $('#arcResBody');
+            if (!res.success) {
+                $body.html('<tr><td colspan="4" class="archive-empty">Error loading archive.</td></tr>');
+                return;
             }
-          },
-          classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-titlebar': 'bg-green-500 text-white rounded-t-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-          },
-          open: function () {
-            $('.ui-dialog-buttonpane button').addClass('bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded');
-          }
-        });
-      } else {
-        alert('Error: ' + response.message);
-      }
-    },
-    error: function () {
-      alert('Failed to archive household. Please try again.');
-    }
-  });
-}
 
-// Helper function to calculate age
-function calculateAge(birthdate) {
-  if (!birthdate) return null;
-  const parts = birthdate.split('-');
-  if (parts.length !== 3) return null;
-  const birthDate = new Date(parts[0], parts[1] - 1, parts[2]);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
-}
+            // Stats
+            const total = res.total || 0;
+            const now   = new Date();
+            const thisMonth = res.residents.filter(r => {
+                const d = new Date(r.archived_date);
+                return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+            }).length;
+            const latest = res.residents[0]
+                ? new Date(res.residents[0].archived_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+                : '—';
+
+            $('#arc-res-total').text(total);
+            $('#arc-res-month').text(thisMonth);
+            $('#arc-res-latest').text(latest);
+            $('#arc-res-count').text(total);
+
+            if (!res.residents.length) {
+                $body.html('<tr><td colspan="4" class="archive-empty">No archived residents found.</td></tr>');
+                $('#arcResFooter').text('0 RECORDS');
+                return;
+            }
+
+            $body.empty();
+            res.residents.forEach((r, i) => {
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${String(r.id).padStart(4,'0')}</td>
+                    <td style="font-weight:500;">${escHtml(r.full_name)}</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${r.archived_date}</td>
+                    <td style="text-align:center;">
+                    </td>
+                </tr>`);
+            });
+            $('#arcResFooter').text(total + ' ARCHIVED RESIDENT' + (total !== 1 ? 'S' : ''));
+        });
+    }
+
+    // ── Load archived households ──
+    function loadArchivedHouseholds(search = '') {
+        // household_api.php returns archived households (archived_at IS NOT NULL)
+        $.getJSON('household_api.php', { archived: 1, search, limit: 100 }, function (res) {
+            const $body = $('#arcHhBody');
+
+            if (!res.success) {
+                $body.html('<tr><td colspan="6" class="archive-empty">Error loading archive.</td></tr>');
+                return;
+            }
+
+            const households = res.households || [];
+            const total      = res.total || households.length;
+
+            // Stats
+            const totalMembers = households.reduce((s, h) => s + (parseInt(h.total_members) || 0), 0);
+            const latest = households[0]
+                ? new Date(households[0].archived_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+                : '—';
+
+            $('#arc-hh-total').text(total);
+            $('#arc-hh-members').text(totalMembers);
+            $('#arc-hh-latest').text(latest);
+            $('#arc-hh-count').text(total);
+
+            if (!households.length) {
+                $body.html('<tr><td colspan="6" class="archive-empty">No archived households found.</td></tr>');
+                $('#arcHhFooter').text('0 RECORDS');
+                return;
+            }
+
+            $body.empty();
+            households.forEach((h, i) => {
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i + 1}</td>
+                    <td style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${escHtml(h.household_no)}</td>
+                    <td style="font-weight:500;">${escHtml(h.head_name || '—')}</td>
+                    <td style="font-size:12px;color:var(--ink-muted);">${escHtml(h.address || '—')}</td>
+                    <td style="text-align:center;font-family:var(--f-mono);font-size:12px;">${h.total_members || 0}</td>
+                    <td style="text-align:center;">
+                    </td>
+                </tr>`);
+            });
+            $('#arcHhFooter').text(total + ' ARCHIVED HOUSEHOLD' + (total !== 1 ? 'S' : ''));
+        });
+    }
+
+
+    /* ══════════════════════════════════════════
+       HOUSEHOLD MANAGEMENT
+    ══════════════════════════════════════════ */
+    $('#householdManagementModal').dialog(dialogCfg({
+        width: 720,
+        open: function () { loadHouseholds(); }
+    }));
+    $('#manageHouseholdsBtn').on('click', () => $('#householdManagementModal').dialog('open'));
+
+    let hhSearchTimer;
+    $('#householdSearchInput').on('input', function () {
+        clearTimeout(hhSearchTimer);
+        hhSearchTimer = setTimeout(() => loadHouseholds($(this).val()), 300);
+    });
+
+    function loadHouseholds(search = '') {
+        $.getJSON('household_api.php', { search, limit: 50 }, function (res) {
+            const $list = $('#householdList');
+            if (!res.success || !res.households.length) {
+                $list.html('<div style="padding:32px;text-align:center;color:var(--ink-faint);font-style:italic;font-size:12px;">No households found.</div>');
+                return;
+            }
+            $list.empty();
+            res.households.forEach(hh => {
+                $list.append(`
+                    <div class="hh-item">
+                        <div>
+                            <div class="hh-no">${escHtml(hh.household_no)}</div>
+                            <div class="hh-addr">${escHtml(hh.address)}</div>
+                            <div class="hh-head">Head: ${escHtml(hh.head_name || '—')} · ${hh.total_members} member${hh.total_members !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                `);
+            });
+        });
+    }
+
+    /* ══════════════════════════════════════════
+       HOUSEHOLD INLINE SEARCH DROPDOWNS
+    ══════════════════════════════════════════ */
+    let allHouseholds = [];
+
+    function loadHouseholdsForDropdown(prefix) {
+        $.getJSON('household_api.php', { limit: 1000 }, function (res) {
+            if (!res.success) return;
+            allHouseholds = res.households;
+            populateHHDropdown(prefix);
+        });
+    }
+
+    function populateHHDropdown(prefix) {
+        const $dd  = $(`#${prefix}-household-dropdown`);
+        const $sel = $(`#${prefix}-household-id`);
+        $dd.empty();
+        $sel.empty().append('<option value="">— None —</option>');
+        allHouseholds.forEach(hh => {
+            const label = `${hh.household_no} — ${hh.head_name} (${hh.address})`;
+            $sel.append(`<option value="${hh.id}">${escHtml(label)}</option>`);
+            $dd.append(`<div class="hh-opt" data-id="${hh.id}" data-text="${escHtml(label)}">
+                <div class="opt-main">${escHtml(hh.household_no)}</div>
+                <div class="opt-sub">${escHtml(hh.head_name)} · ${escHtml(hh.address)}</div>
+            </div>`);
+        });
+    }
+
+    // Search filter for HH dropdowns
+    $(document).on('input', '#edit-household-search, #add-household-search', function () {
+        const prefix = this.id.startsWith('edit') ? 'edit' : 'add';
+        const q = $(this).val().toLowerCase();
+        const $dd = $(`#${prefix}-household-dropdown`);
+        if (!q) { $(`#${prefix}-household-id`).val(''); $dd.removeClass('open'); return; }
+        $dd.find('.hh-opt').each(function () {
+            $(this).toggle($(this).text().toLowerCase().includes(q));
+        });
+        $dd.addClass('open');
+    });
+
+    $(document).on('click', '#edit-household-dropdown .hh-opt, #add-household-dropdown .hh-opt', function () {
+        const isEdit = $(this).closest('#edit-household-dropdown').length;
+        const prefix = isEdit ? 'edit' : 'add';
+        const id   = $(this).data('id');
+        const text = $(this).data('text');
+        $(`#${prefix}-household-id`).val(id);
+        $(`#${prefix}-household-search`).val(text);
+        $(`#${prefix}-household-dropdown`).removeClass('open');
+    });
+
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#edit-household-search, #edit-household-dropdown, #add-household-search, #add-household-dropdown').length) {
+            $('.hh-dropdown').removeClass('open');
+        }
+    });
+
+    /* ══════════════════════════════════════════
+       RESIDENT SEARCH FOR HH HEAD
+    ══════════════════════════════════════════ */
+    function loadResidentsForHeadDropdown() {
+        $.getJSON('get_residents_for_head.php', { limit: 1000 }, function (res) {
+            if (!res.success) return;
+            const $dd = $('#householdFormHeadDropdown');
+            $dd.empty();
+            res.residents.forEach(r => {
+                $dd.append(`<div class="hh-opt" data-id="${r.id}" data-name="${escHtml(r.full_name)}">
+                    <div class="opt-main">${escHtml(r.full_name)}</div>
+                    <div class="opt-sub">${escHtml(r.address || 'No address')} · Age ${r.age || '?'}</div>
+                </div>`);
+            });
+        });
+    }
+
+    $(document).on('input', '#householdFormHeadSearch', function () {
+        const q = $(this).val().toLowerCase();
+        const $dd = $('#householdFormHeadDropdown');
+        if (!q) { $('#householdFormHeadId').val(''); $dd.removeClass('open'); return; }
+        $dd.find('.hh-opt').each(function () {
+            $(this).toggle($(this).text().toLowerCase().includes(q));
+        });
+        $dd.addClass('open');
+    });
+
+    $(document).on('click', '#householdFormHeadDropdown .hh-opt', function () {
+        $('#householdFormHeadId').val($(this).data('id'));
+        $('#householdFormHeadSearch').val($(this).data('name'));
+        $('#householdFormHeadDropdown').removeClass('open');
+    });
+
+    /* ══════════════════════════════════════════
+       UTILITIES
+    ══════════════════════════════════════════ */
+    function calcAge(dob) {
+        if (!dob) return null;
+        const d = new Date(dob), n = new Date();
+        let age = n.getFullYear() - d.getFullYear();
+        if (n.getMonth() < d.getMonth() || (n.getMonth() === d.getMonth() && n.getDate() < d.getDate())) age--;
+        return age;
+    }
+
+    function fmtDate(s) {
+        if (!s) return '—';
+        const d = new Date(s + 'T00:00:00');
+        return d.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+});

@@ -9,7 +9,6 @@
 
 require_once __DIR__ . '/../../../includes/app.php';
 requireCaptain();
-
 // Initialize message variables
 $success = '';
 $error = '';

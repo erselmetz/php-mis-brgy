@@ -79,22 +79,22 @@ $newResidents = q($conn, "
 $certs = q($conn, "
     SELECT
         COUNT(*) total,
-        SUM(status='pending')  pending,
-        SUM(status='approved') approved,
-        SUM(status='printed')  printed,
-        SUM(certificate_type='Barangay Clearance')   clearance,
+        SUM(LOWER(status)='pending')  pending,
+        SUM(LOWER(status)='approved') approved,
+        SUM(LOWER(status)='printed')  printed,
+        SUM(certificate_type='Barangay Clearance')    clearance,
         SUM(certificate_type='Indigency Certificate') indigency,
         SUM(certificate_type='Residency Certificate') residency
     FROM certificate_request
-    WHERE DATE(created_at) BETWEEN ? AND ?
+    WHERE DATE(requested_at) BETWEEN ? AND ?
 ", ['ss', $dateFrom, $dateTo]) ?? [];
 
 // Certificates by day (for line chart)
 $certsByDay = qAll($conn, "
-    SELECT DATE(created_at) as day, COUNT(*) cnt
+    SELECT DATE(requested_at) as day, COUNT(*) cnt
     FROM certificate_request
-    WHERE DATE(created_at) BETWEEN ? AND ?
-    GROUP BY DATE(created_at)
+    WHERE DATE(requested_at) BETWEEN ? AND ?
+    GROUP BY DATE(requested_at)
     ORDER BY day ASC
 ", ['ss', $dateFrom, $dateTo]);
 

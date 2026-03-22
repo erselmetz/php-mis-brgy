@@ -323,7 +323,7 @@ $certBody = getCertificateBody($cert, $currentDate);
         .certificate {
             box-shadow: none;
             max-width: 100%;
-            padding: 30px 40px;
+            padding: 0px 0px;
             margin: 0;
             /* Fill the full printable area */
             min-height: 100vh;

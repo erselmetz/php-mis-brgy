@@ -1,383 +1,367 @@
+/**
+ * Blotter Case Register — JS Controller
+ * Replaces: public/secretary/blotter/js/index.js
+ */
+
+/* ─── Helpers ─── */
+function dlgCfg(opts) {
+    return Object.assign({
+        autoOpen: false, modal: true, resizable: false, closeOnEscape: true,
+        classes: { 'ui-dialog': '', 'ui-dialog-titlebar': '', 'ui-dialog-buttonpane': '' }
+    }, opts);
+}
+function showAlert(title, msg, type) {
+    const id  = 'a_' + Date.now();
+    const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--danger-fg)' : 'var(--accent)';
+    $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+        <div style="padding:18px 20px;font-size:13px;color:var(--ink);border-left:3px solid ${col};background:var(--paper);">${esc(msg)}</div>
+    </div>`);
+    $(`#${id}`).dialog(dlgCfg({ width: 400, buttons: { 'OK': function () { $(this).dialog('close').remove(); } } })).dialog('open');
+}
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function fmtDate(s) {
+    if (!s) return '—';
+    return new Date(s + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtDateTime(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+         + ' ' + d.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+}
+
+const STATUS_CONF = {
+    pending:            { label: 'Pending',            cls: 'bs-pending' },
+    under_investigation:{ label: 'Under Investigation', cls: 'bs-invest' },
+    resolved:           { label: 'Resolved',           cls: 'bs-resolved' },
+    dismissed:          { label: 'Dismissed',          cls: 'bs-dismissed' },
+};
+const SF_CLASS = {
+    pending: 'sf-pending', under_investigation: 'sf-invest',
+    resolved: 'sf-resolved', dismissed: 'sf-dismissed',
+};
+
 $(function () {
-    $('body').show();
-    $('#blotterTable').DataTable({
-        order: [
-            [0, 'desc']
-        ],
-        pageLength: 25
-    });
 
-    $("#archivedBlotterDialog").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 900,
-        height: 600,
-        resizable: true,
-        classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
-        open: function () {
-            loadArchivedBlotters();
-            $('.ui-dialog-buttonpane button')
-                .addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
+    /* ═══════════════════════════════════════
+       DATATABLE + SEARCH + FILTER
+    ═══════════════════════════════════════ */
+    const table = $('#blotterTable').DataTable({
+        pageLength: 25, order: [[3, 'desc']],
+        dom: 'tip',
+        language: {
+            info: 'Showing _START_–_END_ of _TOTAL_ cases',
+            paginate: { previous: '‹', next: '›' }
         }
     });
 
-    // View Blotter Modal
-    let currentBlotterId = null;
-    $("#viewBlotterModal").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 900,
-        height: 700,
-        resizable: true,
-        classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
+    // Text search
+    $('#bltTableSearch').on('input', function () { table.search($(this).val()).draw(); });
+
+    // Status filter pills — use DataTables column search on hidden data-status
+    $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+        if (settings.nTable.id !== 'blotterTable') return true;
+        const activeStatus = $('#statusFilters .sf-pill.active').data('status');
+        if (!activeStatus) return true;
+        const rowStatus = $($('#blotterTable tbody tr')[dataIndex]).data('status');
+        return rowStatus === activeStatus;
+    });
+
+    $('#statusFilters').on('click', '.sf-pill', function () {
+        $('#statusFilters .sf-pill').removeClass('active');
+        $(this).addClass('active');
+        table.draw();
+    });
+
+    /* ═══════════════════════════════════════
+       ADD NEW CASE MODAL
+    ═══════════════════════════════════════ */
+    $('#addBlotterModal').dialog(dlgCfg({ width: 720 }));
+    $('#openBlotterModalBtn').on('click', () => $('#addBlotterModal').dialog('open'));
+
+    /* ═══════════════════════════════════════
+       VIEW / EDIT CASE MODAL
+    ═══════════════════════════════════════ */
+    $('#viewBlotterModal').dialog(dlgCfg({
+        width: 860,
         buttons: {
-            "Close": function () {
-                $(this).dialog("close");
-            }
+            'Close':        function () { $(this).dialog('close'); }
         },
         open: function () {
-            const buttons = $('.ui-dialog-buttonpane button');
-            buttons.addClass('text-white px-4 py-2 rounded mr-2');
-
-            // Close button - Gray
-            buttons.eq(0).addClass('bg-gray-500 hover:bg-gray-600');
+            // Style buttons
+            const $btns = $(this).dialog('widget').find('.ui-dialog-buttonpane .ui-button');
+            $btns.eq(1).css({ background: 'var(--danger-bg)', borderColor: 'var(--danger-fg)', color: 'var(--danger-fg)' });
+            $btns.eq(2).css({ background: '#fff', borderColor: 'var(--rule-dk)', color: 'var(--ink-muted)' });
         }
+    }));
+
+    // Open from case number click or View button
+    $(document).on('click', '.view-blotter-btn', function () {
+        loadBlotterData($(this).data('id'));
     });
 
-    $("#archivedBlotterDialogBtn").on("click", function () {
-        $("#archivedBlotterDialog").dialog("open");
-    });
-
-    // History Dialog
-    $("#historyBlotterDialog").dialog({
-        autoOpen: false,
-        modal: true,
-        width: 1000,
-        height: 600,
-        resizable: true,
-        classes: {
-            'ui-dialog': 'rounded-lg shadow-lg',
-            'ui-dialog-title': 'font-semibold',
-            'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-        },
-        open: function () {
-            loadHistoryBlotters();
-            $('.ui-dialog-buttonpane button')
-                .addClass('bg-theme-primary hover-theme-darker text-white px-4 py-2 rounded');
-        }
-    });
-
-    $("#historyBlotterDialogBtn").on("click", function () {
-        $("#historyBlotterDialog").dialog("open");
-    });
-
-    // Search history
-    let historySearchTimeout;
-    $("#historySearchInput").on("input", function () {
-        clearTimeout(historySearchTimeout);
-        const searchTerm = $(this).val();
-        historySearchTimeout = setTimeout(() => {
-            loadHistoryBlotters(searchTerm);
-        }, 300);
-    });
-
-    // Search archived blotters
-    let searchTimeout;
-    $("#archiveSearchInput").on("input", function () {
-        clearTimeout(searchTimeout);
-        const searchTerm = $(this).val();
-        searchTimeout = setTimeout(() => {
-            loadArchivedBlotters(searchTerm);
-        }, 300);
-    });
-
-    // Handle click on case number or view link
-    $(document).on("click", ".view-blotter-btn", function () {
-        const blotterId = $(this).data('id');
-        if (blotterId) {
-            loadBlotterData(blotterId);
-        }
-    });
-
-    // Load blotter data via AJAX
     function loadBlotterData(id) {
-        currentBlotterId = id;
         $.getJSON(`get_blotter.php?id=${id}`, function (data) {
-            if (data.error) {
-                $('<div>' + data.error + '</div>').dialog({
-                    modal: true,
-                    title: 'Error',
-                    width: 420,
-                    buttons: {
-                        Ok: function () {
-                            $(this).dialog('close');
-                        }
-                    },
-                    classes: {
-                        'ui-dialog': 'rounded-lg shadow-lg',
-                        'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                        'ui-dialog-title': 'font-semibold',
-                        'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                    }
-                });
-                return;
-            }
-
-            // Populate form fields
-            $('#blotter_id').val(data.id);
-            $('#case_number_display').text(data.case_number);
-            $('#status').val(data.status);
-            $('#created_by_display').text(data.created_by_name || 'N/A');
-            $('#created_at_display').text(formatDateTime(data.created_at));
-
-            $('#incident_date').val(data.incident_date);
-            $('#incident_time').val(data.incident_time || '');
-            $('#incident_location').val(data.incident_location);
-            $('#incident_description').val(data.incident_description);
-
-            $('#complainant_name').val(data.complainant_name);
-            $('#complainant_address').val(data.complainant_address || '');
-            $('#complainant_contact').val(data.complainant_contact || '');
-
-            $('#respondent_name').val(data.respondent_name);
-            $('#respondent_address').val(data.respondent_address || '');
-            $('#respondent_contact').val(data.respondent_contact || '');
-
-            $('#resolved_date').val(data.resolved_date || '');
-            $('#resolution').val(data.resolution || '');
-
-            // Open the dialog
-            $("#viewBlotterModal").dialog("open");
-        }).fail(function () {
-            $('<div>Failed to load blotter data.</div>').dialog({
-                modal: true,
-                title: 'Error',
-                width: 420,
-                buttons: {
-                    Ok: function () {
-                        $(this).dialog('close');
-                    }
-                },
-                classes: {
-                    'ui-dialog': 'rounded-lg shadow-lg',
-                    'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                    'ui-dialog-title': 'font-semibold',
-                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                }
-            });
-        });
+            if (data.error) { showAlert('Error', data.error, 'danger'); return; }
+            populateViewModal(data);
+            $('#viewBlotterModal').dialog('open');
+        }).fail(() => showAlert('Error', 'Failed to load case data.', 'danger'));
     }
 
-    // Load archived blotters
-    function loadArchivedBlotters(search = '') {
-        const url = search ? `archive_api.php?search=${encodeURIComponent(search)}` : 'archive_api.php';
+    function populateViewModal(d) {
+        $('#vc-id').val(d.id);
+        $('#vc-case-no').text(d.case_number);
+        $('#vc-parties').text(d.complainant_name + ' vs. ' + d.respondent_name);
+        $('#vc-date').text('📅 ' + fmtDate(d.incident_date));
+        $('#vc-filed').text('Filed by: ' + (d.created_by_name || '—'));
 
-        $.getJSON(url, function (data) {
-            if (!data.success) {
-                $('#archivedBlotterTableBody').html('<tr><td colspan="4" class="p-4 text-center text-gray-500">Error loading archived cases.</td></tr>');
-                $('#archivedBlotterFooter').text('Error loading data');
-                return;
-            }
+        const sc = STATUS_CONF[d.status] || { label: d.status, cls: 'bs-dismissed' };
+        $('#vc-status-badge').html(`<span class="bs ${sc.cls}">${sc.label}</span>`);
+        $('#vc-status-select').val(d.status);
+        $('#vc-resolved-date').val(d.resolved_date || '');
 
-            const tbody = $('#archivedBlotterTableBody');
-            tbody.empty();
+        $('#vc-comp-name').val(d.complainant_name || '');
+        $('#vc-comp-contact').val(d.complainant_contact || '');
+        $('#vc-comp-addr').val(d.complainant_address || '');
+        $('#vc-resp-name').val(d.respondent_name || '');
+        $('#vc-resp-contact').val(d.respondent_contact || '');
+        $('#vc-resp-addr').val(d.respondent_address || '');
 
-            if (data.blotters.length === 0) {
-                tbody.html('<tr><td colspan="4" class="p-4 text-center text-gray-500">No archived cases found.</td></tr>');
+        $('#vc-inc-date').val(d.incident_date || '');
+        $('#vc-inc-time').val(d.incident_time || '');
+        $('#vc-inc-loc').val(d.incident_location || '');
+        $('#vc-inc-desc').val(d.incident_description || '');
+        $('#vc-status').val(d.status || 'pending');
+        $('#vc-res-date').val(d.resolved_date || '');
+        $('#vc-resolution').val(d.resolution || '');
+    }
+
+    // Quick status save from top bar
+    $('#vcSaveStatus').on('click', function () {
+        const id     = $('#vc-id').val();
+        const status = $('#vc-status-select').val();
+        const resDate= $('#vc-resolved-date').val();
+        if (!id) return;
+
+        $.post('update_blotter.php', {
+            id, status,
+            resolved_date: status === 'resolved' ? resDate : '',
+            csrf_token: $('[name="csrf_token"]').val(),
+            // fill required fields from current form
+            complainant_name: $('#vc-comp-name').val(),
+            respondent_name:  $('#vc-resp-name').val(),
+            incident_date:    $('#vc-inc-date').val(),
+            incident_location:    $('#vc-inc-loc').val(),
+            incident_description: $('#vc-inc-desc').val(),
+            incident_time:    $('#vc-inc-time').val(),
+            complainant_address: $('#vc-comp-addr').val(),
+            complainant_contact: $('#vc-comp-contact').val(),
+            respondent_address:  $('#vc-resp-addr').val(),
+            respondent_contact:  $('#vc-resp-contact').val(),
+            resolution: $('#vc-resolution').val(),
+        }, function (res) {
+            if (res.success) {
+                const sc = STATUS_CONF[status] || { label: status, cls: 'bs-dismissed' };
+                $('#vc-status-badge').html(`<span class="bs ${sc.cls}">${sc.label}</span>`);
+                $('#vc-status').val(status);
+                showAlert('Saved', 'Status updated.', 'success');
+                location.reload();
             } else {
-                data.blotters.forEach(function (blotter) {
-                    const row = `
-                        <tr>
-                            <td class="p-2 font-semibold">${blotter.case_number}</td>
-                            <td class="p-2">
-                                ${blotter.parties}
-                                <div class="text-xs text-gray-500">${blotter.incident}</div>
-                            </td>
-                            <td class="p-2">${blotter.archived_date}</td>
-                            <td class="p-2 text-center">
-                                <button class="restore-blotter-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-id="${blotter.id}">Restore</button>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.append(row);
-                });
+                showAlert('Error', res.message || 'Update failed.', 'danger');
             }
+        }, 'json');
+    });
 
-            // Update footer
-            const showing = data.blotters.length;
-            const total = data.total;
-            $('#archivedBlotterFooter').text(`Showing ${showing} of ${total} archived records`);
-        }).fail(function () {
-            $('#archivedBlotterTableBody').html('<tr><td colspan="4" class="p-4 text-center text-red-500">Failed to load archived cases.</td></tr>');
-            $('#archivedBlotterFooter').text('Error loading data');
-        });
+    // Full save (all fields)
+    function saveBlotter() {
+        $.post('update_blotter.php', $('#blotterForm').serialize(), function (res) {
+            if (res.success) {
+                $('#viewBlotterModal').dialog('close');
+                showAlert('Saved', 'Case record updated.', 'success');
+                location.reload();
+            } else {
+                showAlert('Error', res.message || 'Update failed.', 'danger');
+            }
+        }, 'json').fail(() => showAlert('Error', 'Failed to connect to server.', 'danger'));
     }
 
-    // Handle restore button click
-    $(document).on("click", ".restore-blotter-btn", function () {
-        const blotterId = $(this).data('id');
-        if (!blotterId) return;
+    /* ═══════════════════════════════════════
+       ARCHIVE CASE
+    ═══════════════════════════════════════ */
+    $(document).on('click', '.archive-case-btn', function () {
+        archiveCase($(this).data('id'), $(this).data('case'));
+    });
 
-        $('<div>Are you sure you want to restore this case?</div>').dialog({
-            modal: true,
-            title: 'Restore Case',
+    function archiveCase(id, caseNo) {
+        const dlgId = 'arc_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Archive Case" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                Archive case <strong style="font-family:var(--f-mono);">${esc(caseNo)}</strong>?<br>
+                <span style="font-size:11px;color:var(--ink-faint);">This can be reversed from the Archived Cases panel.</span>
+            </div>
+        </div>`);
+        $(`#${dlgId}`).dialog(dlgCfg({
             width: 420,
             buttons: {
-                "Yes": function () {
-                    $(this).dialog('close');
-
-                    $.ajax({
-                        url: 'archive_api.php',
-                        type: 'POST',
-                        data: {
-                            action: 'restore',
-                            blotter_id: blotterId
-                        },
-                        dataType: 'json',
-                        success: function (res) {
-                            $('<div>' + res.message + '</div>').dialog({
-                                modal: true,
-                                title: res.success ? 'Success' : 'Error',
-                                width: 420,
-                                buttons: {
-                                    Ok: function () {
-                                        $(this).dialog('close');
-                                        if (res.success) {
-                                            loadArchivedBlotters($("#archiveSearchInput").val());
-                                            // Reload main page after a short delay
-                                            setTimeout(() => {
-                                                location.reload();
-                                            }, 500);
-                                        }
-                                    }
-                                },
-                                classes: {
-                                    'ui-dialog': 'rounded-lg shadow-lg',
-                                    'ui-dialog-titlebar': res.success ? 'bg-green-500 text-white rounded-t-lg' : 'bg-red-500 text-white rounded-t-lg',
-                                    'ui-dialog-title': 'font-semibold',
-                                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                                }
-                            });
-                        },
-                        error: function () {
-                            $('<div>Failed to connect to server.</div>').dialog({
-                                modal: true,
-                                title: 'Error',
-                                width: 420,
-                                buttons: {
-                                    Ok: function () {
-                                        $(this).dialog('close');
-                                    }
-                                },
-                                classes: {
-                                    'ui-dialog': 'rounded-lg shadow-lg',
-                                    'ui-dialog-titlebar': 'bg-red-500 text-white rounded-t-lg',
-                                    'ui-dialog-title': 'font-semibold',
-                                    'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
-                                }
-                            });
+                'Archive': function () {
+                    $(this).dialog('close').remove();
+                    $.post('archive_api.php', { action: 'archive', blotter_id: id }, function (res) {
+                        if (res.success) {
+                            $('#viewBlotterModal').dialog('close');
+                            showAlert('Archived', res.message, 'success');
+                            location.reload();
+                        } else {
+                            showAlert('Error', res.message, 'danger');
                         }
-                    });
+                    }, 'json');
                 },
-                "No": function () {
-                    $(this).dialog('close');
-                }
-            },
-            classes: {
-                'ui-dialog': 'rounded-lg shadow-lg',
-                'ui-dialog-titlebar': 'bg-theme-primary text-white rounded-t-lg',
-                'ui-dialog-title': 'font-semibold',
-                'ui-dialog-buttonpane': 'bg-gray-50 rounded-b-lg'
+                'Cancel': function () { $(this).dialog('close').remove(); }
             }
-        });
+        })).dialog('open');
+    }
+
+    /* ═══════════════════════════════════════
+       ARCHIVED CASES DIALOG
+    ═══════════════════════════════════════ */
+    $('#archivedCasesDialog').dialog(dlgCfg({
+        width: 860,
+        open: function () { loadArchivedCases(); }
+    }));
+    $('#btnArchivedCases').on('click', () => $('#archivedCasesDialog').dialog('open'));
+
+    let arcTimer;
+    $('#arcSearch').on('input', function () {
+        clearTimeout(arcTimer);
+        arcTimer = setTimeout(() => loadArchivedCases($(this).val()), 300);
     });
 
-    // Load history blotters
-    function loadHistoryBlotters(search = '') {
-        let url = 'history_api.php';
-        if (search) {
-            url += `?case_number=${encodeURIComponent(search)}`;
-        }
+    function loadArchivedCases(search = '') {
+        const $body = $('#arcBody');
+        $body.html('<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--ink-faint);">Loading…</td></tr>');
+        $.getJSON('archive_api.php', { search, limit: 100 }, function (res) {
+            if (!res.success) {
+                $body.html('<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--danger-fg);">Error loading archive.</td></tr>'); return;
+            }
+            const cases = res.blotters || [];
+            const total = res.total || cases.length;
 
-        $.getJSON(url, function (data) {
-            if (!data.success) {
-                $('#historyBlotterTableBody').html('<tr><td colspan="5" class="p-4 text-center text-gray-500">Error loading history.</td></tr>');
-                $('#historyBlotterFooter').text('Error loading data');
-                return;
+            // Stats
+            $('#arc-total').text(total);
+            // We don't have full status from list endpoint — just show totals
+            $('#arc-latest').text(cases[0]?.archived_date || '—');
+
+            if (!cases.length) {
+                $body.html('<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--ink-faint);font-style:italic;">No archived cases found.</td></tr>');
+                $('#arcFooter').text('0 RECORDS'); return;
             }
 
-            const tbody = $('#historyBlotterTableBody');
-            tbody.empty();
-
-            if (data.history.length === 0) {
-                tbody.html('<tr><td colspan="5" class="p-4 text-center text-gray-500">No history found.</td></tr>');
-            } else {
-                data.history.forEach(function (entry) {
-                    let statusChange = '';
-                    if (entry.old_status && entry.new_status) {
-                        statusChange = `
-                            <span class="px-2 py-1 rounded text-xs font-semibold ${entry.old_status_color}">${entry.old_status_display}</span>
-                            <span class="mx-2">→</span>
-                            <span class="px-2 py-1 rounded text-xs font-semibold ${entry.new_status_color}">${entry.new_status_display}</span>
-                        `;
-                    } else if (entry.new_status) {
-                        statusChange = `<span class="px-2 py-1 rounded text-xs font-semibold ${entry.new_status_color}">${entry.new_status_display}</span>`;
-                    } else {
-                        statusChange = '<span class="text-gray-400">—</span>';
-                    }
-
-                    const actionTypeLabels = {
-                        'status_changed': 'Status Changed',
-                        'updated': 'Updated',
-                        'created': 'Created',
-                        'archived': 'Archived',
-                        'restored': 'Restored'
-                    };
-
-                    const row = `
-                        <tr>
-                            <td class="p-2 font-semibold">${entry.case_number}</td>
-                            <td class="p-2">${actionTypeLabels[entry.action_type] || entry.action_type}</td>
-                            <td class="p-2">${statusChange}</td>
-                            <td class="p-2">${entry.user_name || 'Unknown'}</td>
-                            <td class="p-2">${formatDateTime(entry.created_at)}</td>
-                        </tr>
-                    `;
-                    tbody.append(row);
-                });
-            }
-
-            // Update footer
-            const total = data.total;
-            $('#historyBlotterFooter').text(`Showing ${data.history.length} of ${total} history records`);
-        }).fail(function () {
-            $('#historyBlotterTableBody').html('<tr><td colspan="5" class="p-4 text-center text-red-500">Failed to load history.</td></tr>');
-            $('#historyBlotterFooter').text('Error loading data');
+            let resolved = 0, dismissed = 0;
+            $body.empty();
+            cases.forEach((c, i) => {
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i+1}</td>
+                    <td style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${esc(c.case_number)}</td>
+                    <td>
+                        <div style="font-weight:500;">${esc(c.parties)}</div>
+                        <div style="font-size:10.5px;color:var(--ink-faint);">${esc(c.incident || '')}</div>
+                    </td>
+                    <td>—</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${esc(c.archived_date)}</td>
+                </tr>`);
+            });
+            $('#arcFooter').text(total + ' ARCHIVED CASE' + (total !== 1 ? 'S' : ''));
         });
     }
 
-    // Format datetime helper
-    function formatDateTime(dateString) {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        const months = ['January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'];
-        const month = months[date.getMonth()];
-        const day = date.getDate();
-        const year = date.getFullYear();
-        let hours = date.getHours();
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        return `${month} ${day}, ${year} ${hours}:${minutes} ${ampm}`;
+    // Restore case
+    $(document).on('click', '.restore-case-btn', function () {
+        const id      = $(this).data('id');
+        const caseNo  = $(this).data('case');
+        const dlgId   = 'rst_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Restore Case" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                Restore case <strong style="font-family:var(--f-mono);">${esc(caseNo)}</strong> to active register?
+            </div>
+        </div>`);
+        $(`#${dlgId}`).dialog(dlgCfg({
+            width: 420,
+            buttons: {
+                'Restore': function () {
+                    $(this).dialog('close').remove();
+                    $.post('archive_api.php', { action: 'restore', blotter_id: id }, function (res) {
+                        showAlert(res.success ? 'Restored' : 'Error', res.message, res.success ? 'success' : 'danger');
+                        if (res.success) loadArchivedCases($('#arcSearch').val());
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
+            }
+        })).dialog('open');
+    });
+
+    /* ═══════════════════════════════════════
+       CASE HISTORY DIALOG
+    ═══════════════════════════════════════ */
+    $('#caseHistoryDialog').dialog(dlgCfg({
+        width: 860,
+        open: function () { loadCaseHistory(); }
+    }));
+    $('#btnCaseHistory').on('click', () => $('#caseHistoryDialog').dialog('open'));
+
+    let histTimer;
+    $('#histSearch').on('input', function () {
+        clearTimeout(histTimer);
+        histTimer = setTimeout(() => loadCaseHistory($(this).val()), 300);
+    });
+
+    function loadCaseHistory(search = '') {
+        const $body = $('#histBody');
+        $body.html('<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--ink-faint);">Loading…</td></tr>');
+        const url = search ? `history_api.php?case_number=${encodeURIComponent(search)}` : 'history_api.php';
+        $.getJSON(url, function (res) {
+            if (!res.success) {
+                $body.html('<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--danger-fg);">Error loading history.</td></tr>'); return;
+            }
+            if (!res.history.length) {
+                $body.html('<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--ink-faint);font-style:italic;">No history found.</td></tr>');
+                $('#histFooter').text('0 RECORDS'); return;
+            }
+
+            $body.empty();
+            res.history.forEach(h => {
+                const actionMap = {
+                    status_changed: ['ap-status',   'Status Changed'],
+                    archived:       ['ap-archived',  'Archived'],
+                    restored:       ['ap-restored',  'Restored'],
+                    created:        ['ap-other',     'Created'],
+                    updated:        ['ap-other',     'Updated'],
+                };
+                const [apCls, apLbl] = actionMap[h.action_type] || ['ap-other', h.action_type];
+
+                // Status flow
+                let flow = '—';
+                if (h.old_status && h.new_status && h.old_status !== h.new_status) {
+                    const oSF = SF_CLASS[h.old_status] || 'sf-dismissed';
+                    const nSF = SF_CLASS[h.new_status] || 'sf-dismissed';
+                    flow = `<div class="status-flow">
+                        <span class="sf-badge ${oSF}">${esc(h.old_status_display || h.old_status)}</span>
+                        <span class="sf-arrow">→</span>
+                        <span class="sf-badge ${nSF}">${esc(h.new_status_display || h.new_status)}</span>
+                    </div>`;
+                } else if (h.new_status) {
+                    const nSF = SF_CLASS[h.new_status] || 'sf-dismissed';
+                    flow = `<span class="sf-badge ${nSF}">${esc(h.new_status_display || h.new_status)}</span>`;
+                }
+
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-weight:700;color:var(--accent);">${esc(h.case_number)}</td>
+                    <td><span class="action-pill ${apCls}">${apLbl}</span></td>
+                    <td>${flow}</td>
+                    <td style="font-size:12px;color:var(--ink-muted);">${esc(h.user_name || '—')}</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-faint);white-space:nowrap;">${fmtDateTime(h.created_at)}</td>
+                </tr>`);
+            });
+            $('#histFooter').text(res.total + ' RECORD' + (res.total !== 1 ? 'S' : ''));
+        });
     }
+
 });

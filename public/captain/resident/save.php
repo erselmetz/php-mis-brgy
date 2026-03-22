@@ -8,7 +8,7 @@
  */
 
 require_once __DIR__ . '/../../../includes/app.php';
-requireKagawad();
+requireCaptain();
 
 header('Content-Type: application/json');
 

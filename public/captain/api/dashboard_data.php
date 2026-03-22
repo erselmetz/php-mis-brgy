@@ -41,7 +41,7 @@ try {
      */
     if ($isTanodFilter) {
         // Tanod dashboard filters - only tanod and admin can access
-        if ($role !== 'tanod' && $role !== 'admin') {
+        if ($role !== 'secretary') {
             throw new Exception('Unauthorized access to Tanod filters');
         }
         
@@ -68,7 +68,7 @@ try {
         }
     } elseif ($isStaffFilter) {
         // Staff dashboard filters - only staff and admin can access
-        if ($role !== 'staff' && $role !== 'admin') {
+        if ($role !== 'secretary' && $role !== 'admin') {
             throw new Exception('Unauthorized access to Staff filters');
         }
         

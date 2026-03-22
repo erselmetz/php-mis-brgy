@@ -5,7 +5,7 @@
  */
 
 require_once __DIR__ . '/../../../../includes/app.php';
-requireSecretary();
+requireCaptain();
 
 header('Content-Type: application/json; charset=utf-8');
 

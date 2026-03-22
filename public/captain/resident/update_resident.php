@@ -15,7 +15,7 @@ while (!file_exists($configDir)) {
     $configDir = $parent;
 }
 require_once $configDir;
-requireKagawad();
+requireCaptain();
 
 header('Content-Type: application/json');
 

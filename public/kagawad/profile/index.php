@@ -6,350 +6,1017 @@ $user_id = $_SESSION['user_id'];
 $success = '';
 $error = '';
 
-// Fetch current user info
+// Fetch current user
 $stmt = $conn->prepare("SELECT name, username, profile_picture FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+$user = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  /**
-   * CSRF Protection
-   * Validate CSRF token to prevent Cross-Site Request Forgery attacks
-   */
-  if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
-    $error = "Invalid security token. Please refresh the page and try again.";
-  } else {
-    $name = sanitizeString($_POST['name'] ?? '', false);
-    $username = sanitizeString($_POST['username'] ?? '', false);
-    $password = sanitizeString($_POST['password'] ?? '');
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $error = "Invalid security token. Please refresh the page.";
+    } else {
+        $name = sanitizeString($_POST['name'] ?? '', false);
+        $username = sanitizeString($_POST['username'] ?? '', false);
+        $password = sanitizeString($_POST['password'] ?? '');
+        $profile_picture = $user['profile_picture'];
 
-    // Handle profile picture upload
-    $profile_picture = $user['profile_picture']; // Keep existing if not changed
+        if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../../uploads/profiles/';
+            if (!is_dir($uploadDir))
+                mkdir($uploadDir, 0755, true);
 
-    /**
-     * Handle profile picture upload with security validation
-     * Uses comprehensive file validation to prevent malicious uploads
-     */
-    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
-      $uploadDir = __DIR__ . '/../../uploads/profiles/';
-
-      // Create upload directory if it doesn't exist
-      if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-      }
-
-      // Validate uploaded file using secure validation function
-      $validation = validateUploadedFile(
-        $_FILES['profile_picture'],
-        ['image/jpeg', 'image/png', 'image/gif'], // Allowed MIME types
-        2 * 1024 * 1024, // Max size: 2MB
-        ['jpg', 'jpeg', 'png', 'gif'] // Allowed extensions
-      );
-
-      if (!$validation['valid']) {
-        $error = $validation['error'];
-      } else {
-        // Use safe filename from validation
-        $filename = 'profile_' . $user_id . '_' . $validation['safe_filename'];
-        $filepath = $uploadDir . $filename;
-
-        // Move uploaded file to destination
-        if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $filepath)) {
-          // Delete old profile picture if exists (prevent path traversal)
-          if (!empty($user['profile_picture'])) {
-            $oldFilePath = $uploadDir . basename($user['profile_picture']); // basename prevents path traversal
-            if (file_exists($oldFilePath) && is_file($oldFilePath)) {
-              unlink($oldFilePath);
+            $validation = validateUploadedFile(
+                $_FILES['profile_picture'],
+                ['image/jpeg', 'image/png', 'image/gif'],
+                2097152,
+                ['jpg', 'jpeg', 'png', 'gif']
+            );
+            if (!$validation['valid']) {
+                $error = $validation['error'];
+            } else {
+                $filename = 'profile_' . $user_id . '_' . $validation['safe_filename'];
+                $filepath = $uploadDir . $filename;
+                if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $filepath)) {
+                    if (!empty($user['profile_picture'])) {
+                        $old = $uploadDir . basename($user['profile_picture']);
+                        if (file_exists($old) && is_file($old))
+                            unlink($old);
+                    }
+                    $profile_picture = $filename;
+                } else {
+                    $error = "Failed to upload profile picture.";
+                }
             }
-          }
-          $profile_picture = $filename;
-        } else {
-          error_log('Profile picture upload failed for user ID: ' . $user_id);
-          $error = "Failed to upload profile picture. Please try again.";
         }
-      }
+
+        if (empty($error)) {
+            if (empty($name) || empty($username)) {
+                $error = "Name and username are required.";
+            } else {
+                if (!empty($password)) {
+                    $hashed = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $conn->prepare("UPDATE users SET name=?, username=?, password=?, profile_picture=? WHERE id=?");
+                    $stmt->bind_param("ssssi", $name, $username, $hashed, $profile_picture, $user_id);
+                } else {
+                    $stmt = $conn->prepare("UPDATE users SET name=?, username=?, profile_picture=? WHERE id=?");
+                    $stmt->bind_param("sssi", $name, $username, $profile_picture, $user_id);
+                }
+                if ($stmt->execute()) {
+                    $_SESSION['name'] = $name;
+                    $_SESSION['username'] = $username;
+                    if (!empty($profile_picture))
+                        $_SESSION['profile_picture'] = $profile_picture;
+                    $success = "Profile updated successfully.";
+                    // Refresh
+                    $stmt2 = $conn->prepare("SELECT name, username, profile_picture FROM users WHERE id = ?");
+                    $stmt2->bind_param("i", $user_id);
+                    $stmt2->execute();
+                    $user = $stmt2->get_result()->fetch_assoc();
+                    $stmt2->close();
+                } else {
+                    $error = "Failed to update profile.";
+                }
+                $stmt->close();
+            }
+        }
     }
-
-    if (empty($error)) {
-      if (empty($name) || empty($username)) {
-        $error = "Name and username are required.";
-      } else {
-        if (!empty($password)) {
-          // Update with new password (hashed)
-          $hashed = password_hash($password, PASSWORD_DEFAULT);
-          $stmt = $conn->prepare("UPDATE users SET name = ?, username = ?, password = ?, profile_picture = ? WHERE id = ?");
-          $stmt->bind_param("ssssi", $name, $username, $hashed, $profile_picture, $user_id);
-        } else {
-          // Update without changing password
-          $stmt = $conn->prepare("UPDATE users SET name = ?, username = ?, profile_picture = ? WHERE id = ?");
-          $stmt->bind_param("sssi", $name, $username, $profile_picture, $user_id);
-        }
-
-        if ($stmt->execute()) {
-          $_SESSION['name'] = $name;
-          $_SESSION['username'] = $username;
-          if (!empty($profile_picture)) {
-            $_SESSION['profile_picture'] = $profile_picture;
-          }
-          $success = "✅ Profile updated successfully!";
-
-          // Refresh user info
-          $stmt = $conn->prepare("SELECT name, username, profile_picture FROM users WHERE id = ?");
-          $stmt->bind_param("i", $user_id);
-          $stmt->execute();
-          $result = $stmt->get_result();
-          $user = $result->fetch_assoc();
-        } else {
-          $error = "❌ Failed to update profile. Try again.";
-        }
-        $stmt->close();
-      }
-    }
-  }
 }
+
+// Profile picture path helper
+$picSrc = '';
+if (!empty($user['profile_picture'])) {
+    $picPath = __DIR__ . '/../../uploads/profiles/' . $user['profile_picture'];
+    if (file_exists($picPath))
+        $picSrc = '/uploads/profiles/' . htmlspecialchars($user['profile_picture']);
+}
+
+// User initials fallback
+$nameParts = explode(' ', trim($user['name'] ?? 'U'));
+$initials = strtoupper(substr($nameParts[0], 0, 1) . (count($nameParts) > 1 ? substr(end($nameParts), 0, 1) : ''));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>Profile Account - MIS Barangay</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <?php loadAllAssets(); ?>
+    <meta charset="UTF-8">
+    <title>Settings — MIS Barangay</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= htmlspecialchars(getCSRFToken()) ?>">
+    <?php loadAllAssets(); ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════ */
+        :root {
+            --paper: #fdfcf9;
+            --paper-lt: #f9f7f3;
+            --paper-dk: #f0ede6;
+            --ink: #1a1a1a;
+            --ink-muted: #5a5a5a;
+            --ink-faint: #a0a0a0;
+            --rule: #d8d4cc;
+            --rule-dk: #b8b4ac;
+            --bg: #edeae4;
+            --accent: var(--theme-primary, #2d5a27);
+            --accent-lt: color-mix(in srgb, var(--accent) 8%, white);
+            --accent-dk: color-mix(in srgb, var(--accent) 65%, black);
+            --ok-bg: #edfaf3;
+            --ok-fg: #1a5c35;
+            --warn-bg: #fef9ec;
+            --warn-fg: #7a5700;
+            --info-bg: #edf3fa;
+            --info-fg: #1a3a5c;
+            --danger-bg: #fdeeed;
+            --danger-fg: #7a1f1a;
+            --neu-bg: #f3f1ec;
+            --neu-fg: #5a5a5a;
+            --f-serif: 'Source Serif 4', Georgia, serif;
+            --f-sans: 'Source Sans 3', 'Segoe UI', sans-serif;
+            --f-mono: 'Source Code Pro', 'Courier New', monospace;
+            --shadow: 0 1px 2px rgba(0, 0, 0, .07), 0 3px 12px rgba(0, 0, 0, .04);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        input,
+        button,
+        select,
+        textarea {
+            font-family: var(--f-sans);
+        }
+
+        /* ═══════════════════════════════════════
+       PAGE LAYOUT
+    ═══════════════════════════════════════ */
+        .set-page {
+            background: var(--bg);
+            min-height: 100%;
+            padding-bottom: 56px;
+        }
+
+        /* ── Document Header ── */
+        .doc-header {
+            background: var(--paper);
+            border-bottom: 1px solid var(--rule);
+        }
+
+        .doc-header-inner {
+            padding: 20px 28px 20px;
+        }
+
+        .doc-eyebrow {
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .doc-eyebrow::before {
+            content: '';
+            display: inline-block;
+            width: 18px;
+            height: 2px;
+            background: var(--accent);
+        }
+
+        .doc-title {
+            font-family: var(--f-serif);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -.2px;
+            margin-bottom: 3px;
+        }
+
+        .doc-sub {
+            font-size: 12px;
+            color: var(--ink-faint);
+            font-style: italic;
+        }
+
+        /* ── Two column grid ── */
+        .set-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 22px;
+            padding: 22px 28px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .set-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Card (shared) ── */
+        .set-card {
+            background: var(--paper);
+            border: 1px solid var(--rule);
+            border-top: 3px solid var(--accent);
+            border-radius: 2px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .set-card+.set-card {
+            margin-top: 22px;
+        }
+
+        .card-head {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--rule);
+            background: var(--paper-lt);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 1px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* ═══════════════════════════════════════
+       LEFT COLUMN — Profile Identity
+    ═══════════════════════════════════════ */
+
+        /* Avatar */
+        .avatar-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 20px 20px;
+            border-bottom: 1px solid var(--rule);
+        }
+
+        .avatar-ring {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            position: relative;
+            margin-bottom: 14px;
+            cursor: pointer;
+            overflow: hidden;
+            box-shadow: 0 0 0 4px var(--accent-lt);
+            transition: box-shadow .2s;
+        }
+
+        .avatar-ring:hover {
+            box-shadow: 0 0 0 6px var(--accent-lt);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .avatar-initials {
+            width: 100%;
+            height: 100%;
+            background: var(--accent);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--f-serif);
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -.5px;
+        }
+
+        .avatar-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .42);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity .2s;
+            font-size: 10px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+        }
+
+        .avatar-ring:hover .avatar-overlay {
+            opacity: 1;
+        }
+
+        .avatar-name {
+            font-family: var(--f-serif);
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ink);
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .avatar-role {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            background: var(--neu-bg);
+            padding: 3px 10px;
+            border-radius: 2px;
+            border: 1px solid var(--rule);
+        }
+
+        .avatar-meta {
+            margin-top: 10px;
+            font-family: var(--f-mono);
+            font-size: 10px;
+            color: var(--ink-faint);
+            letter-spacing: .3px;
+            text-align: center;
+        }
+
+        /* Account form */
+        .fg {
+            margin-bottom: 14px;
+        }
+
+        .fg-label {
+            display: block;
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            margin-bottom: 5px;
+        }
+
+        .req {
+            color: var(--danger-fg);
+        }
+
+        .fg-input,
+        .fg-select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid var(--rule-dk);
+            border-radius: 2px;
+            font-family: var(--f-sans);
+            font-size: 13px;
+            color: var(--ink);
+            background: #fff;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .fg-input:focus,
+        .fg-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+        }
+
+        .fg-input::placeholder {
+            color: var(--ink-faint);
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        .fg-hint {
+            font-size: 10px;
+            color: var(--ink-faint);
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .fg-file-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            border: 1.5px dashed var(--rule-dk);
+            border-radius: 2px;
+            background: var(--paper-lt);
+            text-align: center;
+            font-size: 11.5px;
+            color: var(--ink-muted);
+            cursor: pointer;
+            transition: border-color .15s, color .15s;
+        }
+
+        .fg-file-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .fg-file-name {
+            font-size: 10.5px;
+            color: var(--ok-fg);
+            margin-top: 5px;
+            font-family: var(--f-mono);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 20px;
+            border-radius: 2px;
+            font-family: var(--f-sans);
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1.5px solid;
+            transition: all .14s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-ghost {
+            background: #fff;
+            border-color: var(--rule-dk);
+            color: var(--ink-muted);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-lt);
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 10px;
+        }
+
+        /* Alert banners */
+        .alert {
+            margin: 0 20px 16px;
+            padding: 11px 14px;
+            border-radius: 2px;
+            font-size: 12.5px;
+            font-weight: 500;
+            border-left: 3px solid;
+        }
+
+        .alert-ok {
+            background: var(--ok-bg);
+            color: var(--ok-fg);
+            border-color: var(--ok-fg);
+        }
+
+        .alert-danger {
+            background: var(--danger-bg);
+            color: var(--danger-fg);
+            border-color: var(--danger-fg);
+        }
+
+        /* ═══════════════════════════════════════
+       RIGHT COLUMN — Reports & Backup
+    ═══════════════════════════════════════ */
+
+        /* File reports table */
+        .rep-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rep-table thead th {
+            padding: 9px 14px;
+            background: var(--paper-lt);
+            text-align: left;
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            border-bottom: 1px solid var(--rule-dk);
+            white-space: nowrap;
+        }
+
+        .rep-table tbody tr {
+            border-bottom: 1px solid #f0ede8;
+            transition: background .1s;
+        }
+
+        .rep-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .rep-table tbody tr:hover {
+            background: var(--paper-lt);
+        }
+
+        .rep-table td {
+            padding: 11px 14px;
+            font-size: 12.5px;
+            color: var(--ink);
+            vertical-align: middle;
+        }
+
+        .rep-label {
+            font-weight: 600;
+        }
+
+        .rep-count {
+            font-family: var(--f-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        .rep-time {
+            font-size: 11px;
+            color: var(--ink-faint);
+            font-style: italic;
+        }
+
+        /* Backup archive visual */
+        .backup-panel {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .backup-icon-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1.5px dashed var(--rule-dk);
+            border-radius: 2px;
+            background: var(--paper-lt);
+            gap: 14px;
+        }
+
+        .backup-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--accent);
+            color: #fff;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .backup-icon-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            text-align: center;
+        }
+
+        /* Backup history table */
+        .bk-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        .bk-table thead th {
+            padding: 9px 14px;
+            background: var(--paper-lt);
+            text-align: left;
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            border-bottom: 1px solid var(--rule-dk);
+            white-space: nowrap;
+        }
+
+        .bk-table tbody tr {
+            border-bottom: 1px solid #f0ede8;
+            transition: background .1s;
+        }
+
+        .bk-table tbody tr:hover {
+            background: var(--paper-lt);
+        }
+
+        .bk-table td {
+            padding: 10px 14px;
+            vertical-align: middle;
+        }
+
+        .bk-date {
+            font-family: var(--f-mono);
+            font-size: 11.5px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .bk-time {
+            font-family: var(--f-mono);
+            font-size: 10.5px;
+            color: var(--ink-faint);
+            margin-top: 1px;
+        }
+
+        .bk-size {
+            font-family: var(--f-mono);
+            font-size: 11.5px;
+            color: var(--ink-muted);
+        }
+
+        .bk-by {
+            font-size: 12px;
+            color: var(--ink-muted);
+        }
+
+        .bk-desc {
+            font-size: 11px;
+            color: var(--ink-faint);
+            font-style: italic;
+        }
+
+        /* Spinner */
+        .spin {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 h-screen overflow-hidden" style="display: none;">
-  <?php include_once '../layout/navbar.php'; ?>
-  <div class="flex h-full bg-gray-100">
-    <?php include_once '../layout/sidebar.php'; ?>
-    <main class="pb-24 overflow-y-auto flex-1 p-6 w-screen">
-      <!-- =========================
-      BACKUP & REPORTS SECTION
-      ========================= -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 hidden">
+<body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
+    <?php include_once '../layout/navbar.php'; ?>
+    <div class="flex h-full" style="background:var(--bg);">
+        <?php include_once '../layout/sidebar.php'; ?>
 
-        <!-- FILE REPORTS -->
-        <div class="lg:col-span-2 bg-white border rounded-xl p-6 shadow-sm">
-          <h3 class="text-sm font-semibold mb-4">FILE REPORTS</h3>
+        <main class="flex-1 h-screen overflow-y-auto set-page">
 
-          <table class="w-full text-sm border-collapse">
-            <thead>
-              <tr class="border-b text-gray-500">
-                <th class="text-left py-2">FILE REPORTS</th>
-                <th class="text-left py-2">SIZE</th>
-                <th class="text-left py-2">LAST UPDATE</th>
-                <th class="text-right py-2">ACTION</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <tr>
-                <td class="py-3">Residence List</td>
-                <td>56 MB</td>
-                <td>2 mins ago</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Official and Staff</td>
-                <td>4 MB</td>
-                <td>8/24/25</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Blotter</td>
-                <td>104 MB</td>
-                <td>8/24/25</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="py-3">Inventory</td>
-                <td>2.4 GB</td>
-                <td>1 hour ago</td>
-                <td class="text-right">
-                  <button class="bg-theme-primary hover-theme-darker text-white text-xs px-3 py-1 rounded">
-                    Print Report
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="flex justify-center mt-6">
-            <button class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm">
-              REFRESH
-            </button>
-          </div>
-        </div>
-
-        <!-- ARCHIVES -->
-        <div class="bg-white border rounded-xl p-6 shadow-sm flex flex-col items-center justify-center">
-          <h3 class="text-lg font-semibold mb-6">Archives</h3>
-
-          <!-- ICON -->
-          <div class="w-24 h-24 bg-gray-800 rounded-lg flex items-center justify-center mb-6">
-            <div class="w-10 h-14 bg-gray-900 border border-theme-primary relative">
-              <div class="absolute top-2 left-2 right-2 space-y-1">
-                <div class="h-1 bg-theme-primary"></div>
-                <div class="h-1 bg-theme-primary"></div>
-                <div class="h-1 bg-theme-primary"></div>
-              </div>
-            </div>
-          </div>
-
-          <button class="bg-theme-primary hover-theme-darker text-white px-6 py-2 rounded-full text-sm">
-            BACK UP DATA
-          </button>
-        </div>
-
-      </div>
-
-      <!-- BACKUP HISTORY -->
-      <div class="bg-white border rounded-xl p-6 shadow-sm mb-10 hidden">
-        <h3 class="text-sm font-semibold mb-4">BACKUP HISTORY</h3>
-
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="border-b text-gray-500">
-              <th class="text-left py-2">DATE</th>
-              <th class="text-left py-2">SIZE</th>
-              <th class="text-left py-2">DESCRIPTION</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            <tr>
-              <td class="py-3 text-theme-primary">07-18-2025</td>
-              <td>56 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">06-05-2025</td>
-              <td>4 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">10-01-2024</td>
-              <td>104 MB</td>
-              <td>Maintenance</td>
-            </tr>
-            <tr>
-              <td class="py-3 text-theme-primary">01-20-2024</td>
-              <td>2.4 GB</td>
-              <td>Maintenance</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- profile settings -->
-      <div class="max-w-3xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
-        <h2 class="text-2xl font-semibold mb-4">Profile Settings</h2>
-        <?php if (!empty($success)): ?>
-          <div class="bg-green-100 border border-green-300 text-green-700 p-3 rounded">
-            <?= htmlspecialchars($success) ?>
-          </div>
-        <?php elseif (!empty($error)): ?>
-          <div class="bg-red-100 border border-red-300 text-red-700 p-3 rounded">
-            <?= htmlspecialchars($error) ?>
-          </div>
-        <?php endif; ?>
-
-        <form method="POST" enctype="multipart/form-data" class="space-y-6">
-          <?= csrfTokenField() ?>
-
-          <!-- Profile Picture Section -->
-          <div class="flex items-center space-x-6">
-            <div class="flex-shrink-0">
-              <?php if (!empty($user['profile_picture']) && file_exists(__DIR__ . '/../../uploads/profiles/' . $user['profile_picture'])): ?>
-                <img src="../../uploads/profiles/<?= htmlspecialchars($user['profile_picture']) ?>"
-                  alt="Profile Picture"
-                  class="w-24 h-24 rounded-xl object-cover border-4 border-gray-200">
-              <?php else: ?>
-                <div class="w-24 h-24 rounded-xl bg-gray-200 flex items-center justify-center border-4 border-gray-300">
-                  <span class="text-3xl text-gray-400">👤</span>
+            <!-- ── Document Header ── -->
+            <div class="doc-header">
+                <div class="doc-header-inner">
+                    <div class="doc-eyebrow">Barangay Bombongan — Administration</div>
+                    <div class="doc-title">Account &amp; System Settings</div>
+                    <div class="doc-sub">Profile management, data reports, and database backup</div>
                 </div>
-              <?php endif; ?>
-            </div>
-            <div class="flex-grow">
-              <label class="block text-gray-700 font-medium mb-2">Profile Picture</label>
-              <input type="file" name="profile_picture" accept="image/jpeg,image/jpg,image/png,image/gif"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary">
-              <p class="text-xs text-gray-500 mt-1">Max size: 2MB. Formats: JPEG, PNG, GIF</p>
-            </div>
-          </div>
-
-          <hr class="border-gray-200">
-
-          <!-- Account Information -->
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">Account Information</h3>
-
-          <div class="space-y-4">
-            <div>
-              <label class="block text-gray-700 mb-1 font-medium">Full Name</label>
-              <input type="text" name="name" value="<?= htmlspecialchars($user['name']) ?>"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary"
-                required>
             </div>
 
-            <div>
-              <label class="block text-gray-700 mb-1 font-medium">Username</label>
-              <input type="text" name="username" value="<?= htmlspecialchars($user['username']) ?>"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary"
-                required>
-            </div>
+            <!-- ── Two-column grid ── -->
+            <div class="set-grid">
 
-            <div>
-              <label class="block text-gray-700 mb-1 font-medium">New Password (optional)</label>
-              <input type="password" name="password" placeholder="Leave blank to keep current password"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary">
-              <p class="text-xs text-gray-500 mt-1">Leave blank if you don't want to change your password</p>
-            </div>
-          </div>
+                <!-- ════════════════════════════
+                     LEFT: Profile Card
+                ════════════════════════════ -->
+                <div>
+                    <div class="set-card">
+                        <!-- Avatar zone -->
+                        <div class="avatar-zone">
+                            <label for="picInput" class="avatar-ring" title="Click to change photo">
+                                <?php if ($picSrc): ?>
+                                    <img src="<?= $picSrc ?>" alt="Profile" class="avatar-img" id="avatarPreview">
+                                <?php else: ?>
+                                    <div class="avatar-initials" id="avatarInitials"><?= $initials ?></div>
+                                <?php endif; ?>
+                                <div class="avatar-overlay">Change Photo</div>
+                            </label>
+                            <div class="avatar-name"><?= htmlspecialchars($user['name']) ?></div>
+                            <div class="avatar-role"><?= htmlspecialchars(ucfirst($_SESSION['role'] ?? '')) ?></div>
+                            <div class="avatar-meta">@<?= htmlspecialchars($user['username']) ?> · ID
+                                <?= str_pad($user_id, 4, '0', STR_PAD_LEFT) ?>
+                            </div>
+                        </div>
 
-          <div class="flex justify-end pt-4">
-            <button type="submit"
-              class="bg-theme-primary text-white px-6 py-2 rounded-xl hover-theme-darker transition font-medium">
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </main>
-  </div>
+                        <!-- Account form -->
+                        <form method="POST" enctype="multipart/form-data">
+                            <?= csrfTokenField() ?>
+                            <input type="file" id="picInput" name="profile_picture"
+                                accept="image/jpeg,image/jpg,image/png,image/gif" class="hidden"
+                                onchange="previewPic(this)">
 
-  <script>
-    $(function() {
-      $("body").show();
+                            <div class="card-body">
+                                <?php if ($success): ?>
+                                    <div class="alert alert-ok">✓ <?= htmlspecialchars($success) ?></div>
+                                <?php elseif ($error): ?>
+                                    <div class="alert alert-danger">⚠ <?= htmlspecialchars($error) ?></div>
+                                <?php endif; ?>
 
-      // Preview profile picture before upload
-      $('input[name="profile_picture"]').on('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            $('.flex-shrink-0 img, .flex-shrink-0 div').replaceWith(
-              '<img src="' + e.target.result + '" alt="Profile Preview" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200">'
-            );
-          };
-          reader.readAsDataURL(file);
+                                <!-- Photo upload strip -->
+                                <div class="fg">
+                                    <label class="fg-label">Profile Photo</label>
+                                    <label for="picInput" class="fg-file-btn" id="fileLabel">
+                                        ↑ Upload new photo (JPEG, PNG, GIF · max 2 MB)
+                                    </label>
+                                    <div class="fg-file-name hidden" id="fileName"></div>
+                                </div>
+
+                                <div class="fg">
+                                    <label class="fg-label">Full Name <span class="req">*</span></label>
+                                    <input type="text" name="name" class="fg-input"
+                                        value="<?= htmlspecialchars($user['name']) ?>" required autocomplete="off">
+                                </div>
+
+                                <div class="fg">
+                                    <label class="fg-label">Username <span class="req">*</span></label>
+                                    <input type="text" name="username" class="fg-input"
+                                        value="<?= htmlspecialchars($user['username']) ?>" required autocomplete="off">
+                                </div>
+
+                                <div class="fg">
+                                    <label class="fg-label">New Password</label>
+                                    <input type="password" name="password" class="fg-input"
+                                        placeholder="Leave blank to keep current password">
+                                    <div class="fg-hint">Only fill this in if you want to change your password.</div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary"
+                                    style="width:100%;justify-content:center;margin-top:4px;">
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ════════════════════════════
+                     RIGHT: Reports + Backup
+                ════════════════════════════ -->
+                <div>
+
+                    <!-- File Reports -->
+                    <div class="set-card">
+                        <div class="card-head">
+                            <span class="card-title">File Reports</span>
+                            <button class="btn btn-ghost btn-sm" onclick="loadFileReports()">↺ Refresh</button>
+                        </div>
+                        <table class="rep-table">
+                            <thead>
+                                <tr>
+                                    <th>Report</th>
+                                    <th style="text-align:center;">Records</th>
+                                    <th>Last Updated</th>
+                                    <th style="text-align:right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fileReportsBody">
+                                <tr>
+                                    <td colspan="4"
+                                        style="padding:20px;text-align:center;color:var(--ink-faint);font-style:italic;">
+                                        Loading reports…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Database Backup -->
+                    <div class="set-card" style="margin-top:22px;">
+                        <div class="card-head">
+                            <span class="card-title">Database Backup</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="backup-panel">
+                                
+                                <!-- Archive icon -->
+                                <div class="backup-icon-block">
+                                    <div class="backup-icon">🗄</div>
+                                    <div class="backup-icon-label">SQL Archive</div>
+                                    <div style="font-family:var(--f-mono);font-size:9px;color:var(--ink-faint);text-align:center;line-height:1.8;"
+                                        id="lastBackupMeta">—</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Backup History -->
+                    <div class="set-card" style="margin-top:22px;">
+                        <div class="card-head">
+                            <span class="card-title">Backup History</span>
+                            <button class="btn btn-ghost btn-sm" onclick="loadBackupHistory()">↺ Refresh</button>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="bk-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date &amp; Time</th>
+                                        <th>Size</th>
+                                        <th>Description</th>
+                                        <th>Performed By</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="backupHistoryBody">
+                                    <tr>
+                                        <td colspan="4"
+                                            style="padding:20px;text-align:center;color:var(--ink-faint);font-style:italic;">
+                                            Loading backup history…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div><!-- /right -->
+            </div><!-- /grid -->
+
+        </main>
+    </div>
+
+    <script>
+        /* ── Profile photo preview ── */
+        function previewPic(input) {
+            const file = input.files[0];
+            if (!file) return;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileName').classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const ring = document.querySelector('.avatar-ring');
+                const initDiv = document.getElementById('avatarInitials');
+                if (initDiv) initDiv.remove();
+                let img = document.getElementById('avatarPreview');
+                if (!img) {
+                    img = document.createElement('img');
+                    img.id = 'avatarPreview';
+                    img.className = 'avatar-img';
+                    img.alt = 'Profile';
+                    ring.insertBefore(img, ring.querySelector('.avatar-overlay'));
+                }
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
-      });
-    });
-  </script>
+
+        /* ── File Reports ── */
+        function loadFileReports() {
+            const tbody = document.getElementById('fileReportsBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink-faint);">Loading…</td></tr>';
+
+            // cache: 'no-store' forces a fresh network request every time
+            fetch('/kagawad/profile/file_reports.php?t=' + Date.now(), { cache: 'no-store' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== 'ok' || !data.data.length) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink-faint);font-style:italic;">No data available.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.data.map(r => `
+                    <tr>
+                        <td><div class="rep-label">${escHtml(r.label)}</div></td>
+                        <td style="text-align:center;"><span class="rep-count">${Number(r.count).toLocaleString()}</span></td>
+                        <td><div class="rep-time">${escHtml(r.last_updated)}</div></td>
+                        <td style="text-align:right;">
+                            <button class="btn btn-ghost btn-sm" onclick="printReport('${escHtml(r.print_url)}')">
+                                ↗ Print
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                })
+                .catch(() => {
+                    tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger-fg);">Failed to load reports.</td></tr>';
+                });
+        }
+
+        function printReport(url) { window.open(url, '_blank', 'width=1000,height=700'); }
+
+        /* ── Backup ── */
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        function triggerBackup() {
+            const btn = document.getElementById('backupBtn');
+            const desc = document.getElementById('backupDescription').value.trim() || 'Manual Backup';
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spin"></span> Generating…';
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/kagawad/profile/backup.php';
+
+            [['csrf_token', csrfToken], ['description', desc]].forEach(([n, v]) => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = n; inp.value = v;
+                form.appendChild(inp);
+            });
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '↓ Generate &amp; Download Backup';
+                document.getElementById('backupDescription').value = '';
+                loadBackupHistory();
+            }, 3000);
+        }
+
+        function loadBackupHistory() {
+            const tbody = document.getElementById('backupHistoryBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink-faint);">Loading…</td></tr>';
+
+            // cache: 'no-store' forces a fresh network request every time
+            fetch('/kagawad/profile/backup_history.php?t=' + Date.now(), { cache: 'no-store' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== 'ok' || !data.data.length) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--ink-faint);font-style:italic;">No backups recorded yet.</td></tr>';
+                        document.getElementById('lastBackupMeta').textContent = 'No backup yet';
+                        return;
+                    }
+                    // Update archive meta
+                    const latest = data.data[0];
+                    document.getElementById('lastBackupMeta').textContent =
+                        `Last: ${latest.date_formatted}\n${latest.time_formatted}\n${latest.size_formatted}`;
+
+                    tbody.innerHTML = data.data.map(r => `
+                    <tr>
+                        <td>
+                            <div class="bk-date">${escHtml(r.date_formatted)}</div>
+                            <div class="bk-time">${escHtml(r.time_formatted)}</div>
+                        </td>
+                        <td><span class="bk-size">${escHtml(r.size_formatted)}</span></td>
+                        <td><span class="bk-desc">${escHtml(r.description || 'Manual Backup')}</span></td>
+                        <td><span class="bk-by">${escHtml(r.performed_by_name)}</span></td>
+                    </tr>
+                `).join('');
+                })
+                .catch(() => {
+                    tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--danger-fg);">Failed to load backup history.</td></tr>';
+                });
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s || '';
+            return d.innerHTML;
+        }
+
+        /* ── Boot ── */
+        $(function () {
+            $('body').show();
+            loadFileReports();
+            loadBackupHistory();
+        });
+    </script>
 </body>
 
 </html>
