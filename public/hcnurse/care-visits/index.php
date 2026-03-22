@@ -1,32 +1,30 @@
 <?php
 /**
- * Care Visits — v3
+ * Care Visits — v4
  * Changes:
- * - Professional patient list (no DataTable chrome, just clean rows)
- * - Visit history shows status badge (Ongoing / Completed / Dismissed / Follow-up)
- * - Informative record detail panel with all fields
- * - Single "+ New Visit" button (was duplicated)
- * - Immunization: one NIP card per patient (no duplicates)
- * - Print shows status + all clinical fields
+ *  - "Print" button replaced with "Generate Report" which opens a modal
+ *  - Modal lets user pick date range, then opens print.php
  */
 require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse();
 
-$type    = $_GET['type'] ?? 'maternal';
-$allowed = ['maternal','family_planning','prenatal','postnatal','child_nutrition','immunization'];
-if (!in_array($type, $allowed, true)) $type = 'maternal';
+$type    = $_GET['type'] ?? 'general';
+$allowed = ['general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization','other'];
+if (!in_array($type, $allowed, true)) $type = 'general';
 
 $mod = [
+    'general'         => ['icon'=>'❤️‍🩹','label'=>'General',         'color'=>'#2d5a27','bg'=>'#f0fdf4','light'=>'#e8faea'],
     'maternal'        => ['icon'=>'🤱','label'=>'Maternal Health',  'color'=>'#9f1239','bg'=>'#fff1f2','light'=>'#fdf0f2'],
     'family_planning' => ['icon'=>'💊','label'=>'Family Planning',  'color'=>'#1e40af','bg'=>'#eff6ff','light'=>'#eaf3ff'],
     'prenatal'        => ['icon'=>'👶','label'=>'Prenatal / ANC',   'color'=>'#92400e','bg'=>'#fffbeb','light'=>'#fef8e0'],
     'postnatal'       => ['icon'=>'🍼','label'=>'Postnatal / PNC',  'color'=>'#134e4a','bg'=>'#f0fdfa','light'=>'#e8fbf5'],
     'child_nutrition' => ['icon'=>'🥗','label'=>'Child Nutrition',  'color'=>'#14532d','bg'=>'#f0fdf4','light'=>'#e8faea'],
     'immunization'    => ['icon'=>'💉','label'=>'Immunization',     'color'=>'#4c1d95','bg'=>'#f5f3ff','light'=>'#eeeaff'],
+    'other'           => ['icon'=>'📋','label'=>'Other',            'color'=>'#0c444e','bg'=>'#e0f5f8','light'=>'#d4f0f5'],
 ];
 $mc = $mod[$type];
 
-/* ── Patients with records (consultations table) ── */
+/* ── Patients with records (consultations) ── */
 $pStmt = $conn->prepare("
     SELECT r.id,
            CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) full_name,
@@ -43,7 +41,7 @@ $pStmt = $conn->prepare("
 $pStmt->bind_param('s',$type); $pStmt->execute();
 $patients = $pStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-/* Also from care_visits */
+/* ── Patients with records (care_visits) ── */
 $cvStmt = $conn->prepare("
     SELECT r.id,
            CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) full_name,
@@ -110,7 +108,7 @@ body{font-family:var(--f-n);}
 .page-sub{font-size:12px;color:var(--faint);font-style:italic;}
 .accent-bar{height:3px;margin-top:12px;background:linear-gradient(to right,var(--mod),transparent);}
 
-/* module tabs */
+/* tabs */
 .tabs{display:flex;gap:0;padding:0 28px;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{display:flex;align-items:center;gap:6px;padding:9px 13px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:2.5px solid transparent;white-space:nowrap;transition:all .12s;}
@@ -139,7 +137,6 @@ body{font-family:var(--f-n);}
 .pt-row:last-child{border-bottom:none;}
 .pt-row:hover{background:var(--mod-bg);}
 .pt-row.on{background:var(--mod-bg);border-left:3px solid var(--mod);}
-.pt-row.on .pt-name-txt{padding-left:0;}
 .pt-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--f-m);font-size:12px;font-weight:700;flex-shrink:0;background:var(--mod-lt);color:var(--mod);border:1.5px solid color-mix(in srgb,var(--mod) 20%,transparent);}
 .pt-info{flex:1;min-width:0;}
 .pt-name-txt{font-weight:600;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -188,6 +185,7 @@ body{font-family:var(--f-n);}
 .vf-lbl{font-size:8px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);margin-bottom:2px;}
 .vf-val{font-size:13px;color:var(--ink);line-height:1.6;white-space:pre-line;}
 .vf-empty{font-size:12px;color:var(--faint);font-style:italic;}
+.check-tag{display:inline-block;padding:1px 7px;border-radius:2px;font-size:9px;font-weight:700;margin-right:3px;margin-bottom:3px;background:var(--ok-bg);color:var(--ok-fg);border:1px solid color-mix(in srgb,var(--ok-fg) 20%,transparent);}
 
 /* nip card */
 .nip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px 15px;}
@@ -217,7 +215,7 @@ body{font-family:var(--f-n);}
 .fg{margin-bottom:12px;}
 .fg-lbl{display:block;font-size:8.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
 .fg-lbl .req{color:var(--danger-fg);}
-.fg-in,.fg-sel,.fg-ta{width:100%;padding:9px 12px;border:1.5px solid var(--rule-dk);border-radius:2px;font-family:var(--f-n);font-size:13px;color:var(--ink);background:#fff;outline:none;transition:border-color .14s,box-shadow .14s;}
+.fg-in,.fg-sel,.fg-ta{width:100%;padding:9px 12px;border:1.5px solid var(--rule-dk);border-radius:2px;font-family:var(--f-n);font-size:13px;color:var(--ink);background:#fff;outline:none;transition:border-color .14px,box-shadow .14s;}
 .fg-in:focus,.fg-sel:focus,.fg-ta:focus{border-color:var(--mod);box-shadow:0 0 0 3px color-mix(in srgb,var(--mod) 10%,transparent);}
 .fg-in::placeholder{color:var(--faint);font-style:italic;font-size:12px;}
 .fg-ta{resize:vertical;min-height:66px;}
@@ -229,6 +227,8 @@ body{font-family:var(--f-n);}
 .chk{display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid var(--rule-dk);border-radius:2px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .12s;}
 .chk:has(input:checked){border-color:var(--mod);background:var(--mod-bg);color:var(--mod);}
 .chk input{display:none;}
+.form-section-title{font-size:8px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;margin-bottom:12px;margin-top:4px;}
+.form-section-title::after{content:'';flex:1;height:1px;background:var(--rule);}
 
 /* btn */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:2px;font-family:var(--f-n);font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;border:1.5px solid;transition:all .13s;white-space:nowrap;}
@@ -236,6 +236,8 @@ body{font-family:var(--f-n);}
 .btn-mod:hover{filter:brightness(1.1);}
 .btn-ghost{background:#fff;border-color:var(--rule-dk);color:var(--muted);}
 .btn-ghost:hover{border-color:var(--mod);color:var(--mod);}
+.btn-danger{background:var(--danger-bg);border-color:color-mix(in srgb,var(--danger-fg) 30%,transparent);color:var(--danger-fg);}
+.btn-danger:hover{background:var(--danger-fg);color:#fff;}
 .btn:disabled{opacity:.4;cursor:not-allowed;filter:none!important;}
 .submit-bar{padding:11px 16px;border-top:1px solid var(--rule);background:var(--plt);display:flex;justify-content:flex-end;gap:8px;}
 
@@ -245,11 +247,15 @@ body{font-family:var(--f-n);}
 .ui-dialog-title{font-family:var(--f-n)!important;font-size:11px!important;font-weight:700!important;letter-spacing:1px!important;text-transform:uppercase!important;color:#fff!important;}
 .ui-dialog-titlebar-close{background:rgba(255,255,255,.15)!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:2px!important;color:#fff!important;width:24px!important;height:24px!important;top:50%!important;transform:translateY(-50%)!important;}
 .ui-dialog-content{padding:0!important;}
-.ui-dialog-buttonpane{background:var(--plt)!important;border-top:1px solid var(--rule)!important;padding:11px 15px!important;margin:0!important;}
-.ui-dialog-buttonpane .ui-button{font-family:var(--f-n)!important;font-size:11px!important;font-weight:700!important;letter-spacing:.5px!important;text-transform:uppercase!important;padding:7px 16px!important;border-radius:2px!important;cursor:pointer!important;}
-.ui-dialog-buttonpane .ui-button:first-child{background:var(--mod)!important;border:1.5px solid var(--mod)!important;color:#fff!important;}
-.ui-dialog-buttonpane .ui-button:not(:first-child){background:#fff!important;border:1.5px solid var(--rule-dk)!important;color:var(--muted)!important;}
-.ui-autocomplete{z-index:9999!important;max-height:200px;overflow-y:auto;overflow-x:hidden;}
+.ui-dialog-buttonpane{display:none!important;}
+.ui-autocomplete{z-index:9999!important;max-height:200px;overflow-y:auto;}
+
+/* generate modal specific */
+.gen-scope-toggle{display:flex;gap:0;margin-bottom:14px;border:1.5px solid var(--rule-dk);border-radius:2px;overflow:hidden;}
+.gen-scope-btn{flex:1;padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;color:var(--muted);background:#fff;border:none;transition:all .13s;}
+.gen-scope-btn.active{background:var(--mod);color:#fff;}
+.gen-preview{margin-top:10px;padding:10px 12px;background:var(--mod-lt);border:1px solid color-mix(in srgb,var(--mod) 20%,transparent);border-radius:2px;font-size:11px;color:var(--muted);line-height:1.6;}
+.gen-preview strong{color:var(--mod);}
 </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden" style="display:none;">
@@ -267,8 +273,8 @@ body{font-family:var(--f-n);}
                     <div class="page-sub"><?= $total ?> patient<?= $total!==1?'s':'' ?> on record — select to view</div>
                 </div>
                 <div style="display:flex;gap:7px;padding-bottom:4px;">
-                    <button class="btn btn-ghost" id="btnPrint">↗ Print</button>
-                    <button class="btn btn-mod"   id="btnNewVisit" disabled>+ New Visit</button>
+                    <button class="btn btn-ghost" id="btnGenerate">↗ Generate Report</button>
+                    <button class="btn btn-mod" id="btnNewVisit" disabled>+ New Visit</button>
                 </div>
             </div>
             <div class="tabs">
@@ -307,20 +313,18 @@ body{font-family:var(--f-n);}
                             <span style="font-family:var(--f-m);font-size:9px;color:var(--faint);letter-spacing:.3px;font-weight:400;">(<?= $total ?>)</span>
                         </div>
                         <input type="text" id="ptFilter" class="search-input"
-                               style="width:150px;padding:4px 9px;font-size:12px;"
-                               placeholder="Filter…">
+                               style="width:140px;padding:4px 9px;font-size:12px;" placeholder="Filter…">
                     </div>
                     <div class="pt-list" id="ptList">
                         <?php if (empty($ptMap)): ?>
                         <div class="pt-empty">
                             No <?= htmlspecialchars(strtolower($mc['label'])) ?> records yet.<br>
-                            <small>Add a consultation with type<br>"<?= htmlspecialchars(str_replace('_',' ',$type)) ?>".</small>
+                            <small>Use "+ New Visit" to add one.</small>
                         </div>
                         <?php else: foreach ($ptMap as $p):
-                            $a  = age($p['birthdate']??'');
-                            $g  = $p['gender']??'';
-                            $lv = $p['last_visit']??'';
-                            // initials
+                            $a     = age($p['birthdate']??'');
+                            $g     = $p['gender']??'';
+                            $lv    = $p['last_visit']??'';
                             $parts = explode(' ', trim($p['full_name']));
                             $init  = strtoupper(substr($parts[0]??'?',0,1).(count($parts)>1?substr($parts[count($parts)-1],0,1):''));
                         ?>
@@ -359,7 +363,7 @@ body{font-family:var(--f-n);}
                     </div>
                 </div>
 
-                <!-- selected patient card (hidden until selection) -->
+                <!-- selected patient card -->
                 <div class="card" id="detailCard" style="display:none;">
 
                     <!-- patient bar -->
@@ -370,7 +374,6 @@ body{font-family:var(--f-n);}
                         </div>
                     </div>
 
-                    <!-- immunization NIP card (only once, only for immunization type) -->
                     <?php if ($type==='immunization'): ?>
                     <div>
                         <div class="card-head" style="border-top:1px solid var(--rule);">
@@ -383,7 +386,6 @@ body{font-family:var(--f-n);}
                     </div>
                     <?php endif; ?>
 
-                    <!-- maternal profile (only for maternal type) -->
                     <?php if ($type==='maternal'): ?>
                     <div>
                         <div class="card-head" style="border-top:1px solid var(--rule);">
@@ -409,12 +411,12 @@ body{font-family:var(--f-n);}
 
                 </div>
 
-                <!-- visit detail (shown when a row clicked) -->
+                <!-- visit detail card -->
                 <div class="card" id="vDetailCard" style="display:none;">
                     <div class="card-head">
                         <div class="card-title" id="vdTitle">Visit Detail</div>
                         <div style="display:flex;gap:6px;">
-                            <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;" id="btnEditVisit">Edit</button>
+                            <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;" id="btnEditVisit">✏ Edit</button>
                             <button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;" onclick="$('#vDetailCard').slideUp(120)">✕</button>
                         </div>
                     </div>
@@ -427,13 +429,66 @@ body{font-family:var(--f-n);}
     </main>
 </div>
 
-<!-- maternal profile modal -->
+<!-- ══════════════════════════════
+     GENERATE REPORT MODAL
+══════════════════════════════ -->
+<div id="generateModal" title="Generate Report" class="hidden">
+    <form id="generateForm" style="padding:18px 20px 0;display:flex;flex-direction:column;gap:0;">
+
+        <!-- Scope toggle: specific patient vs all patients -->
+        <div style="margin-bottom:14px;">
+            <label class="fg-lbl" style="margin-bottom:8px;">Report Scope</label>
+            <div class="gen-scope-toggle">
+                <button type="button" class="gen-scope-btn active" id="scopePatient">Selected Patient</button>
+                <button type="button" class="gen-scope-btn" id="scopeAll">All Patients</button>
+            </div>
+        </div>
+
+        <!-- Date range -->
+        <div class="g2" style="margin-bottom:14px;">
+            <div class="fg" style="margin-bottom:0;">
+                <label class="fg-lbl">From Date</label>
+                <input type="date" id="gen_from" class="fg-in" value="<?= date('Y-01-01') ?>">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+                <label class="fg-lbl">To Date</label>
+                <input type="date" id="gen_to" class="fg-in" value="<?= date('Y-m-d') ?>">
+            </div>
+        </div>
+
+        <!-- Quick range shortcuts -->
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;">
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:9.5px;" data-range="today">Today</button>
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:9.5px;" data-range="week">This Week</button>
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:9.5px;" data-range="month">This Month</button>
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:9.5px;" data-range="quarter">This Quarter</button>
+            <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:9.5px;" data-range="year">This Year</button>
+        </div>
+
+        <!-- Preview strip -->
+        <div class="gen-preview" id="genPreview">
+            Will generate a <strong><?= htmlspecialchars($mc['label']) ?></strong> report
+            for <strong id="previewScope">the selected patient</strong>
+            from <strong id="previewFrom"><?= date('Y-01-01') ?></strong>
+            to <strong id="previewTo"><?= date('Y-m-d') ?></strong>.
+        </div>
+
+        <div class="submit-bar" style="margin:14px -20px 0;padding:11px 20px;">
+            <button type="button" class="btn btn-ghost" onclick="$('#generateModal').dialog('close')">Cancel</button>
+            <button type="button" class="btn btn-mod" id="btnDoGenerate">↗ Generate &amp; Print</button>
+        </div>
+    </form>
+</div>
+
+<!-- ══════════════════════════════
+     MATERNAL PROFILE MODAL
+══════════════════════════════ -->
 <?php if ($type==='maternal'): ?>
 <div id="mpModal" title="Edit Obstetric Profile" class="hidden">
 <form id="mpForm" style="max-height:68vh;overflow-y:auto;">
     <input type="hidden" name="resident_id" id="mp_rid">
     <div style="padding:16px 18px 0;">
-        <div style="font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;margin-bottom:12px;">GTPAL<div style="flex:1;height:1px;background:var(--rule);"></div></div>
+        <div class="form-section-title">GTPAL</div>
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding-bottom:14px;">
             <?php foreach(['gravida'=>'G','term'=>'T','preterm'=>'P','abortions'=>'A','living_children'=>'L'] as $n=>$l): ?>
             <div class="fg">
@@ -442,13 +497,13 @@ body{font-family:var(--f-n);}
             </div>
             <?php endforeach; ?>
         </div>
-        <div style="font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;margin-bottom:12px;">Complications<div style="flex:1;height:1px;background:var(--rule);"></div></div>
+        <div class="form-section-title">Complications</div>
         <div class="check-row" style="padding-bottom:14px;">
             <?php foreach(['hx_pre_eclampsia'=>'Pre-eclampsia','hx_pph'=>'PPH','hx_cesarean'=>'C-Section','hx_ectopic'=>'Ectopic','hx_stillbirth'=>'Stillbirth'] as $n=>$l): ?>
             <label class="chk"><input type="checkbox" name="<?= $n ?>" value="1"> <?= $l ?></label>
             <?php endforeach; ?>
         </div>
-        <div style="font-size:8px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px;margin-bottom:12px;">Chronic Conditions<div style="flex:1;height:1px;background:var(--rule);"></div></div>
+        <div class="form-section-title">Chronic Conditions</div>
         <div class="check-row" style="padding-bottom:12px;">
             <?php foreach(['has_diabetes'=>'Diabetes','has_hypertension'=>'Hypertension','has_hiv'=>'HIV','has_anemia'=>'Anemia'] as $n=>$l): ?>
             <label class="chk"><input type="checkbox" name="<?= $n ?>" value="1"> <?= $l ?></label>
@@ -477,22 +532,149 @@ body{font-family:var(--f-n);}
 </div>
 <?php endif; ?>
 
+<!-- ══════════════════════════════
+     EDIT CARE VISIT MODAL
+══════════════════════════════ -->
+<div id="editModal" title="Edit Care Visit" class="hidden">
+<form id="editForm" style="max-height:76vh;overflow-y:auto;">
+    <input type="hidden" name="care_visit_id" id="ef_vid">
+    <input type="hidden" name="type"          id="ef_type">
+    <div style="padding:16px 18px 0;">
+
+        <!-- Always present: date + notes -->
+        <div class="g2">
+            <div class="fg">
+                <label class="fg-lbl">Visit Date <span class="req">*</span></label>
+                <input type="date" name="visit_date" id="ef_date" class="fg-in">
+            </div>
+            <div class="fg">
+                <label class="fg-lbl">Health Worker</label>
+                <input type="text" name="health_worker" id="ef_worker" class="fg-in" autocomplete="off">
+            </div>
+        </div>
+        <div class="fg">
+            <label class="fg-lbl">Notes / General Remarks</label>
+            <textarea name="notes" id="ef_notes" class="fg-ta"></textarea>
+        </div>
+
+        <!-- Dynamic fields rendered per type -->
+        <div id="ef_fields"></div>
+
+    </div>
+    <div class="submit-bar">
+        <button type="button" class="btn btn-ghost" onclick="$('#editModal').dialog('close')">Cancel</button>
+        <button type="submit" class="btn btn-mod" id="efSubmit">Save Changes</button>
+    </div>
+</form>
+</div>
+
 <script>
 const CV_TYPE = <?= json_encode($type) ?>;
 const CV_API  = 'api/care_visits_api.php';
 let selId = null, selName = '';
+let currentVisitData = null;
+let genScope = 'patient'; // 'patient' | 'all'
 
 $(function(){
     $('body').show();
 
-    function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+    function esc(s){ const d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
     function or(v,fb=''){ return (v===null||v===undefined||v==='')?fb:v; }
+    function yn(v){ return v==1||v==='1'?'<span class="check-tag">Yes</span>':'No'; }
 
     function statusBadge(s){
         if(!s) return '';
         const map={Completed:'b-completed',Ongoing:'b-ongoing','Follow-up':'b-followup',Dismissed:'b-dismissed'};
         return `<span class="badge ${map[s]||'b-dismissed'}">${esc(s)}</span>`;
     }
+
+    /* ════════════════════════════
+       GENERATE REPORT MODAL
+    ════════════════════════════ */
+    $('#generateModal').dialog({
+        autoOpen: false, modal: true, width: 460, resizable: false,
+    });
+
+    $('#btnGenerate').on('click', function(){
+        // Pre-fill scope based on whether a patient is selected
+        if(selId){
+            setScope('patient');
+        } else {
+            setScope('all');
+        }
+        updatePreview();
+        $('#generateModal').dialog('open');
+    });
+
+    // Scope toggle
+    function setScope(s){
+        genScope = s;
+        if(s === 'patient'){
+            $('#scopePatient').addClass('active');
+            $('#scopeAll').removeClass('active');
+        } else {
+            $('#scopeAll').addClass('active');
+            $('#scopePatient').removeClass('active');
+        }
+        updatePreview();
+    }
+
+    $('#scopePatient').on('click', function(){
+        if(!selId){ alert('Please select a patient first.'); return; }
+        setScope('patient');
+    });
+    $('#scopeAll').on('click', function(){ setScope('all'); });
+
+    // Quick range shortcuts
+    $('[data-range]').on('click', function(){
+        const r = $(this).data('range');
+        const today = new Date();
+        const fmt = d => d.toISOString().slice(0,10);
+        let from, to = fmt(today);
+        if(r==='today'){
+            from = to;
+        } else if(r==='week'){
+            const d = new Date(today);
+            d.setDate(today.getDate() - today.getDay() + 1); // Monday
+            from = fmt(d);
+        } else if(r==='month'){
+            from = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
+        } else if(r==='quarter'){
+            const q = Math.floor(today.getMonth()/3);
+            from = today.getFullYear()+'-'+String(q*3+1).padStart(2,'0')+'-01';
+        } else if(r==='year'){
+            from = today.getFullYear()+'-01-01';
+        }
+        $('#gen_from').val(from);
+        $('#gen_to').val(to);
+        updatePreview();
+    });
+
+    $('#gen_from, #gen_to').on('change', updatePreview);
+
+    function updatePreview(){
+        const from = $('#gen_from').val();
+        const to   = $('#gen_to').val();
+        const scopeText = genScope==='patient' && selId
+            ? `<strong>${esc(selName)}</strong>`
+            : '<strong>all patients</strong>';
+        $('#previewScope').parent().html(
+            `Will generate a <strong><?= htmlspecialchars($mc['label']) ?></strong> report
+             for ${scopeText}
+             from <strong>${esc(from)}</strong>
+             to <strong>${esc(to)}</strong>.`
+        );
+    }
+
+    $('#btnDoGenerate').on('click', function(){
+        const from = $('#gen_from').val();
+        const to   = $('#gen_to').val();
+        if(!from || !to){ alert('Please set a date range.'); return; }
+        const rid = (genScope==='patient' && selId) ? selId : '';
+        const url = `print.php?type=${encodeURIComponent(CV_TYPE)}&resident_id=${encodeURIComponent(rid)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+        window.open(url, '_blank');
+        $('#generateModal').dialog('close');
+    });
 
     /* ── filter patient list ── */
     $('#ptFilter').on('input',function(){
@@ -507,7 +689,7 @@ $(function(){
     $(document).on('click','.pt-row',function(){
         $('.pt-row').removeClass('on');
         $(this).addClass('on');
-        selectPatient($(this).data('id'), $(this).data('name'), $(this).data('age'), $(this).data('gender'));
+        selectPatient($(this).data('id'),$(this).data('name'),$(this).data('age'),$(this).data('gender'));
     });
 
     /* ── search any resident ── */
@@ -542,7 +724,7 @@ $(function(){
         if(CV_TYPE==='maternal')     loadMP(id);
     }
 
-    /* ── visit history (consultations + care_visits) ── */
+    /* ── visit history ── */
     function loadVisits(rid){
         $('#vList').html('<div style="padding:14px;text-align:center;color:var(--faint);font-size:12px;">Loading…</div>');
         $('#vCount').text('…');
@@ -551,7 +733,7 @@ $(function(){
         const p1=$.getJSON('../consultation/api/list_by_type.php',{type:CV_TYPE,resident_id:rid});
         const p2=$.getJSON(CV_API,{action:'list',type:CV_TYPE,resident_id:rid,from:'2000-01-01',to:today});
 
-        $.when(p1.then(r=>r,()=>({status:'err'})), p2.then(r=>r,()=>({status:'err'}))).done(function(r1,r2){
+        $.when(p1.then(r=>r,()=>({status:'err'})),p2.then(r=>r,()=>({status:'err'}))).done(function(r1,r2){
             const c=(r1.status==='ok'?r1.data:[]).map(r=>({...r,_src:'consult'}));
             const v=(r2.status==='ok'?(r2.data?.data||[]):[]).map(r=>({...r,_src:'care'}));
             const all=[...c,...v].sort((a,b)=>{
@@ -561,21 +743,23 @@ $(function(){
             });
             $('#vCount').text(all.length+(all.length===1?' RECORD':' RECORDS'));
             if(!all.length){
-                $('#vList').html('<div style="padding:20px;text-align:center;color:var(--faint);font-size:12px;font-style:italic;">No visits recorded yet.<br><small>Add a consultation of type "'+CV_TYPE.replace(/_/g,' ')+'".</small></div>');
+                $('#vList').html('<div style="padding:20px;text-align:center;color:var(--faint);font-size:12px;font-style:italic;">No visits recorded yet.<br><small>Click "+ New Visit" to add one.</small></div>');
                 return;
             }
             let html='';
             all.forEach(r=>{
                 const date=r.consultation_date||r.visit_date||'—';
-                const status=r.consult_status||r._status||'';
-                const srcBadge=r._src==='consult'?'<span class="badge b-consult">Consult</span>':'<span class="badge b-care">Care</span>';
+                const status=r.consult_status||'';
+                const srcBadge=r._src==='consult'
+                    ?'<span class="badge b-consult">Consult</span>'
+                    :'<span class="badge b-care">Care</span>';
                 let summary='';
                 if(r._src==='consult'){
                     summary=[r.complaint,r.diagnosis].filter(Boolean).join(' · ').substring(0,65);
                 } else {
                     const m=r.module||{};
-                    summary=Object.entries(m).filter(([k,v])=>v&&!['id','resident_id','care_visit_id','created_at','updated_at'].includes(k)).map(([,v])=>String(v)).slice(0,3).join(' · ').substring(0,65);
-                    if(!summary) summary=r.notes||'';
+                    const vals=Object.entries(m).filter(([k,v])=>v&&!['id','resident_id','care_visit_id','created_at','updated_at','visit_date'].includes(k)).map(([,v])=>String(v));
+                    summary=vals.slice(0,3).join(' · ').substring(0,65)||r.notes||'';
                 }
                 html+=`<div class="v-row" data-id="${r.id}" data-src="${r._src}">
                     <div class="v-date">${esc(date)}</div>
@@ -596,129 +780,374 @@ $(function(){
         else                showCareDetail(id);
     });
 
+    /* ════════════════════════════
+       CONSULT DETAIL (read-only)
+    ════════════════════════════ */
     function showConsultDetail(id){
         $.getJSON('../consultation/api/view.php',{id},function(res){
             if(!res.success) return;
             const d=res.data;
             $('#vdTitle').text('Consult — '+d.consultation_date);
-            $('#btnEditVisit').data({id,src:'consult'});
+            $('#btnEditVisit').data({id,src:'consult'}).show();
+            currentVisitData=null;
 
             let html='';
-
-            /* status strip */
             const statusCls={Completed:'b-completed',Ongoing:'b-ongoing','Follow-up':'b-followup',Dismissed:'b-dismissed'};
             const sc=statusCls[d.consult_status]||'b-dismissed';
-            const riskClr={Low:'ok-fg',Moderate:'warn-fg',High:'danger-fg'}[d.risk_level||'Low'];
             html+=`<div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:6px;align-items:center;">`;
             if(d.consult_status) html+=`<span class="badge ${sc}">${esc(d.consult_status)}</span>`;
-            html+=`<span class="badge" style="background:var(--${riskClr==='ok-fg'?'ok-bg':riskClr==='warn-fg'?'warn-bg':'danger-bg'});color:var(--${riskClr});border-color:color-mix(in srgb,var(--${riskClr}) 25%,transparent);">Risk: ${esc(d.risk_level||'Low')}</span>`;
             if(d.follow_up_date) html+=`<span style="font-family:var(--f-m);font-size:9.5px;color:var(--faint);">Follow-up: ${esc(d.follow_up_date)}</span>`;
-            if(d.is_referred&&d.referred_to) html+=`<span class="badge b-followup">Referred → ${esc(d.referred_to)}</span>`;
             html+=`<span style="font-family:var(--f-m);font-size:9.5px;color:var(--faint);margin-left:auto;">${esc(d.health_worker||'')}</span>`;
             html+='</div>';
 
-            /* vitals */
             const vitals=[];
             if(d.temp_celsius)     vitals.push({l:'Temp',v:d.temp_celsius+'°C'});
-            if(d.bp_systolic)      vitals.push({l:'BP',v:d.bp_systolic+'/'+d.bp_diastolic+' mmHg'});
+            if(d.bp_systolic)      vitals.push({l:'BP',v:d.bp_systolic+'/'+d.bp_diastolic});
             if(d.pulse_rate)       vitals.push({l:'Pulse',v:d.pulse_rate+' bpm'});
-            if(d.respiratory_rate) vitals.push({l:'RR',v:d.respiratory_rate+'/min'});
-            if(d.o2_saturation)    vitals.push({l:'SpO2',v:d.o2_saturation+'%'});
             if(d.weight_kg)        vitals.push({l:'Weight',v:d.weight_kg+' kg'});
             if(d.height_cm)        vitals.push({l:'Height',v:d.height_cm+' cm'});
-            if(d.bmi)              vitals.push({l:'BMI',v:d.bmi+(d.bmi_class?' — '+d.bmi_class:'')});
-            if(d.waist_cm)         vitals.push({l:'Waist',v:d.waist_cm+' cm'});
+            if(d.bmi)              vitals.push({l:'BMI',v:d.bmi+(d.bmi_class?' · '+d.bmi_class:'')});
             if(vitals.length){
-                html+='<div class="vd-section" style="padding:12px 16px 0;"><div class="vd-section-title">Vital signs &amp; measurements</div><div class="vitals-row">';
-                vitals.forEach(v=>{ html+=`<div class="vital"><div class="vital-lbl">${esc(v.l)}</div><div class="vital-val">${esc(v.v)}</div></div>`; });
+                html+='<div style="padding:12px 16px 0;"><div class="vd-section-title">Vitals</div><div class="vitals-row">';
+                vitals.forEach(v=>{html+=`<div class="vital"><div class="vital-lbl">${esc(v.l)}</div><div class="vital-val">${esc(v.v)}</div></div>`;});
                 html+='</div></div>';
             }
 
-            /* clinical fields */
-            const left=[
-                ['Chief complaint', d.chief_complaint||d.complaint, true],
-                ['Duration / onset', [d.complaint_duration,d.complaint_onset].filter(Boolean).join(' · '), false],
-                ['Primary diagnosis', d.primary_diagnosis||d.diagnosis, false],
-                ['Secondary diagnosis', d.secondary_diagnosis, false],
-                ['ICD-10 code', d.icd_code, false],
-                ['Treatment', d.treatment, false],
-                ['Medicines prescribed', d.medicines_prescribed, false],
-                ['Procedures done', d.procedures_done, false],
-            ];
-            const right=[
-                ['Health advice', d.health_advice, false],
-                ['Lifestyle advice', d.lifestyle_advice, false],
-                ['Patient education', d.patient_education, false],
-                ['Assessment', d.assessment, false],
-                ['Plan', d.plan, false],
-                ['Prognosis', d.prognosis==='NA'?'':d.prognosis, false],
-            ];
-            const history=[
-                ['Past medical history', d.past_medical_history],
-                ['Family history', d.family_history],
-                ['Current medications', d.current_medications],
-                ['Known allergies', d.known_allergies],
-            ];
-            const social=[
-                ['Smoking', d.smoking_status],['Alcohol', d.alcohol_use],
-                ['Physical activity', d.physical_activity],['Nutrition', d.nutritional_status],
-                ['Mental health screen', d.mental_health_screen],
-            ];
-
-            function renderFields(arr){
-                let h='';
-                arr.forEach(([l,v,req])=>{
-                    if(!v&&!req) return;
-                    h+=`<div class="vf"><div class="vf-lbl">${esc(l)}</div><div class="${v?'vf-val':'vf-empty'}">${esc(v||'—')}</div></div>`;
-                });
-                return h;
-            }
-
-            const lh=renderFields(left), rh=renderFields(right);
-            if(lh||rh){
-                html+='<div class="vd-section" style="padding:12px 16px 0;"><div class="vd-section-title">Clinical notes</div><div class="vd-grid" style="padding-bottom:12px;">';
-                html+=`<div>${lh}</div><div>${rh}</div>`;
-                html+='</div></div>';
-            }
-
-            const hh=renderFields(history);
-            if(hh){
-                html+='<div class="vd-section" style="padding:12px 16px 0;"><div class="vd-section-title">Medical history</div>';
-                html+=`<div style="padding-bottom:12px;">${hh}</div></div>`;
-            }
-
-            const sh=renderFields(social.filter(([,v])=>v&&v!=='NA'&&v!=='Not screened'));
-            if(sh){
-                html+='<div class="vd-section" style="padding:12px 16px 0;"><div class="vd-section-title">Health profile</div>';
-                html+=`<div class="vd-grid" style="padding-bottom:12px;">${sh}</div></div>`;
-            }
+            function rf(lbl,val){ return val?`<div class="vf"><div class="vf-lbl">${esc(lbl)}</div><div class="vf-val">${esc(val)}</div></div>`:''; }
+            html+='<div style="padding:12px 16px 0;"><div class="vd-section-title">Clinical</div><div class="vd-grid">';
+            html+=`<div>${rf('Chief complaint',d.chief_complaint||d.complaint)}${rf('Diagnosis',d.primary_diagnosis||d.diagnosis)}${rf('Treatment',d.treatment)}${rf('Medicines',d.medicines_prescribed)}</div>`;
+            html+=`<div>${rf('Health advice',d.health_advice)}${rf('Assessment',d.assessment)}${rf('Plan',d.plan)}</div>`;
+            html+='</div></div>';
 
             $('#vdBody').html(html);
             $('#vDetailCard').slideDown(120);
         });
     }
 
+    /* ════════════════════════════
+       CARE VISIT DETAIL (type-aware)
+    ════════════════════════════ */
     function showCareDetail(id){
         $.getJSON(CV_API,{action:'get',type:CV_TYPE,id},function(res){
             if(res.status!=='ok') return;
-            const raw=res.data?.data||res.data||{};
-            $('#vdTitle').text('Care Visit — '+(raw.visit_date||''));
-            $('#btnEditVisit').data({id,src:'care'});
-            let html='<div class="vd-section" style="padding:14px 16px;">';
-            let any=false;
-            Object.entries(raw).forEach(([k,v])=>{
-                if(!v||['id','resident_id','care_visit_id','resident_name','birthdate','created_at','updated_at'].includes(k)) return;
-                any=true;
-                html+=`<div class="vf"><div class="vf-lbl">${esc(k.replace(/_/g,' '))}</div><div class="vf-val">${esc(String(v))}</div></div>`;
-            });
-            if(!any) html+='<div class="vf-empty">No detail available.</div>';
-            html+='</div>';
+            const d=res.data;
+            currentVisitData=d;
+            $('#vdTitle').text('Care Visit — '+(d.visit_date||''));
+            $('#btnEditVisit').data({id,src:'care'}).show();
+
+            let html=renderCareView(d);
             $('#vdBody').html(html);
             $('#vDetailCard').slideDown(120);
         });
     }
 
-    /* ── NIP card (single instance) ── */
+    function renderCareView(d){
+        function rf(lbl,val,full=false){
+            if(!val&&val!==0) return '';
+            return `<div class="vf"${full?' style="grid-column:1/-1"':''}><div class="vf-lbl">${esc(lbl)}</div><div class="vf-val">${esc(String(val))}</div></div>`;
+        }
+        function rb(lbl,val){ return `<div class="vf"><div class="vf-lbl">${esc(lbl)}</div><div class="vf-val">${yn(val)}</div></div>`; }
+        function section(title,content){
+            if(!content.trim()) return '';
+            return `<div class="vd-section" style="padding:12px 16px 0;"><div class="vd-section-title">${esc(title)}</div>${content}</div>`;
+        }
+
+        let html=`<div style="padding:10px 16px;border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <span style="font-family:var(--f-m);font-size:10px;color:var(--mod);font-weight:700;">${esc(d.visit_date||'')}</span>
+            ${d.health_worker?`<span style="font-size:11px;color:var(--muted);">by ${esc(d.health_worker)}</span>`:''}
+            <span style="margin-left:auto;font-size:10px;color:var(--faint);">Care Visit #${esc(String(d.id||''))}</span>
+        </div>`;
+
+        if(d.notes){
+            html+=`<div style="padding:10px 16px;border-bottom:1px solid var(--rule);font-size:12.5px;color:var(--muted);font-style:italic;">${esc(d.notes)}</div>`;
+        }
+
+        if(CV_TYPE==='general'||CV_TYPE==='maternal'||CV_TYPE==='other'){
+            if(!d.notes) html+=`<div style="padding:20px;text-align:center;color:var(--faint);font-size:12px;font-style:italic;">No additional details recorded.</div>`;
+        } else if(CV_TYPE==='family_planning'){
+            const inner=`<div class="vd-grid">
+                ${rf('Method',d.method)}${rf('Previous Method',d.prev_method)}
+                ${rb('New Acceptor',d.is_new_acceptor)}${rb('Method Switch',d.is_method_switch)}
+                ${rf('Method Start Date',d.method_start_date)}${rf('Next Supply Date',d.next_supply_date)}
+                ${rf('Next Checkup',d.next_checkup_date)}${rf('Pills Given',d.pills_given+' packs')}
+                ${rf('Injectables',d.injectables_given)}${rf('Health Worker',d.health_worker)}
+            </div>
+            ${d.side_effects?`<div class="vf" style="padding-top:8px;">${rf('Side Effects',d.side_effects)}</div>`:''}
+            ${d.counseling_notes?rf('Counseling Notes',d.counseling_notes):''}`;
+            html+=section('Family Planning Details',inner);
+        } else if(CV_TYPE==='prenatal'){
+            const vitals=`<div class="vitals-row">
+                ${d.aog_weeks?`<div class="vital"><div class="vital-lbl">AOG</div><div class="vital-val">${esc(d.aog_weeks)} wks</div></div>`:''}
+                ${d.weight_kg?`<div class="vital"><div class="vital-lbl">Weight</div><div class="vital-val">${esc(d.weight_kg)} kg</div></div>`:''}
+                ${(d.bp_systolic&&d.bp_diastolic)?`<div class="vital"><div class="vital-lbl">BP</div><div class="vital-val">${esc(d.bp_systolic)}/${esc(d.bp_diastolic)}</div></div>`:''}
+                ${d.fetal_heart_rate?`<div class="vital"><div class="vital-lbl">FHR</div><div class="vital-val">${esc(d.fetal_heart_rate)} bpm</div></div>`:''}
+                ${d.fundal_height_cm?`<div class="vital"><div class="vital-lbl">FH</div><div class="vital-val">${esc(d.fundal_height_cm)} cm</div></div>`:''}
+            </div>`;
+            const info=`<div class="vd-grid">
+                ${rf('Visit No.',d.visit_number)}${rf('LMP Date',d.lmp_date)}
+                ${rf('EDD',d.edd_date)}${rf('Presentation',d.fetal_presentation)}
+                ${rf('Risk Level',d.risk_level)}${rf('TT Dose',d.tt_dose)}
+                ${d.hgb_result?rf('HGB',d.hgb_result):''}
+                ${rb('Folic Acid',d.folic_acid_given)}${rb('Iron',d.iron_given)}${rb('Calcium',d.calcium_given)}
+                ${rf('Chief Complaint',d.chief_complaint,true)}
+                ${rf('Assessment',d.assessment,true)}${rf('Plan',d.plan,true)}
+            </div>`;
+            html+=`<div style="padding:12px 16px 0;"><div class="vd-section-title">Vitals & Measurements</div>${vitals}</div>`;
+            html+=section('Prenatal Details',info);
+        } else if(CV_TYPE==='postnatal'){
+            const info=`<div class="vd-grid">
+                ${rf('Delivery Type',d.delivery_type)}${rf('Delivery Date',d.delivery_date)}
+                ${rf('Facility',d.delivery_facility)}${rf('Birth Attendant',d.birth_attendant)}
+                ${(d.bp_systolic&&d.bp_diastolic)?rf('BP',d.bp_systolic+'/'+d.bp_diastolic):''}
+                ${rf('Lochia',d.lochia_type)}${rf('Fundal Involution',d.fundal_involution)}
+                ${rf('Breastfeeding',d.breastfeeding_status)}
+                ${d.ppd_score!==null&&d.ppd_score!==''?rf('PPD Score',d.ppd_score):''}
+                ${d.newborn_weight_g?rf('Newborn Weight',Number(d.newborn_weight_g).toLocaleString()+'g'):''}
+                ${d.apgar_1min!==null?rf('APGAR 1min / 5min',d.apgar_1min+' / '+d.apgar_5min):''}
+                ${rb('BCG Given',d.bcg_given)}${rb('HB Vaccine',d.hb_vaccine_given)}
+                ${rf('Assessment',d.assessment,true)}${rf('Plan',d.plan,true)}
+            </div>`;
+            html+=section('Postnatal Details',info);
+        } else if(CV_TYPE==='child_nutrition'){
+            const vitals=`<div class="vitals-row">
+                ${d.age_months!==null?`<div class="vital"><div class="vital-lbl">Age</div><div class="vital-val">${esc(d.age_months)} mo</div></div>`:''}
+                ${d.weight_kg?`<div class="vital"><div class="vital-lbl">Weight</div><div class="vital-val">${esc(d.weight_kg)} kg</div></div>`:''}
+                ${d.height_cm?`<div class="vital"><div class="vital-lbl">Height</div><div class="vital-val">${esc(d.height_cm)} cm</div></div>`:''}
+                ${d.muac_cm?`<div class="vital"><div class="vital-lbl">MUAC</div><div class="vital-val">${esc(d.muac_cm)} cm</div></div>`:''}
+                ${d.waz?`<div class="vital"><div class="vital-lbl">WAZ</div><div class="vital-val">${esc(d.waz)}</div></div>`:''}
+                ${d.haz?`<div class="vital"><div class="vital-lbl">HAZ</div><div class="vital-val">${esc(d.haz)}</div></div>`:''}
+            </div>`;
+            const status=`<div class="vd-grid">
+                ${rf('Stunting',d.stunting_status)}${rf('Wasting',d.wasting_status)}
+                ${rf('Underweight',d.underweight_status)}${rf('Breastfeeding',d.breastfeeding)}
+                ${rb('Vit A',d.vita_supplemented)}${rb('Iron',d.iron_supplemented)}
+                ${rb('Zinc',d.zinc_given)}${rb('Deworming',d.deworming_done)}
+                ${rf('Counseling Notes',d.counseling_notes,true)}
+                ${d.referred==1?rf('Referral Reason',d.referral_reason,true):''}
+            </div>`;
+            html+=`<div style="padding:12px 16px 0;"><div class="vd-section-title">Growth Measurements</div>${vitals}</div>`;
+            html+=section('Nutrition Status',status);
+        } else if(CV_TYPE==='immunization'){
+            const info=`<div class="vd-grid">
+                ${rf('Vaccine',d.vaccine_name)}${rf('Dose',d.dose)}
+                ${rf('Date Given',d.date_given)}${rf('Route',d.route)}
+                ${rf('Site',d.site_given)}${rf('Batch No.',d.batch_number)}
+                ${rf('Expiry Date',d.expiry_date)}${rf('Next Schedule',d.next_schedule)}
+                ${rf('Administered By',d.administered_by)}
+                ${d.adverse_reaction?rf('Adverse Reaction',d.adverse_reaction,true):''}
+                ${rb('Is Defaulter',d.is_defaulter)}${rb('Catch-up',d.catch_up)}
+            </div>`;
+            html+=section('Immunization Record',info);
+        }
+
+        return html;
+    }
+
+    /* ════════════════════════════
+       EDIT MODAL
+    ════════════════════════════ */
+    $('#editModal').dialog({autoOpen:false,modal:true,width:680,resizable:false});
+
+    $('#btnEditVisit').on('click',function(){
+        const {id, src}=$(this).data();
+        if(src==='consult'){
+            window.location.href='../consultation/?edit='+id;
+            return;
+        }
+        openEditVisit(id);
+    });
+
+    function openEditVisit(id){
+        $.getJSON(CV_API,{action:'get',type:CV_TYPE,id},function(res){
+            if(res.status!=='ok'){ alert('Could not load record.'); return; }
+            const d=res.data;
+            $('#ef_vid').val(d.id);
+            $('#ef_type').val(CV_TYPE);
+            $('#ef_date').val(d.visit_date||'');
+            $('#ef_worker').val(d.health_worker||d.administered_by||'');
+            $('#ef_notes').val(d.notes||'');
+            $('#ef_fields').html(buildEditFields(d));
+            $('#editModal').dialog('option','title','Edit Visit — '+d.visit_date).dialog('open');
+        });
+    }
+
+    function buildEditFields(d){
+        const inp=(n,lbl,v,type='text',extra='')=>`
+            <div class="fg">
+                <label class="fg-lbl">${esc(lbl)}</label>
+                <input type="${type}" name="${n}" class="fg-in" value="${esc(v||'')}" ${extra}>
+            </div>`;
+        const sel=(n,lbl,v,opts)=>`
+            <div class="fg">
+                <label class="fg-lbl">${esc(lbl)}</label>
+                <select name="${n}" class="fg-sel">${opts.map(o=>`<option value="${esc(o)}" ${o==v?'selected':''}>${esc(o)}</option>`).join('')}</select>
+            </div>`;
+        const ta=(n,lbl,v)=>`
+            <div class="fg">
+                <label class="fg-lbl">${esc(lbl)}</label>
+                <textarea name="${n}" class="fg-ta">${esc(v||'')}</textarea>
+            </div>`;
+        const chk=(n,lbl,v)=>`
+            <label class="chk" style="margin-bottom:8px;"><input type="checkbox" name="${n}" value="1" ${v==1||v==='1'?'checked':''}> ${esc(lbl)}</label>`;
+
+        if(CV_TYPE==='general'||CV_TYPE==='maternal'||CV_TYPE==='other') return '';
+
+        if(CV_TYPE==='family_planning'){
+            return `<div class="form-section-title">Family Planning Details</div>
+            <div class="g2">
+                ${sel('method','Method',d.method,['Pills','Condom','IUD','Injectable','Implant','LAM','NFP','Permanent','Other'])}
+                ${inp('method_other','Method (if Other)',d.method_other)}
+            </div>
+            <div class="g2">
+                ${inp('method_start_date','Method Start Date',d.method_start_date,'date')}
+                ${inp('next_supply_date','Next Supply Date',d.next_supply_date,'date')}
+            </div>
+            <div class="g2">
+                ${inp('next_checkup_date','Next Checkup Date',d.next_checkup_date,'date')}
+                ${inp('pills_given','Pills Given (packs)',d.pills_given,'number','min="0"')}
+            </div>
+            ${ta('side_effects','Side Effects',d.side_effects)}
+            ${ta('counseling_notes','Counseling Notes',d.counseling_notes)}
+            <div class="check-row">
+                ${chk('is_new_acceptor','New Acceptor',d.is_new_acceptor)}
+                ${chk('is_method_switch','Method Switch',d.is_method_switch)}
+            </div>`;
+        }
+
+        if(CV_TYPE==='prenatal'){
+            return `<div class="form-section-title">Prenatal Details</div>
+            <div class="g3">
+                ${inp('visit_number','Visit No.',d.visit_number,'number','min="1"')}
+                ${inp('aog_weeks','AOG (weeks)',d.aog_weeks,'number')}
+                ${inp('lmp_date','LMP Date',d.lmp_date,'date')}
+            </div>
+            <div class="g3">
+                ${inp('weight_kg','Weight (kg)',d.weight_kg,'number','step="0.1"')}
+                ${inp('bp_systolic','BP Systolic',d.bp_systolic,'number')}
+                ${inp('bp_diastolic','BP Diastolic',d.bp_diastolic,'number')}
+            </div>
+            <div class="g3">
+                ${inp('fetal_heart_rate','FHR (bpm)',d.fetal_heart_rate,'number')}
+                ${inp('fundal_height_cm','Fundal Height (cm)',d.fundal_height_cm,'number','step="0.5"')}
+                ${sel('risk_level','Risk Level',d.risk_level,['Low','Moderate','High'])}
+            </div>
+            ${sel('fetal_presentation','Presentation',d.fetal_presentation,['Cephalic','Breech','Transverse','Unknown'])}
+            ${sel('tt_dose','TT Dose',d.tt_dose,['None','TT1','TT2','TT3','TT4','TT5'])}
+            ${ta('chief_complaint','Chief Complaint',d.chief_complaint)}
+            ${ta('assessment','Assessment',d.assessment)}
+            ${ta('plan','Plan',d.plan)}
+            <div class="check-row">
+                ${chk('folic_acid_given','Folic Acid',d.folic_acid_given)}
+                ${chk('iron_given','Iron',d.iron_given)}
+                ${chk('calcium_given','Calcium',d.calcium_given)}
+                ${chk('iodine_given','Iodine',d.iodine_given)}
+            </div>`;
+        }
+
+        if(CV_TYPE==='postnatal'){
+            return `<div class="form-section-title">Postnatal Details</div>
+            <div class="g2">
+                ${inp('visit_number','Visit No.',d.visit_number,'number','min="1"')}
+                ${inp('delivery_date','Delivery Date',d.delivery_date,'date')}
+            </div>
+            <div class="g2">
+                ${sel('delivery_type','Delivery Type',d.delivery_type,['Normal','Cesarean','Assisted','Unknown'])}
+                ${inp('delivery_facility','Facility',d.delivery_facility)}
+            </div>
+            <div class="g2">
+                ${inp('bp_systolic','BP Systolic',d.bp_systolic,'number')}
+                ${inp('bp_diastolic','BP Diastolic',d.bp_diastolic,'number')}
+            </div>
+            ${sel('lochia_type','Lochia Type',d.lochia_type,['Rubra','Serosa','Alba','Not checked'])}
+            ${sel('breastfeeding_status','Breastfeeding Status',d.breastfeeding_status,['Exclusive','Partial','None','NA'])}
+            <div class="g2">
+                ${inp('newborn_weight_g','Newborn Weight (g)',d.newborn_weight_g,'number')}
+                ${inp('ppd_score','PPD Score',d.ppd_score,'number','min="0" max="30"')}
+            </div>
+            ${ta('assessment','Assessment',d.assessment)}
+            ${ta('plan','Plan',d.plan)}
+            <div class="check-row">
+                ${chk('bcg_given','BCG Given',d.bcg_given)}
+                ${chk('hb_vaccine_given','Hep B Given',d.hb_vaccine_given)}
+                ${chk('fp_counseled','FP Counseled',d.fp_counseled)}
+            </div>`;
+        }
+
+        if(CV_TYPE==='child_nutrition'){
+            return `<div class="form-section-title">Nutrition Details</div>
+            <div class="g3">
+                ${inp('age_months','Age (months)',d.age_months,'number','min="0"')}
+                ${inp('weight_kg','Weight (kg)',d.weight_kg,'number','step="0.01"')}
+                ${inp('height_cm','Height (cm)',d.height_cm,'number','step="0.1"')}
+            </div>
+            <div class="g3">
+                ${inp('muac_cm','MUAC (cm)',d.muac_cm,'number','step="0.1"')}
+                ${inp('waz','WAZ',d.waz,'number','step="0.01"')}
+                ${inp('haz','HAZ',d.haz,'number','step="0.01"')}
+            </div>
+            <div class="g3">
+                ${sel('stunting_status','Stunting',d.stunting_status,['Not assessed','Normal','Mild','Moderate','Severe'])}
+                ${sel('wasting_status','Wasting',d.wasting_status,['Not assessed','Normal','Mild','Moderate','Severe'])}
+                ${sel('underweight_status','Underweight',d.underweight_status,['Not assessed','Normal','Mild','Moderate','Severe'])}
+            </div>
+            ${ta('counseling_notes','Counseling Notes',d.counseling_notes)}
+            <div class="check-row">
+                ${chk('vita_supplemented','Vit A',d.vita_supplemented)}
+                ${chk('iron_supplemented','Iron',d.iron_supplemented)}
+                ${chk('zinc_given','Zinc',d.zinc_given)}
+                ${chk('deworming_done','Deworming',d.deworming_done)}
+            </div>`;
+        }
+
+        if(CV_TYPE==='immunization'){
+            return `<div class="form-section-title">Immunization Details</div>
+            <div class="g2">
+                ${inp('vaccine_name','Vaccine Name',d.vaccine_name)}
+                ${inp('dose','Dose',d.dose)}
+            </div>
+            <div class="g2">
+                ${inp('date_given','Date Given',d.date_given,'date')}
+                ${inp('next_schedule','Next Schedule',d.next_schedule,'date')}
+            </div>
+            <div class="g2">
+                ${sel('route','Route',d.route,['IM','SC','ID','Oral'])}
+                ${inp('site_given','Site Given',d.site_given)}
+            </div>
+            <div class="g2">
+                ${inp('batch_number','Batch No.',d.batch_number)}
+                ${inp('expiry_date','Expiry Date',d.expiry_date,'date')}
+            </div>
+            ${inp('administered_by','Administered By',d.administered_by)}
+            ${ta('adverse_reaction','Adverse Reaction',d.adverse_reaction)}`;
+        }
+
+        return '';
+    }
+
+    $('#editForm').on('submit',function(e){
+        e.preventDefault();
+        const $btn=$('#efSubmit');
+        $btn.prop('disabled',true).text('Saving…');
+        $.ajax({
+            url:CV_API+'?action=update',
+            type:'POST',
+            data:$(this).serialize(),
+            dataType:'json',
+            success(res){
+                if(res.status!=='ok'){ alert(res.message||'Save failed.'); return; }
+                $('#editModal').dialog('close');
+                const vid=$('#ef_vid').val();
+                loadVisits(selId);
+                showCareDetail(parseInt(vid));
+            },
+            error(xhr){ alert('Server error ('+xhr.status+').'); },
+            complete(){ $btn.prop('disabled',false).text('Save Changes'); }
+        });
+    });
+
+    /* ════════════════════════════
+       NIP CARD
+    ════════════════════════════ */
     function loadNIP(rid){
         $('#nipGrid').html('<div style="grid-column:1/-1;padding:12px;text-align:center;color:var(--faint);font-size:12px;">Loading…</div>');
         $.getJSON(CV_API,{action:'immunization_card',resident_id:rid},function(res){
@@ -730,13 +1159,20 @@ $(function(){
                 const cls=s.given?'given':s.is_overdue?'overdue':'';
                 const status=s.given?'✓ Given':s.is_overdue?'Overdue':'Pending';
                 const dt=s.given?s.given.date_given:s.due_date||'';
-                html+=`<div class="nip-slot ${cls}"><div class="ns-vaccine">${esc(s.vaccine_name)}</div><div class="ns-dose">${esc(s.dose_label)}</div><div class="ns-status">${status}</div>${dt?`<div class="ns-date">${esc(dt)}</div>`:''}</div>`;
+                html+=`<div class="nip-slot ${cls}">
+                    <div class="ns-vaccine">${esc(s.vaccine_name)}</div>
+                    <div class="ns-dose">${esc(s.dose_label)}</div>
+                    <div class="ns-status">${status}</div>
+                    ${dt?`<div class="ns-date">${esc(dt)}</div>`:''}
+                </div>`;
             });
             $('#nipGrid').html(html||'<div style="grid-column:1/-1;padding:12px;text-align:center;color:var(--faint);">No NIP schedule.</div>');
         });
     }
 
-    /* ── Maternal profile ── */
+    /* ════════════════════════════
+       MATERNAL PROFILE
+    ════════════════════════════ */
     function loadMP(rid){
         $.getJSON(CV_API,{action:'maternal_profile',resident_id:rid},function(res){
             const p=res.data?.profile;
@@ -754,7 +1190,6 @@ $(function(){
             if(flags.length) html+=`<div class="flag-row">${flags.map(f=>`<span class="flag">${esc(f)}</span>`).join('')}</div>`;
             if(!html) html='<span style="color:var(--faint);font-size:12px;font-style:italic;">Profile incomplete.</span>';
             $('#mpDisplay').html(html);
-            /* Pre-fill modal */
             Object.entries(p).forEach(([k,v])=>{
                 const el=$('#mpForm [name="'+k+'"]');
                 if(!el.length) return;
@@ -765,8 +1200,7 @@ $(function(){
     }
 
     <?php if ($type==='maternal'): ?>
-    $('#mpModal').dialog({autoOpen:false,modal:true,width:640,resizable:false,
-        buttons:{'Save':function(){$('#mpForm').trigger('submit');},'Cancel':function(){$(this).dialog('close');}}});
+    $('#mpModal').dialog({autoOpen:false,modal:true,width:640,resizable:false});
     $('#btnEditProfile').on('click',()=>$('#mpModal').dialog('open'));
     $('#mpForm').on('submit',function(e){
         e.preventDefault();
@@ -783,11 +1217,6 @@ $(function(){
     $('#btnNewVisit').on('click',function(){
         if(!selId) return;
         window.location.href='../consultation/?new=1&type='+CV_TYPE+'&resident_id='+selId;
-    });
-
-    /* ── Print ── */
-    $('#btnPrint').on('click',()=>{
-        window.open('print.php?type='+CV_TYPE+'&resident_id='+(selId||''),'_blank');
     });
 });
 </script>

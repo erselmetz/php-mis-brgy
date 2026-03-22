@@ -194,18 +194,9 @@ if ($action === 'save') {
                  purpose,health_worker,status,notes,created_by)
             VALUES (?,?,?,?,?,?,?,?,?,?)
         ");
-        $st->bind_param('sissssssi', $code,$rid,$date,$time,$type,$purpose,$worker,$status,$notes,$userId);
-        // fix: appt_code is s, resident_id is i
-        $st2 = $conn->prepare("
-            INSERT INTO appointments
-                (appt_code,resident_id,appt_date,appt_time,appt_type,
-                 purpose,health_worker,status,notes,created_by)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-        ");
-        $vals = [$code,$rid,$date,$time,$type,$purpose,$worker,$status,$notes,$userId];
-        $ts   = 'si' . str_repeat('s', count($vals)-2);
-        $st2->bind_param($ts, ...$vals);
-        if (!$st2->execute()) json_err('Insert failed: '.$st2->error, 500);
+        // s=appt_code, i=resident_id, s*7=date/time/type/purpose/worker/status/notes, i=created_by
+        $st->bind_param('sisssssssi', $code,$rid,$date,$time,$type,$purpose,$worker,$status,$notes,$userId);
+        if (!$st->execute()) json_err('Insert failed: '.$st->error, 500);
         json_ok_data(['id' => (int)$conn->insert_id, 'code' => $code], 'Appointment created.');
     }
 }

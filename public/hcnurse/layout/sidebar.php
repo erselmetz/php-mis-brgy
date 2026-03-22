@@ -14,12 +14,14 @@ $uri   = $_SERVER['REQUEST_URI'] ?? '';
 $qtype = $_GET['type'] ?? '';
 
 $careTypes = [
+    'general'         => ['❤️‍🩹', 'General'],
     'maternal'        => ['🤱', 'Maternal'],
     'family_planning' => ['💊', 'Family Planning'],
     'prenatal'        => ['👶', 'Prenatal'],
     'postnatal'       => ['🍼', 'Postnatal'],
     'child_nutrition' => ['🥗', 'Child Nutrition'],
     'immunization'    => ['💉', 'Immunization'],
+    'other'           => ['❓', 'Other'],
 ];
 ?>
 <style>

@@ -1,16 +1,14 @@
 <?php
 /**
- * Care Visits Unified API  — v3 (all bind_param bugs fixed)
+ * Care Visits Unified API — v4
  *
- * Root cause of line 268 error:
- *   ON DUPLICATE KEY UPDATE col=? col=? ... added N more placeholders
- *   but $params only had the INSERT values → mismatch.
- *   Fix: use VALUES() references in the UPDATE clause (zero extra params).
- *
- * All other module save functions now use the same safe pattern:
- *   - Build $vals array explicitly
- *   - $ts = 'ii' . str_repeat('s', count($vals)-2)
- *   - Bind once. Done.
+ * Changes from v3:
+ *  - $ALLOWED now includes 'general' and 'other'
+ *  - New action: update  — edits care_visit + module row
+ *  - get action: handles general/other (no module table, just care_visits)
+ *  - list action: handles general/other cleanly
+ *  - saveGeneral() / saveOther() functions added
+ *  - update dispatches per-type to updateFP/Prenatal/etc. or generic
  */
 require_once __DIR__ . '/../../../../includes/app.php';
 requireHCNurse();
@@ -18,7 +16,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 $action  = $_GET['action']  ?? ($_POST['action']  ?? '');
 $type    = $_GET['type']    ?? ($_POST['type']    ?? '');
-$ALLOWED = ['maternal','family_planning','prenatal','postnatal','child_nutrition','immunization'];
+$ALLOWED = ['general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization','other'];
 
 /* ── null-safe helpers ── */
 function p(mixed $v): mixed   { return ($v === '' || $v === null) ? null : $v; }
@@ -30,7 +28,7 @@ function moduleTable(string $t): ?string {
         'prenatal'        => 'prenatal_visit',
         'postnatal'       => 'postnatal_visit',
         'child_nutrition' => 'child_nutrition_visit',
-        default           => null,
+        default           => null,  // general, maternal, immunization, other → no sub-table
     };
 }
 
@@ -95,11 +93,7 @@ if ($action === 'maternal_profile') {
     json_ok_data(['profile' => $st->get_result()->fetch_assoc()]);
 }
 
-/* ══════════════ save_maternal_profile ══════════════
-   FIX: ON DUPLICATE KEY UPDATE uses VALUES(col) — zero extra bind params.
-   Before: INSERT(N params) + UPDATE(N more params) = 2N → mismatch.
-   After:  INSERT(N params) only → correct.
-══════════════════════════════════════════════════ */
+/* ══════════════ save_maternal_profile ══════════════ */
 if ($action === 'save_maternal_profile') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Invalid method',405);
     $rid = (int)($_POST['resident_id'] ?? 0);
@@ -115,13 +109,11 @@ if ($action === 'save_maternal_profile') {
     $userId = (int)($_SESSION['user_id'] ?? 0);
     $cols   = implode(',', $fields);
     $phs    = implode(',', array_fill(0, count($fields), '?'));
-    /* VALUES(col) needs zero extra params — that's the whole fix */
     $upd    = implode(',', array_map(fn($f) => "`$f`=VALUES(`$f`)", $fields));
     $sql    = "INSERT INTO maternal_profile (resident_id,$cols,updated_by)
                VALUES (?,$phs,?)
                ON DUPLICATE KEY UPDATE $upd,updated_by=VALUES(updated_by)";
 
-    /* params: rid + N fields + userId  = N+2 */
     $params = [$rid];
     $types  = 'i';
     foreach ($fields as $f) {
@@ -145,13 +137,13 @@ if ($action === 'list') {
     $to   = $_GET['to']   ?? date('Y-m-d');
     if (!in_array($type, $ALLOWED, true)) json_err('Invalid type');
 
-    $sql    = "SELECT cv.id,cv.visit_date,cv.notes,cv.created_at,
+    $sql    = "SELECT cv.id, cv.visit_date, cv.notes, cv.created_at,
                       CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) AS resident_name
                FROM care_visits cv
                INNER JOIN residents r ON r.id=cv.resident_id
                WHERE cv.care_type=? AND cv.visit_date BETWEEN ? AND ?";
     $params = [$type,$from,$to]; $types = 'sss';
-    if ($rid>0){$sql.=" AND cv.resident_id=?";$params[]=$rid;$types.='i';}
+    if ($rid>0){ $sql.=" AND cv.resident_id=?"; $params[]=$rid; $types.='i'; }
     $sql .= " ORDER BY cv.visit_date DESC,cv.id DESC LIMIT 200";
 
     $st = $conn->prepare($sql);
@@ -163,6 +155,8 @@ if ($action === 'list') {
             $ms = $conn->prepare("SELECT * FROM $tbl WHERE care_visit_id=? LIMIT 1");
             $ms->bind_param('i',(int)$row['id']); $ms->execute();
             $row['module'] = $ms->get_result()->fetch_assoc() ?? [];
+        } else {
+            $row['module'] = [];
         }
         $rows[] = $row;
     }
@@ -175,25 +169,39 @@ if ($action === 'get') {
     if (!in_array($type, $ALLOWED, true)) json_err('Invalid type');
     if ($id <= 0) json_err('Invalid id');
 
-    $tbl = moduleTable($type);
-    if (!$tbl) {
-        if ($type === 'immunization') {
-            $st = $conn->prepare("SELECT i.*,CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) res_name FROM immunizations i LEFT JOIN residents r ON r.id=i.resident_id WHERE i.id=? LIMIT 1");
-            $st->bind_param('i',$id); $st->execute();
-            $row = $st->get_result()->fetch_assoc();
-            if(!$row) json_err('Not found',404);
-            json_ok_data(['data'=>$row]);
-        }
-        json_err('Module not found');
-    }
-    $st = $conn->prepare("SELECT cv.*,m.*,CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) AS resident_name,r.birthdate FROM care_visits cv INNER JOIN $tbl m ON m.care_visit_id=cv.id INNER JOIN residents r ON r.id=cv.resident_id WHERE cv.id=? AND cv.care_type=? LIMIT 1");
+    // Base care_visit row
+    $st = $conn->prepare("
+        SELECT cv.*,
+               CONCAT_WS(' ',r.first_name,r.middle_name,r.last_name) AS resident_name,
+               r.birthdate, r.gender, r.address, r.contact_no
+        FROM care_visits cv
+        INNER JOIN residents r ON r.id=cv.resident_id
+        WHERE cv.id=? AND cv.care_type=? LIMIT 1
+    ");
     $st->bind_param('is',$id,$type); $st->execute();
     $row = $st->get_result()->fetch_assoc();
     if (!$row) json_err('Not found',404);
-    json_ok_data(['data'=>$row]);
+
+    $tbl = moduleTable($type);
+    if ($tbl) {
+        // join module table
+        $ms = $conn->prepare("SELECT * FROM $tbl WHERE care_visit_id=? LIMIT 1");
+        $ms->bind_param('i',$id); $ms->execute();
+        $mod = $ms->get_result()->fetch_assoc() ?? [];
+        $row = array_merge($row, $mod);
+    } elseif ($type === 'immunization') {
+        // immunization records are stored separately
+        $st2 = $conn->prepare("SELECT * FROM immunizations WHERE care_visit_id=? LIMIT 1");
+        $st2->bind_param('i',$id); $st2->execute();
+        $imm = $st2->get_result()->fetch_assoc() ?? [];
+        $row = array_merge($row, $imm);
+    }
+    // general / maternal / other — just the care_visits row + notes
+
+    json_ok_data(['data' => $row]);
 }
 
-/* ══════════════ save ══════════════ */
+/* ══════════════ save (insert) ══════════════ */
 if ($action === 'save') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Invalid method',405);
     if (!in_array($type, $ALLOWED, true)) json_err('Invalid type');
@@ -225,7 +233,7 @@ if ($action === 'save') {
             'postnatal'       => savePostnatal($conn,$visitId,$rid),
             'child_nutrition' => saveCN($conn,$visitId,$rid),
             'immunization'    => saveImm($conn,$visitId,$rid),
-            default           => $visitId,
+            default           => $visitId,  // general, maternal, other → care_visits only
         };
         $conn->commit();
         json_ok_data(['care_visit_id'=>$visitId,'module_id'=>$modId],'Saved.');
@@ -235,12 +243,51 @@ if ($action === 'save') {
     }
 }
 
+/* ══════════════ update (edit existing) ══════════════ */
+if ($action === 'update') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_err('Invalid method',405);
+    if (!in_array($type, $ALLOWED, true)) json_err('Invalid type');
+
+    $id    = (int)($_POST['care_visit_id'] ?? 0);
+    $vDate = trim($_POST['visit_date'] ?? '');
+    $notes = trim($_POST['notes'] ?? '');
+
+    if ($id <= 0)  json_err('care_visit_id required');
+    if (!$vDate)   json_err('Visit date required');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $vDate)) json_err('Invalid date format');
+
+    // Verify ownership
+    $chk = $conn->prepare("SELECT id,resident_id FROM care_visits WHERE id=? AND care_type=? LIMIT 1");
+    $chk->bind_param('is',$id,$type); $chk->execute();
+    $cv = $chk->get_result()->fetch_assoc();
+    if (!$cv) json_err('Record not found',404);
+    $rid = (int)$cv['resident_id'];
+
+    $conn->begin_transaction();
+    try {
+        // Update base row
+        $st = $conn->prepare("UPDATE care_visits SET visit_date=?,notes=?,updated_at=NOW() WHERE id=? LIMIT 1");
+        $st->bind_param('ssi',$vDate,$notes,$id); $st->execute();
+
+        // Update or insert module row
+        match($type){
+            'family_planning' => updateFP($conn,$id,$rid),
+            'prenatal'        => updatePrenatal($conn,$id,$rid),
+            'postnatal'       => updatePostnatal($conn,$id,$rid),
+            'child_nutrition' => updateCN($conn,$id,$rid),
+            'immunization'    => updateImm($conn,$id,$rid),
+            default           => null,  // general, maternal, other → notes field only
+        };
+        $conn->commit();
+        json_ok_data(['care_visit_id'=>$id],'Updated.');
+    } catch(\Throwable $e){
+        $conn->rollback();
+        json_err('Update failed: '.$e->getMessage(),500);
+    }
+}
+
 /* ══════════════════════════════════════════════════════
-   MODULE SAVE FUNCTIONS — safe pattern:
-   1. Build $vals array (all nullable → p() helper)
-   2. $ts = 'ii'.str_repeat('s', count($vals)-2)
-   3. Dynamic INSERT with exactly count($vals) placeholders
-   4. bind_param($ts,...$vals)  — count always matches
+   INSERT MODULE FUNCTIONS
 ══════════════════════════════════════════════════════ */
 
 function saveFP(mysqli $c, int $vid, int $rid): int {
@@ -449,6 +496,55 @@ function saveImm(mysqli $c, int $vid, int $rid): int {
         VALUES ($ph)");
     $st->bind_param($ts,...$vals); $st->execute();
     return (int)$c->insert_id;
+}
+
+/* ══════════════════════════════════════════════════════
+   UPDATE MODULE FUNCTIONS
+   Pattern: DELETE old module row → INSERT fresh (simplest safe approach)
+   For immunization we UPDATE in-place (no duplicate risk).
+══════════════════════════════════════════════════════ */
+
+function updateFP(mysqli $c, int $vid, int $rid): void {
+    $c->query("DELETE FROM family_planning_record WHERE care_visit_id=$vid");
+    saveFP($c, $vid, $rid);
+}
+
+function updatePrenatal(mysqli $c, int $vid, int $rid): void {
+    $c->query("DELETE FROM prenatal_visit WHERE care_visit_id=$vid");
+    savePrenatal($c, $vid, $rid);
+}
+
+function updatePostnatal(mysqli $c, int $vid, int $rid): void {
+    $c->query("DELETE FROM postnatal_visit WHERE care_visit_id=$vid");
+    savePostnatal($c, $vid, $rid);
+}
+
+function updateCN(mysqli $c, int $vid, int $rid): void {
+    $c->query("DELETE FROM child_nutrition_visit WHERE care_visit_id=$vid");
+    saveCN($c, $vid, $rid);
+}
+
+function updateImm(mysqli $c, int $vid, int $rid): void {
+    $P = $_POST;
+    // Update the immunizations row linked to this care_visit
+    $fields = [
+        'vaccine_name' => p($P['vaccine_name'] ?? null),
+        'dose'         => p($P['dose'] ?? null),
+        'date_given'   => p($P['date_given'] ?? null) ?? date('Y-m-d'),
+        'next_schedule'=> p($P['next_schedule'] ?? null),
+        'administered_by'=> p($P['administered_by'] ?? null),
+        'remarks'      => p($P['remarks'] ?? null),
+        'batch_number' => p($P['batch_number'] ?? null),
+        'expiry_date'  => p($P['expiry_date'] ?? null),
+        'site_given'   => p($P['site_given'] ?? null),
+        'route'        => p($P['route'] ?? null) ?? 'IM',
+        'adverse_reaction'=> p($P['adverse_reaction'] ?? null),
+    ];
+    $sets  = implode(',', array_map(fn($k)=>"`$k`=?", array_keys($fields)));
+    $types = str_repeat('s', count($fields)).'i';
+    $vals  = array_merge(array_values($fields), [$vid]);
+    $st = $c->prepare("UPDATE immunizations SET $sets WHERE care_visit_id=? LIMIT 1");
+    $st->bind_param($types,...$vals); $st->execute();
 }
 
 json_err('Unknown action', 404);
