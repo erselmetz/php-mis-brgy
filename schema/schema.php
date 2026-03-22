@@ -219,7 +219,7 @@ function runMigrations($migrations, $isCLI) {
         echo "<th style='padding:10px;text-align:center;border:1px solid #ddd;'>✅ Success</th>";
         echo "<th style='padding:10px;text-align:center;border:1px solid #ddd;'>❌ Failed</th>";
         echo "<th style='padding:10px;text-align:center;border:1px solid #ddd;'>⚠️ Skipped</th>";
-        echo "<th style='padding:10px;text-align:center;border:1px solid #ddd;'>Total</th></tr>";
+        echo "<th style='padding:10px;text-align:center;border:1px solid #ddd;'>📝 Total</th></tr>";
         
         foreach ($categoryStats as $cat => $stats) {
             echo "<tr>";
@@ -247,7 +247,7 @@ function runMigrations($migrations, $isCLI) {
         echo "📊 FINAL SUMMARY\n";
         echo str_repeat("=", 80) . "\n";
         echo "\n";
-        echo str_pad("Category", 25) . str_pad("✅ Success", 12) . str_pad("❌ Failed", 12) . str_pad("⚠️  Skipped", 12) . "Total\n";
+        echo str_pad("Category", 25) . str_pad("✅ Success", 12) . str_pad("❌ Failed", 12) . str_pad("⚠️  Skipped", 12) . "📝 Total\n";
         echo str_repeat("-", 80) . "\n";
         
         foreach ($categoryStats as $cat => $stats) {
