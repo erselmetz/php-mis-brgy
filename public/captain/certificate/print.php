@@ -61,7 +61,7 @@ function getCertificateBody(array $cert, string $currentDate): array
             'paragraphs' => [
                 "This certification is issued upon the request of the above-named person for
                  <strong>{$purpose}</strong> and whatever legal purpose it may serve.",
-                "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
+                "This certification is issued this {$date} at Barangay Bombongan, Morong, Rizal.",
             ],
         ],
         'Indigency Certificate' => [
@@ -69,7 +69,7 @@ function getCertificateBody(array $cert, string $currentDate): array
                 "This is to certify further that the above-named person belongs to an indigent
                  family in this barangay and is in need of financial assistance for
                  <strong>{$purpose}</strong>.",
-                "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
+                "This certification is issued this {$date} at Barangay Bombongan, Morong, Rizal.",
             ],
         ],
         'Residency Certificate' => [
@@ -77,14 +77,14 @@ function getCertificateBody(array $cert, string $currentDate): array
                 "This is to certify that the above-named person is a bonafide resident of this
                  barangay and has been residing at the above-mentioned address for the purpose of
                  <strong>{$purpose}</strong>.",
-                "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
+                "This certification is issued this {$date} at Barangay Bombongan, Morong, Rizal.",
             ],
         ],
         default => [
             'paragraphs' => [
                 "This certification is issued upon the request of the above-named person for
                  <strong>{$purpose}</strong> and whatever legal purpose it may serve.",
-                "This certification is issued this {$date} at Barangay Bongbongan, Morong, Rizal.",
+                "This certification is issued this {$date} at Barangay Bombongan, Morong, Rizal.",
             ],
         ],
     };
@@ -368,7 +368,7 @@ $certBody = getCertificateBody($cert, $currentDate);
                 <p class="republic">Republic of the Philippines</p>
                 <p class="province">Province of Rizal</p>
                 <p class="municipality">Municipality of Morong</p>
-                <p class="barangay-name">Barangay Bongbongan</p>
+                <p class="barangay-name">Barangay Bombongan</p>
                 <p class="office-label">Office of the Barangay Captain</p>
             </div>
 
@@ -398,7 +398,7 @@ $certBody = getCertificateBody($cert, $currentDate);
                     <?= htmlspecialchars($cert['civil_status'] ?? 'Single') ?>,
                     Filipino, and a resident of
                     <?= htmlspecialchars($cert['address']) ?>,
-                    Barangay Bongbongan, Morong, Rizal.
+                    Barangay Bombongan, Morong, Rizal.
                 </p>
 
                 <!-- Type-specific paragraphs -->

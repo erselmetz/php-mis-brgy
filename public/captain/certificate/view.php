@@ -299,7 +299,7 @@ $currentYear = date('Y');
             <h1>Republic of the Philippines</h1>
             <h1>Province of Rizal</h1>
             <h1>Municipality of Morong</h1>
-            <h1>Barangay Bongbongan</h1>
+            <h1>Barangay Bombongan</h1>
             <p>OFFICE OF THE BARANGAY CAPTAIN</p>
         </div>
 
@@ -313,7 +313,7 @@ $currentYear = date('Y');
                 <?= $age ?> years old, <?= htmlspecialchars($cert['gender']) ?>,
                 <?= htmlspecialchars($cert['civil_status'] ?? 'Single') ?>,
                 Filipino, and a resident of <?= htmlspecialchars($cert['address']) ?>,
-                Barangay Bongbongan, Morong, Rizal.
+                Barangay Bombongan, Morong, Rizal.
             </p>
 
             <?php if ($cert['certificate_type'] === 'Barangay Clearance'): ?>
@@ -322,7 +322,7 @@ $currentYear = date('Y');
                     and whatever legal purpose it may serve.
                 </p>
                 <p style="text-indent: 50px;">
-                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bongbongan,
+                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bombongan,
                     Morong, Rizal.
                 </p>
             <?php elseif ($cert['certificate_type'] === 'Indigency Certificate'): ?>
@@ -331,7 +331,7 @@ $currentYear = date('Y');
                     and is in need of financial assistance for <strong><?= htmlspecialchars($cert['purpose']) ?></strong>.
                 </p>
                 <p style="text-indent: 50px;">
-                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bongbongan,
+                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bombongan,
                     Morong, Rizal.
                 </p>
             <?php elseif ($cert['certificate_type'] === 'Residency Certificate'): ?>
@@ -340,7 +340,7 @@ $currentYear = date('Y');
                     residing at the above-mentioned address for the purpose of <strong><?= htmlspecialchars($cert['purpose']) ?></strong>.
                 </p>
                 <p style="text-indent: 50px;">
-                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bongbongan,
+                    This certification is issued this <strong><?= $currentDate ?></strong> at Barangay Bombongan,
                     Morong, Rizal.
                 </p>
             <?php endif; ?>

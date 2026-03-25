@@ -395,7 +395,7 @@ $csrf_token = getCSRFToken();
                     <div>
                         <div class="doc-eyebrow">Barangay Bombongan — Facilities Management</div>
                         <div class="doc-title">Court &amp; Facility Schedule</div>
-                        <div class="doc-sub">Reservation register for barangay facilities — basketball court, multipurpose area, and gym</div>
+                        <div class="doc-sub">Reservation register for barangay facilities — basketball court</div>
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-ghost" id="btnPrintCourt">↗ Print</button>
@@ -411,8 +411,8 @@ $csrf_token = getCSRFToken();
                         <select            class="crt-input" id="filterFacility"  style="width:160px;">
                             <option value="">All Facilities</option>
                             <option value="basketball_court">🏀 Basketball Court</option>
-                            <option value="multipurpose_area">🏛 Multipurpose Area</option>
-                            <option value="gym">🏋 Gym</option>
+                            <!-- <option value="multipurpose_area">🏛 Multipurpose Area</option> -->
+                            <!-- <option value="gym">🏋 Gym</option> -->
                         </select>
                         <select            class="crt-input" id="filterStatus"    style="width:130px;">
                             <option value="">All Status</option>
@@ -462,7 +462,7 @@ $csrf_token = getCSRFToken();
                     </div>
                     <span class="fac-status-badge avail" id="courtBadge">Available</span>
                 </div>
-                <div class="fac-card fac-multi">
+                <!-- <div class="fac-card fac-multi">
                     <div class="fac-icon">🏛</div>
                     <div>
                         <div class="fac-name">Multipurpose Area</div>
@@ -477,7 +477,7 @@ $csrf_token = getCSRFToken();
                         <div class="fac-sub" id="gymSub">Fitness · training sessions</div>
                     </div>
                     <span class="fac-status-badge avail" id="gymBadge">Available</span>
-                </div>
+                </div> -->
             </div>
 
             <!-- ── Reservations Table ── -->
@@ -518,14 +518,14 @@ $csrf_token = getCSRFToken();
                             <div class="fso-icon">🏀</div>
                             <div class="fso-label">Basketball Court</div>
                         </div>
-                        <div class="fac-sel-opt" data-val="multipurpose_area">
+                        <!-- <div class="fac-sel-opt" data-val="multipurpose_area">
                             <div class="fso-icon">🏛</div>
                             <div class="fso-label">Multipurpose</div>
                         </div>
                         <div class="fac-sel-opt" data-val="gym">
                             <div class="fso-icon">🏋</div>
                             <div class="fso-label">Gym</div>
-                        </div>
+                        </div> -->
                     </div>
                     <select id="resFacility" name="facility" class="fg-input hidden">
                         <option value="basketball_court">Basketball Court</option>
