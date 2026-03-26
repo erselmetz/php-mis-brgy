@@ -166,7 +166,9 @@ if ($action === 'list') {
         $tbl = moduleTable($type);
         if ($tbl) {
             $ms = $conn->prepare("SELECT * FROM $tbl WHERE care_visit_id=? LIMIT 1");
-            $ms->bind_param('i',(int)$row['id']); $ms->execute();
+            $careVisitId = (int)$row['id'];
+            $ms->bind_param('i', $careVisitId);
+            $ms->execute();
             $row['module'] = $ms->get_result()->fetch_assoc() ?? [];
         } else {
             $row['module'] = [];

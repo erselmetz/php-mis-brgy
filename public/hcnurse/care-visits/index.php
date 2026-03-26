@@ -14,13 +14,13 @@ if (!in_array($type, $allowed, true)) $type = 'general';
 
 $mod = [
     'general'         => ['icon'=>'❤️‍🩹','label'=>'General',         'color'=>'#2d5a27','bg'=>'#f0fdf4','light'=>'#e8faea'],
-    'maternal'        => ['icon'=>'🤱','label'=>'Maternal Health',  'color'=>'#9f1239','bg'=>'#fff1f2','light'=>'#fdf0f2'],
-    'family_planning' => ['icon'=>'💊','label'=>'Family Planning',  'color'=>'#1e40af','bg'=>'#eff6ff','light'=>'#eaf3ff'],
-    'prenatal'        => ['icon'=>'👶','label'=>'Prenatal / ANC',   'color'=>'#92400e','bg'=>'#fffbeb','light'=>'#fef8e0'],
-    'postnatal'       => ['icon'=>'🍼','label'=>'Postnatal / PNC',  'color'=>'#134e4a','bg'=>'#f0fdfa','light'=>'#e8fbf5'],
-    'child_nutrition' => ['icon'=>'🥗','label'=>'Child Nutrition',  'color'=>'#14532d','bg'=>'#f0fdf4','light'=>'#e8faea'],
+    // 'maternal'        => ['icon'=>'🤱','label'=>'Maternal Health',  'color'=>'#9f1239','bg'=>'#fff1f2','light'=>'#fdf0f2'],
+    // 'family_planning' => ['icon'=>'💊','label'=>'Family Planning',  'color'=>'#1e40af','bg'=>'#eff6ff','light'=>'#eaf3ff'],
+    // 'prenatal'        => ['icon'=>'👶','label'=>'Prenatal / ANC',   'color'=>'#92400e','bg'=>'#fffbeb','light'=>'#fef8e0'],
+    // 'postnatal'       => ['icon'=>'🍼','label'=>'Postnatal / PNC',  'color'=>'#134e4a','bg'=>'#f0fdfa','light'=>'#e8fbf5'],
+    // 'child_nutrition' => ['icon'=>'🥗','label'=>'Child Nutrition',  'color'=>'#14532d','bg'=>'#f0fdf4','light'=>'#e8faea'],
     'immunization'    => ['icon'=>'💉','label'=>'Immunization',     'color'=>'#4c1d95','bg'=>'#f5f3ff','light'=>'#eeeaff'],
-    'other'           => ['icon'=>'📋','label'=>'Other',            'color'=>'#0c444e','bg'=>'#e0f5f8','light'=>'#d4f0f5'],
+    // 'other'           => ['icon'=>'📋','label'=>'Other',            'color'=>'#0c444e','bg'=>'#e0f5f8','light'=>'#d4f0f5'],
 ];
 $mc = $mod[$type];
 
@@ -156,14 +156,15 @@ body{font-family:var(--f-n);}
 
 /* visit history */
 .v-list{max-height:400px;overflow-y:auto;}
-.v-row{display:flex;align-items:center;gap:10px;padding:10px 15px;border-bottom:1px solid #f0ede8;cursor:pointer;transition:background .1s;}
-.v-row:last-child{border-bottom:none;}
-.v-row:hover{background:var(--plt);}
-.v-row.on{background:var(--mod-bg);}
-.v-date{font-family:var(--f-m);font-size:10px;color:var(--faint);white-space:nowrap;min-width:76px;}
-.v-summary{flex:1;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.v-badges{display:flex;gap:5px;flex-shrink:0;}
-.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1px solid;}
+.visit-table{width:100%;border-collapse:collapse;font-size:13px;}
+.visit-table th, .visit-table td{border-bottom:1px solid #f0ede8;padding:9px 10px;text-align:left;}
+.visit-table th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+.visit-table tbody tr:hover{background:var(--plt);}
+.visit-table tbody tr.selected{background:var(--mod-bg);}
+.visit-summary{max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.v-list .action-btn{border:1px solid var(--rule-dk);background:#fff;color:var(--muted);padding:3px 8px;font-size:11px;border-radius:2px;cursor:pointer;margin-right:4px;}
+.v-list .action-btn.edit{color:var(--mod);border-color:var(--mod);} 
+.v-list .action-btn.view{color:#1a3a5c;border-color:#1a3a5c;}.badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1px solid;}
 .b-completed{background:var(--ok-bg);color:var(--ok-fg);border-color:color-mix(in srgb,var(--ok-fg) 25%,transparent);}
 .b-ongoing{background:var(--warn-bg);color:var(--warn-fg);border-color:color-mix(in srgb,var(--warn-fg) 25%,transparent);}
 .b-followup{background:var(--info-bg);color:var(--info-fg);border-color:color-mix(in srgb,var(--info-fg) 25%,transparent);}
@@ -405,8 +406,20 @@ body{font-family:var(--f-n);}
                             <span id="vCount" style="font-family:var(--f-m);font-size:9.5px;color:var(--faint);">—</span>
                         </div>
                         <div class="v-list" id="vList">
-                            <div style="padding:16px;text-align:center;color:var(--faint);font-size:12px;">—</div>
-                        </div>
+                        <table class="visit-table" id="vTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Summary</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vTableBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--faint);font-size:12px;">—</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                     </div>
 
                 </div>
@@ -538,8 +551,28 @@ body{font-family:var(--f-n);}
 <div id="editModal" title="Edit Care Visit" class="hidden">
 <form id="editForm" style="max-height:76vh;overflow-y:auto;">
     <input type="hidden" name="care_visit_id" id="ef_vid">
+    <input type="hidden" name="id"            id="ef_consult_id">
+    <input type="hidden" name="consultation_date" id="ef_consultation_date">
+    <input type="hidden" name="consult_status" id="ef_consult_status">
+    <input type="hidden" name="resident_id"   id="ef_resident_id">
     <input type="hidden" name="type"          id="ef_type">
     <div style="padding:16px 18px 0;">
+
+        <div class="g2">
+            <div class="fg">
+                <label class="fg-lbl">Patient</label>
+                <input type="text" id="ef_resident_name" class="fg-in" disabled>
+            </div>
+            <div class="fg">
+                <label class="fg-lbl">Visit Status</label>
+                <select name="status" id="ef_status" class="fg-sel">
+                    <option value="Completed">Completed</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Dismissed">Dismissed</option>
+                </select>
+            </div>
+        </div>
 
         <!-- Always present: date + notes -->
         <div class="g2">
@@ -573,6 +606,7 @@ const CV_TYPE = <?= json_encode($type) ?>;
 const CV_API  = 'api/care_visits_api.php';
 let selId = null, selName = '';
 let currentVisitData = null;
+let currentEditMode = 'care'; // 'care' | 'consult'
 let genScope = 'patient'; // 'patient' | 'all'
 
 $(function(){
@@ -726,7 +760,7 @@ $(function(){
 
     /* ── visit history ── */
     function loadVisits(rid){
-        $('#vList').html('<div style="padding:14px;text-align:center;color:var(--faint);font-size:12px;">Loading…</div>');
+        $('#vTableBody').html('<tr><td colspan="4" style="text-align:center;color:var(--faint);font-size:12px;">Loading…</td></tr>');
         $('#vCount').text('…');
 
         const today=new Date().toISOString().slice(0,10);
@@ -743,16 +777,16 @@ $(function(){
             });
             $('#vCount').text(all.length+(all.length===1?' RECORD':' RECORDS'));
             if(!all.length){
-                $('#vList').html('<div style="padding:20px;text-align:center;color:var(--faint);font-size:12px;font-style:italic;">No visits recorded yet.<br><small>Click "+ New Visit" to add one.</small></div>');
+                $('#vTableBody').html('<tr><td colspan="4" style="text-align:center;color:var(--faint);font-size:12px;font-style:italic;">No visits recorded yet.<br><small>Click "+ New Visit" to add one.</small></td></tr>');
                 return;
             }
             let html='';
             all.forEach(r=>{
-                const date=r.consultation_date||r.visit_date||'—';
-                const status=r.consult_status||'';
-                const srcBadge=r._src==='consult'
-                    ?'<span class="badge b-consult">Consult</span>'
-                    :'<span class="badge b-care">Care</span>';
+                const date = r.consultation_date||r.visit_date||'—';
+                const status = r.consult_status||'';
+                const srcBadge = r._src==='consult'
+                    ? '<span class="badge b-consult">Consult</span>'
+                    : '<span class="badge b-care">Care</span>';
                 let summary='';
                 if(r._src==='consult'){
                     summary=[r.complaint,r.diagnosis].filter(Boolean).join(' · ').substring(0,65);
@@ -761,23 +795,48 @@ $(function(){
                     const vals=Object.entries(m).filter(([k,v])=>v&&!['id','resident_id','care_visit_id','created_at','updated_at','visit_date'].includes(k)).map(([,v])=>String(v));
                     summary=vals.slice(0,3).join(' · ').substring(0,65)||r.notes||'';
                 }
-                html+=`<div class="v-row" data-id="${r.id}" data-src="${r._src}">
-                    <div class="v-date">${esc(date)}</div>
-                    <div class="v-summary">${esc(summary||'—')}</div>
-                    <div class="v-badges">${statusBadge(status)}${srcBadge}</div>
-                </div>`;
+                html += `<tr class="v-row" data-id="${r.id}" data-src="${r._src}">
+                    <td>${esc(date)}</td>
+                    <td class="visit-summary">${esc(summary||'—')}</td>
+                    <td>${srcBadge}</td>
+                    <td>
+                        <button type="button" class="action-btn view v-view-btn">View</button>
+                        <button type="button" class="action-btn edit v-edit-btn">Edit</button>
+                    </td>
+                </tr>`;
             });
-            $('#vList').html(html);
+            $('#vTableBody').html(html);
         });
     }
 
-    /* ── click visit row → detail ── */
+    /* ── row actions (view/edit) ── */
     $(document).on('click','.v-row',function(){
-        $('.v-row').removeClass('on');
-        $(this).addClass('on');
+        $('.v-row').removeClass('selected');
+        $(this).addClass('selected');
         const id=$(this).data('id'), src=$(this).data('src');
         if(src==='consult') showConsultDetail(id);
         else                showCareDetail(id);
+    });
+
+    $(document).on('click','.v-view-btn',function(e){
+        e.stopPropagation();
+        const tr=$(this).closest('tr');
+        $('.v-row').removeClass('selected');
+        tr.addClass('selected');
+        const id=tr.data('id'), src=tr.data('src');
+        if(src==='consult') showConsultDetail(id);
+        else                showCareDetail(id);
+    });
+
+    $(document).on('click','.v-edit-btn',function(e){
+        e.stopPropagation();
+        const tr=$(this).closest('tr');
+        const id=tr.data('id'), src=tr.data('src');
+        if(src==='consult') {
+            openEditConsult(id);
+        } else {
+            openEditVisit(id);
+        }
     });
 
     /* ════════════════════════════
@@ -951,24 +1010,53 @@ $(function(){
     $('#btnEditVisit').on('click',function(){
         const {id, src}=$(this).data();
         if(src==='consult'){
-            window.location.href='../consultation/?edit='+id;
+            openEditConsult(id);
             return;
         }
         openEditVisit(id);
     });
 
     function openEditVisit(id){
+        currentEditMode = 'care';
+        $('#ef_consult_id').val('');
+        $('#ef_consultation_date').val('');
+        $('#ef_consult_status').val('');
+
         $.getJSON(CV_API,{action:'get',type:CV_TYPE,id},function(res){
             if(res.status!=='ok'){ alert('Could not load record.'); return; }
             const d=res.data;
             $('#ef_vid').val(d.id);
+            $('#ef_resident_id').val(d.resident_id||'');
+            $('#ef_resident_name').val(d.resident_name||'');
             $('#ef_type').val(CV_TYPE);
             $('#ef_date').val(d.visit_date||'');
             $('#ef_worker').val(d.health_worker||d.administered_by||'');
             $('#ef_notes').val(d.notes||'');
+            $('#ef_status').val(d.status||'Completed');
             $('#ef_fields').html(buildEditFields(d));
             $('#editModal').dialog('option','title','Edit Visit — '+d.visit_date).dialog('open');
         });
+    }
+
+    function openEditConsult(id){
+        currentEditMode = 'consult';
+        $.getJSON('../consultation/api/view.php',{id},function(res){
+            if(!res.success){ alert('Could not load consultation.'); return; }
+            const d=res.data;
+            $('#ef_vid').val('');
+            $('#ef_consult_id').val(d.id);
+            $('#ef_resident_id').val(d.resident_id||'');
+            $('#ef_resident_name').val(d.fullname||'');
+            $('#ef_type').val('consult');
+            $('#ef_date').val(d.consultation_date||'');
+            $('#ef_consultation_date').val(d.consultation_date||'');
+            $('#ef_worker').val(d.health_worker||'');
+            $('#ef_notes').val(d.chief_complaint||d.complaint||'');
+            $('#ef_status').val(d.consult_status||'Ongoing');
+            $('#ef_consult_status').val(d.consult_status||'Ongoing');
+            $('#ef_fields').html(buildEditFields(d));
+            $('#editModal').dialog('option','title','Edit Consult — '+d.consultation_date).dialog('open');
+        }).fail(function(){ alert('Could not load consultation.'); });
     }
 
     function buildEditFields(d){
@@ -989,6 +1077,22 @@ $(function(){
             </div>`;
         const chk=(n,lbl,v)=>`
             <label class="chk" style="margin-bottom:8px;"><input type="checkbox" name="${n}" value="1" ${v==1||v==='1'?'checked':''}> ${esc(lbl)}</label>`;
+
+        if(currentEditMode === 'consult'){
+            return `<div class="form-section-title">Consultation Details</div>
+            <div class="fg">
+                <label class="fg-lbl">Chief Complaint</label>
+                <textarea name="complaint" class="fg-ta">${esc(d.chief_complaint||d.complaint||'')}</textarea>
+            </div>
+            <div class="g2">
+                <div class="fg"><label class="fg-lbl">Diagnosis</label><input type="text" name="diagnosis" class="fg-in" value="${esc(d.primary_diagnosis||d.diagnosis||'')}" /></div>
+                <div class="fg"><label class="fg-lbl">Treatment</label><input type="text" name="treatment" class="fg-in" value="${esc(d.treatment||'')}" /></div>
+            </div>
+            <div class="fg">
+                <label class="fg-lbl">Additional Notes</label>
+                <textarea name="health_advice" class="fg-ta">${esc(d.health_advice||'')}</textarea>
+            </div>`;
+        }
 
         if(CV_TYPE==='general'||CV_TYPE==='maternal'||CV_TYPE==='other') return '';
 
@@ -1128,19 +1232,40 @@ $(function(){
         e.preventDefault();
         const $btn=$('#efSubmit');
         $btn.prop('disabled',true).text('Saving…');
+
+        const isConsult = currentEditMode === 'consult';
+        const postData = $(this).serializeArray();
+
+        if (isConsult) {
+            const dateVal = $('#ef_date').val();
+            const statusVal = $('#ef_status').val();
+            postData.push({name:'consultation_date', value:dateVal});
+            postData.push({name:'consult_status', value:statusVal});
+            postData.push({name:'id', value:$('#ef_consult_id').val()});
+            postData.push({name:'resident_id', value:$('#ef_resident_id').val()});
+        }
+
+        const url = isConsult ? '../consultation/api/edit.php' : CV_API + '?action=' + ($('#ef_vid').val().trim() ? 'update' : 'save');
+
         $.ajax({
-            url:CV_API+'?action=update',
-            type:'POST',
-            data:$(this).serialize(),
-            dataType:'json',
+            url: url,
+            type: 'POST',
+            data: $.param(postData),
+            dataType: 'json',
             success(res){
-                if(res.status!=='ok'){ alert(res.message||'Save failed.'); return; }
+                const ok = isConsult ? (res.success === true || res.status === 'ok') : (res.status === 'ok');
+                if(!ok){ alert((res.message || res.error) || 'Save failed.'); return; }
+
                 $('#editModal').dialog('close');
-                const vid=$('#ef_vid').val();
+                const vid = isConsult ? parseInt($('#ef_consult_id').val()) : parseInt($('#ef_vid').val());
                 loadVisits(selId);
-                showCareDetail(parseInt(vid));
+                if(isConsult){ showConsultDetail(vid); }
+                else {
+                    if(vid){ showCareDetail(vid); }
+                    else { const newId = (res.data && res.data.care_visit_id) ? parseInt(res.data.care_visit_id) : null; if(newId) showCareDetail(newId); }
+                }
             },
-            error(xhr){ alert('Server error ('+xhr.status+').'); },
+            error(xhr){ alert('Server error (' + xhr.status + ').'); },
             complete(){ $btn.prop('disabled',false).text('Save Changes'); }
         });
     });
@@ -1214,10 +1339,22 @@ $(function(){
     <?php endif; ?>
 
     /* ── New Visit ── */
-    $('#btnNewVisit').on('click',function(){
-        if(!selId) return;
-        window.location.href='../consultation/?new=1&type='+CV_TYPE+'&resident_id='+selId;
-    });
+    function openNewVisit(){
+        if(!selId){ alert('Select a patient first.'); return; }
+        currentEditMode = 'care';
+        $('#ef_vid').val('');
+        $('#ef_resident_id').val(selId);
+        $('#ef_resident_name').val(selName);
+        $('#ef_type').val(CV_TYPE);
+        $('#ef_date').val(new Date().toISOString().slice(0,10));
+        $('#ef_worker').val('');
+        $('#ef_notes').val('');
+        $('#ef_status').val('Completed');
+        $('#ef_fields').html(buildEditFields({}));
+        $('#editModal').dialog('option','title','New Care Visit').dialog('open');
+    }
+
+    $('#btnNewVisit').on('click',openNewVisit);
 });
 </script>
 </body>
