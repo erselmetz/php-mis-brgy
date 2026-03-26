@@ -13,7 +13,7 @@ $month  = $_GET['month']  ?? date('Y-m');
 $search = trim($_GET['search'] ?? '');
 $sub    = trim($_GET['sub']    ?? 'all');
 
-$allowed = ['immunization','maternal','family_planning','prenatal','postnatal','child_nutrition'];
+$allowed = ['general','immunization','maternal','family_planning','prenatal','postnatal','child_nutrition'];
 if (!in_array($type, $allowed, true)) $type = 'maternal';
 
 function compute_range(string $p, string $m): array {
@@ -142,7 +142,7 @@ td{padding:7px 10px;vertical-align:top;font-size:10.5px;}
 <div class="lh">
     <div class="lh-left">
         <div class="lh-brgy">Barangay Bombongan</div>
-        <div class="lh-addr">San Pablo City, Laguna · Barangay Health Center</div>
+        <div class="lh-addr">Morong, Rizal · Barangay Health Center</div>
     </div>
     <div class="lh-right">
         <div class="lh-doc-title"><?= htmlspecialchars($pageTitle) ?></div>

@@ -240,12 +240,8 @@ if (tblOk($conn,'medicines')) {
                         <div class="hcch"><span class="hcct">Care Programs</span><span class="hccm" id="careM">—</span></div>
                         <div class="hccb">
                             <div class="cg">
-                                <a href="/hcnurse/health-records/?type=maternal"        class="cc cc-mat"><div class="cv" id="cvM">—</div><div class="cl">Maternal</div></a>
-                                <a href="/hcnurse/health-records/?type=family_planning" class="cc cc-fp" ><div class="cv" id="cvFP">—</div><div class="cl">Family Planning</div></a>
-                                <a href="/hcnurse/health-records/?type=prenatal"        class="cc cc-pre"><div class="cv" id="cvPre">—</div><div class="cl">Prenatal</div></a>
-                                <a href="/hcnurse/health-records/?type=postnatal"       class="cc cc-pos"><div class="cv" id="cvPos">—</div><div class="cl">Postnatal</div></a>
-                                <a href="/hcnurse/health-records/?type=child_nutrition" class="cc cc-nut"><div class="cv" id="cvNut">—</div><div class="cl">Child Nutrition</div></a>
-                                <a href="/hcnurse/health-records/?type=immunization"    class="cc cc-imm"><div class="cv" id="cvImm">—</div><div class="cl">Immunization</div></a>
+                                <a href="/hcnurse/health-records/?type=general" class="cc cc-nut"><div class="cv" id="cvGen">—</div><div class="cl">General</div></a>
+                                <a href="/hcnurse/health-records/?type=immunization" class="cc cc-imm"><div class="cv" id="cvImm">—</div><div class="cl">Immunization</div></a>
                             </div>
                             <div class="ch180"><canvas id="careChart"></canvas></div>
                             <div id="dataCoverage" style="font-size:10px;color:var(--ink-muted);line-height:1.55;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);"></div>
@@ -343,11 +339,7 @@ if (tblOk($conn,'medicines')) {
             $('#stDs').html(`Txns: <strong>${d.dispensed_txn??0}</strong>`);
 
             const cv=d.care_by_type||{};
-            $('#cvM').text(cv.maternal??0);
-            $('#cvFP').text(cv.family_planning??0);
-            $('#cvPre').text(cv.prenatal??0);
-            $('#cvPos').text(cv.postnatal??0);
-            $('#cvNut').text(cv.child_nutrition??0);
+            $('#cvGen').text(cv.general??0);
             $('#cvImm').text(cv.immunization??0);
             $('#careM').text(fmt(d.date_from)+' → '+fmt(d.date_to));
             $('#trendM').text(fmt(d.date_from)+' → '+fmt(d.date_to));
@@ -355,9 +347,9 @@ if (tblOk($conn,'medicines')) {
             careInst=mkChart(careInst,'careChart',{
                 type:'bar',
                 data:{
-                    labels:['Maternal','Fam.Plan','Prenatal','Postnatal','Nutrition','Immunization'],
-                    datasets:[{data:[cv.maternal??0,cv.family_planning??0,cv.prenatal??0,cv.postnatal??0,cv.child_nutrition??0,cv.immunization??0],
-                        backgroundColor:['#fda4af','#93c5fd','#fcd34d','#5eead4',AC2+'bb','#c4b5fd'],borderRadius:3}]
+                    labels:['General','Immunization'],
+                    datasets:[{data:[cv.general??0,cv.immunization??0],
+                        backgroundColor:['#93c5fd','#c4b5fd'],borderRadius:3}]
                 },
                 options:{maintainAspectRatio:false,responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}}},x:{ticks:{font:{size:9}}}}}
             });

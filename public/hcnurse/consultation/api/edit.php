@@ -126,12 +126,13 @@ try {
             referred_to=?, follow_up_date=?
         WHERE id=? LIMIT 1
     ");
+    $care_visit_id_bind = $care_visit_id > 0 ? $care_visit_id : null;
     $stmt->bind_param(
         'issssssssissssssddddssissi',
         $resident_id, $complaint, $diagnosis, $treatment,
         $notes, $date,
         $consultType, $consultStatus, $healthWorker,
-        $care_visit_id > 0 ? $care_visit_id : null,
+        $care_visit_id_bind,
         $temp, $bpSys, $bpDia, $pulse, $rr, $spo2,
         $weight, $height, $bmi, $waist,
         $healthAdvice, $riskLevel, $isReferred,

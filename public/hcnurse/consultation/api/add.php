@@ -39,7 +39,7 @@ $diagnosis  = trim($_POST['diagnosis']  ?? '');
 $treatment  = trim($_POST['treatment']  ?? '');
 
 /* consult_type: from new form field, or fall back to old consultation_type/program */
-$typeAllowed = ['general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization','other'];
+$typeAllowed = ['general','immunization'];
 $consultType = trim($_POST['consult_type'] ?? $_POST['consultation_type'] ?? 'general');
 if (!in_array($consultType, $typeAllowed, true)) $consultType = 'general';
 

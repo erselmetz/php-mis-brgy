@@ -388,13 +388,7 @@ $typeConfig = [
                             <label class="fg-label">Consult Type <span class="req">*</span></label>
                             <select name="consult_type" id="cf_type" class="fg-select">
                                 <option value="general">General</option>
-                                <option value="maternal">Maternal</option>
-                                <option value="family_planning">Family Planning</option>
-                                <option value="prenatal">Prenatal</option>
-                                <option value="postnatal">Postnatal</option>
-                                <option value="child_nutrition">Child Nutrition</option>
                                 <option value="immunization">Immunization</option>
-                                <option value="other">Other</option>
                             </select>
                         </div>
                     </div>
@@ -442,7 +436,7 @@ $typeConfig = [
                         </div>
                     </div>
                     <!-- Link to care visit (optional) -->
-                    <div class="fg" style="margin-top:4px;">
+                    <div class="fg hidden" style="margin-top:4px;">
                         <label class="fg-label">Link to Care Visit (optional)</label>
                         <input type="number" name="care_visit_id" class="fg-input"
                                placeholder="care_visits.id — leave blank if not linked" style="max-width:280px;">

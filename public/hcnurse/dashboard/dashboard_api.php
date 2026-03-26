@@ -78,7 +78,7 @@ $cRow = q($conn, "SELECT
 $consult_total = (int)($cRow['total'] ?? 0);
 $today_consult = (int)($cRow['today'] ?? 0);
 
-$careTypes = ['maternal','family_planning','prenatal','postnatal','child_nutrition','immunization'];
+$careTypes = ['general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization'];
 $care_by_type = [];
 foreach ($careTypes as $ct) {
     $care_by_type[$ct] = count_consult_program($conn, $from, $to, $ct);
@@ -143,6 +143,13 @@ if (tbl($conn, 'care_visits')) {
             WHERE cv.visit_date BETWEEN '{$from}' AND '{$to}'");
         $module_rows['child_nutrition_visit'] = (int)($r['cnt'] ?? 0);
     }
+    // if (tbl($conn, 'general')) {
+    //     $r = q($conn, "
+    //         SELECT COUNT(*) cnt FROM general_record gr
+    //         INNER JOIN care_visits cv ON cv.id = gr.care_visit_id
+    //         WHERE cv.visit_date BETWEEN '{$from}' AND '{$to}'");
+    //     $module_rows['general_record'] = (int)($r['cnt'] ?? 0);
+    // }
 }
 
 /* consultation_detail (extended narrative) */

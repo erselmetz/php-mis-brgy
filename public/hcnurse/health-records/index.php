@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../../includes/app.php';
 requireHCNurse();
 
 $type = $_GET['type'] ?? 'maternal';
-$allowed = ['immunization', 'maternal', 'family_planning', 'prenatal', 'postnatal', 'child_nutrition'];
+$allowed = ['general','immunization', 'maternal', 'family_planning', 'prenatal', 'postnatal', 'child_nutrition'];
 if (!in_array($type, $allowed, true)) $type = 'maternal';
 
 // BUG FIX: default period = 'all' so all records are visible by default
@@ -23,6 +23,7 @@ $q      = $_GET['q']      ?? '';
 $sub    = $_GET['sub']    ?? 'all';
 
 $pageLabels = [
+    'general'        => 'General Health Records',
     'maternal'        => 'Maternal Records',
     'family_planning' => 'Family Planning',
     'prenatal'        => 'Prenatal Care',
@@ -31,6 +32,7 @@ $pageLabels = [
     'immunization'    => 'Immunization Records',
 ];
 $pageIcons = [
+    'general'         => '🩺',
     'maternal'        => '🤱',
     'family_planning' => '💊',
     'prenatal'        => '👶',
@@ -39,6 +41,7 @@ $pageIcons = [
     'immunization'    => '💉',
 ];
 $pageDescs = [
+    'general'         => 'General health consultations and visit records',
     'maternal'        => 'Maternal health consultations and visit records',
     'family_planning' => 'Family planning consultations and visit records',
     'prenatal'        => 'Prenatal care consultations and visit records',
