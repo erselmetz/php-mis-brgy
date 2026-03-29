@@ -10,8 +10,8 @@ if (isset($_SESSION['role'])) {
         'hcnurse'  => '/hcnurse/dashboard/',
         'kagawad'  => '/kagawad/dashboard/',
         'secretary'=> '/secretary/dashboard/',
-        'admin'    => '/captain/dashboard/',
-        'staff'    => '/captain/dashboard/',
+        'admin'    => '/admin/dashboard/',
+        'staff'    => '/staff/dashboard/',
     ];
     
     if (isset($routes[$role])) {

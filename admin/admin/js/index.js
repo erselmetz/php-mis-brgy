@@ -1,0 +1,438 @@
+/**
+ * Officials & Staff — JS Controller
+ * Replaces: public/secretary/admin/js/index.js
+ */
+
+/* ── Dialog config helper ── */
+function dlgCfg(opts) {
+    return Object.assign({
+        autoOpen: false, modal: true, resizable: false, closeOnEscape: true,
+        classes: {
+            'ui-dialog': '', 'ui-dialog-titlebar': '', 'ui-dialog-buttonpane': ''
+        }
+    }, opts);
+}
+
+function showAlert(title, msg, type) {
+    const id  = 'a' + Date.now();
+    const col = type === 'success' ? 'var(--ok-fg)' : type === 'danger' ? 'var(--err-fg)' : 'var(--accent)';
+    $('body').append(`<div id="${id}" title="${esc(title)}" style="display:none;">
+        <div style="padding:18px 20px;font-size:13px;color:var(--ink);
+                    border-left:3px solid ${col};background:var(--paper);">
+            ${esc(msg)}
+        </div>
+    </div>`);
+    $(`#${id}`).dialog(dlgCfg({
+        width: 420,
+        buttons: { 'OK': function () { $(this).dialog('close').remove(); } }
+    })).dialog('open');
+}
+
+function esc(s) {
+    const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+/* ══════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════ */
+$(function () {
+
+    /* ── DataTable ── */
+    const table = $('#accountsTable').DataTable({
+        pageLength: 25, order: [[0, 'asc']],
+        dom: 'tip',
+        language: {
+            info: 'Showing _START_–_END_ of _TOTAL_ personnel',
+            paginate: { previous: '‹', next: '›' }
+        }
+    });
+    $('#admTableSearch').on('input', function () {
+        table.search($(this).val()).draw();
+    });
+
+    /* ══════════════════════════════════════════════
+       RESIDENT SEARCH (shared for add + edit)
+    ══════════════════════════════════════════════ */
+    let resTimer = {};
+
+    function initResidentSearch(prefix) {
+        const $inp  = $(`#${prefix}ResidentSearch`);
+        const $dd   = $(`#${prefix}ResidentDD`);
+        const $tag  = $(`#${prefix}ResidentSelected`);
+        const $name = $(`#${prefix}ResidentSelectedName`);
+        const $hid  = $(`#${prefix}ResidentId`);
+        const $fn   = $(`#${prefix}Fullname`);
+
+        $inp.on('input', function () {
+            clearTimeout(resTimer[prefix]);
+            const q = $.trim($(this).val());
+            if (q.length < 2) { $dd.removeClass('open').empty(); return; }
+            resTimer[prefix] = setTimeout(() => {
+                $.getJSON('../certificate/search_residents.php', { q }, data => {
+                    $dd.empty();
+                    if (!data.length) {
+                        $dd.html('<div style="padding:10px 12px;font-size:12px;color:var(--ink-faint);font-style:italic;">No residents found.</div>');
+                        $dd.addClass('open'); return;
+                    }
+                    data.forEach(r => {
+                        const fullName = [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(' ');
+                        $dd.append(`<div class="rsd-row" data-id="${r.id}" data-name="${esc(fullName)}">
+                            <div class="rsd-id">${String(r.id).padStart(4,'0')}</div>
+                            <div>
+                                <div class="rsd-name">${esc(fullName)}</div>
+                                <div class="rsd-addr">📍 ${esc(r.address || 'No address')}</div>
+                            </div>
+                        </div>`);
+                    });
+                    $dd.addClass('open');
+                });
+            }, 260);
+        });
+
+        $dd.on('click', '.rsd-row', function () {
+            const id   = $(this).data('id');
+            const name = $(this).data('name');
+            $hid.val(id);
+            $fn.val(name);
+            $name.text(name);
+            $inp.val('').closest('.res-search-wrap').find('.fg-input').val('');
+            $tag.show();
+            $dd.removeClass('open').empty();
+        });
+
+        $(document).on('click', e => {
+            if (!$(e.target).closest(`#${prefix}ResidentSearch, #${prefix}ResidentDD`).length)
+                $dd.removeClass('open');
+        });
+    }
+
+    window.clearResidentSelection = function (prefix) {
+        $(`#${prefix}ResidentId`).val('');
+        $(`#${prefix}Fullname`).val('');
+        $(`#${prefix}ResidentSelected`).hide();
+        $(`#${prefix}ResidentSearch`).val('');
+    };
+
+    /* ══════════════════════════════════════════════
+       HCNURSE ROLE — hide/show term dates
+    ══════════════════════════════════════════════ */
+    function toggleTermDates(prefix) {
+        const role  = $(`#${prefix}Role`).val();
+        const isHCN = role === 'hcnurse';
+        $(`#${prefix}TermDates`).toggle(!isHCN);
+        $(`#${prefix}HcnurseNote`).toggle(isHCN);
+        if (!isHCN) {
+            $(`#${prefix}TermStart, #${prefix}TermEnd`).prop('required', true);
+        } else {
+            $(`#${prefix}TermStart, #${prefix}TermEnd`).prop('required', false);
+        }
+    }
+
+    // Auto-fill Position from Role (secretary admin — Add / Edit)
+    const ROLE_TO_POSITION = {
+        captain: 'Barangay Captain',
+        kagawad: 'Barangay Kagawad',
+        secretary: 'Barangay Secretary',
+        hcnurse: 'Barangay HC Nurse'
+    };
+
+    function fillPositionFromRole(role, $input) {
+        if (!$input || !$input.length) {
+            return;
+        }
+        const label = ROLE_TO_POSITION[role] || '';
+        if (label) {
+            $input.val(label);
+        }
+    }
+
+    $('#addRole').on('change', function () {
+        toggleTermDates('add');
+        fillPositionFromRole($(this).val(), $('#addOfficerPosition'));
+    });
+
+    $('#editRole').on('change', function () {
+        toggleTermDates('edit');
+        fillPositionFromRole($(this).val(), $('#editOfficerPosition'));
+    });
+
+    /* ══════════════════════════════════════════════
+       ADD MODAL
+    ══════════════════════════════════════════════ */
+    $('#addAccountModal').dialog(dlgCfg({
+        width: 680,
+        open: function () {
+            initResidentSearch('add');
+            toggleTermDates('add');
+            fillPositionFromRole($('#addRole').val(), $('#addOfficerPosition'));
+        },
+        buttons: {
+            'Create Record': function () { document.getElementById('addAccountForm').submit(); },
+            'Cancel':        function () { $(this).dialog('close'); }
+        }
+    }));
+    $('#btnAddAccount').on('click', () => $('#addAccountModal').dialog('open'));
+
+    /* ══════════════════════════════════════════════
+       EDIT MODAL
+    ══════════════════════════════════════════════ */
+    $('#editAccountModal').dialog(dlgCfg({
+        width: 680,
+        open: function () { initResidentSearch('edit'); toggleTermDates('edit'); },
+        buttons: {
+            'Save Changes': function () { submitEditForm(); },
+            'Cancel':       function () { $(this).dialog('close'); }
+        }
+    }));
+
+    $(document).on('click', '.edit-btn', function () {
+        const d = $(this).data();
+        $('#editId').val(d.id);
+        $('#editOfficerId').val(d.officerId || '');
+        $('#editUsername').val(d.username || '');
+        $('#editPassword').val('');
+        $('#editRole').val(d.role || 'kagawad');
+        $('#editStatus').val(d.status || 'active');
+        $('#editOfficerPosition').val(d.officerPosition || '');
+        $('#editTermStart').val(d.termStart || '');
+        $('#editTermEnd').val(d.termEnd || '');
+        $('#editResidentId').val(d.residentId || '');
+        $('#editFullname').val(d.name || '');
+
+        // Show resident tag if linked
+        if (d.residentId && d.residentName) {
+            $('#editResidentSelectedName').text(d.residentName);
+            $('#editResidentSelected').show();
+        } else {
+            $('#editResidentSelected').hide();
+        }
+
+        toggleTermDates('edit');
+        $('#editAccountModal').dialog('open');
+    });
+
+    function submitEditForm() {
+        const data = Object.fromEntries(new FormData(document.getElementById('editAccountForm')).entries());
+        $.post('', data, function (res) {
+            // PHP handles redirect/session — reload
+            location.reload();
+        }).fail(() => showAlert('Error', 'Submission failed. Please try again.', 'danger'));
+        // Actually just submit the form directly since it's a PHP POST
+        document.getElementById('editAccountForm').submit();
+    }
+
+    /* ══════════════════════════════════════════════
+       ARCHIVE CURRENT TERM
+    ══════════════════════════════════════════════ */
+    $('#archiveTermDialog').dialog(dlgCfg({
+        width: 520,
+        buttons: {
+            'Confirm Archive': function () {
+                const $dlg = $(this);
+                $.post('archive_api.php', { action: 'archive_current_term' }, function (res) {
+                    $dlg.dialog('close');
+                    showAlert(
+                        res.success ? 'Term Archived' : 'Error',
+                        res.message,
+                        res.success ? 'success' : 'danger'
+                    );
+                    if (res.success) setTimeout(() => location.reload(), 1200);
+                }, 'json').fail(() => {
+                    $dlg.dialog('close');
+                    showAlert('Error', 'Request failed. Please try again.', 'danger');
+                });
+            },
+            'Cancel': function () { $(this).dialog('close'); }
+        }
+    }));
+    $('#btnArchiveTerm').on('click', () => $('#archiveTermDialog').dialog('open'));
+
+    /* ══════════════════════════════════════════════
+       ARCHIVE REGISTRY
+    ══════════════════════════════════════════════ */
+    $('#archiveRegistryDialog').dialog(dlgCfg({
+        width: 860,
+        open: function () { loadArchivedOfficers(); }
+    }));
+    $('#btnViewArchive').on('click', () => $('#archiveRegistryDialog').dialog('open'));
+
+    // Tab switching
+    $(document).on('click', '.arc-tab', function () {
+        const tab = $(this).data('tab');
+        $('.arc-tab').removeClass('active');
+        $(this).addClass('active');
+        $('.arc-pane').removeClass('active');
+        $(`#arc-pane-${tab}`).addClass('active');
+    });
+
+    // Search
+    let arcTimer;
+    $('#arcOffSearch').on('input', function () {
+        clearTimeout(arcTimer);
+        arcTimer = setTimeout(() => loadArchivedOfficers($(this).val()), 300);
+    });
+
+    function loadArchivedOfficers(search = '') {
+        $.getJSON('archive_api.php', { search }, function (res) {
+            const $body = $('#arcOffBody');
+            if (!res.success) {
+                $body.html('<tr><td colspan="7" class="arc-empty">Error loading archive.</td></tr>'); return;
+            }
+            const officers = res.officers || [];
+            const total    = res.total || officers.length;
+
+            // Stats
+            const roles  = new Set(officers.map(o => o.role)).size;
+            const latest = officers[0]
+                ? new Date(officers[0].archived_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+                : '—';
+            $('#arc-off-total').text(total);
+            $('#arc-off-roles').text(roles);
+            $('#arc-off-latest').text(latest);
+            $('#arc-off-count').text(total);
+
+            if (!officers.length) {
+                $body.html('<tr><td colspan="7" class="arc-empty">No archived officers found.</td></tr>');
+                $('#arcOffFooter').text('0 RECORDS'); return;
+            }
+
+            $body.empty();
+            officers.forEach((o, i) => {
+                const termPeriod = (o.term_start && o.term_end)
+                    ? fmtMonthYear(o.term_start) + ' — ' + fmtMonthYear(o.term_end)
+                    : (o.role === 'hcnurse' ? 'Permanent' : '—');
+                const archivedDate = o.archived_at
+                    ? new Date(o.archived_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '—';
+
+                $body.append(`<tr>
+                    <td style="font-family:var(--f-mono);font-size:10px;color:var(--ink-faint);text-align:right;">${i+1}</td>
+                    <td>
+                        <div style="font-weight:600;">${esc(o.user_name || o.resident_name || '—')}</div>
+                        <div style="font-family:var(--f-mono);font-size:9.5px;color:var(--ink-faint);">@${esc(o.username || '—')}</div>
+                    </td>
+                    <td style="font-size:12px;">${esc(o.position || '—')}</td>
+                    <td><span class="role-badge rb-${esc(o.role || 'admin')}">${esc((o.role || '').toUpperCase().slice(0,3))} ${esc(o.role || '—')}</span></td>
+                    <td style="font-family:var(--f-mono);font-size:10.5px;color:var(--ink-muted);">${esc(termPeriod)}</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${esc(archivedDate)}</td>
+                    <td style="text-align:center;">
+                        <button class="act-btn restore-off-btn"
+                            style="color:var(--ok-fg);border-color:color-mix(in srgb,var(--ok-fg) 30%,transparent);background:#fff;"
+                            data-id="${o.id}">
+                            Restore
+                        </button>
+                    </td>
+                </tr>`);
+            });
+            $('#arcOffFooter').text(total + ' ARCHIVED OFFICER' + (total !== 1 ? 'S' : ''));
+        });
+    }
+
+    // Restore officer
+    $(document).on('click', '.restore-off-btn', function () {
+        const id    = $(this).data('id');
+        const dlgId = 'roff_' + Date.now();
+        $('body').append(`<div id="${dlgId}" title="Restore Officer" style="display:none;">
+            <div style="padding:18px 20px;font-size:13px;color:var(--ink);">
+                Restore this officer to the active register?<br>
+                <span style="font-size:11px;color:var(--ink-faint);">Their user account will be re-enabled.</span>
+            </div>
+        </div>`);
+        $(`#${dlgId}`).dialog(dlgCfg({
+            width: 420,
+            buttons: {
+                'Restore': function () {
+                    $(this).dialog('close').remove();
+                    $.post('archive_api.php', { action: 'restore', officer_id: id }, function (res) {
+                        showAlert(res.success ? 'Restored' : 'Error', res.message, res.success ? 'success' : 'danger');
+                        if (res.success) { loadArchivedOfficers(); location.reload(); }
+                    }, 'json');
+                },
+                'Cancel': function () { $(this).dialog('close').remove(); }
+            }
+        })).dialog('open');
+    });
+
+    /* ══════════════════════════════════════════════
+       TERM HISTORY
+    ══════════════════════════════════════════════ */
+    $('#termHistoryDialog').dialog(dlgCfg({
+        width: 960,
+        open: function () { loadTermHistory(); }
+    }));
+    $('#btnTermHistory').on('click', () => $('#termHistoryDialog').dialog('open'));
+
+    let histTimer;
+    $('#histSearch').on('input', function () {
+        clearTimeout(histTimer);
+        histTimer = setTimeout(() => loadTermHistory($(this).val()), 300);
+    });
+
+    function loadTermHistory(search = '') {
+        $.getJSON('term_history_api.php', { search }, function (res) {
+            const $body = $('#histBody');
+            if (!res.success) {
+                $body.html('<tr><td colspan="7" class="arc-empty">Error loading history.</td></tr>'); return;
+            }
+            const history = res.history || [];
+            if (!history.length) {
+                $body.html('<tr><td colspan="7" class="arc-empty">No term history records found.</td></tr>');
+                $('#histFooter').text('0 RECORDS'); return;
+            }
+
+            $body.empty();
+            history.forEach(h => {
+                // Action badge class
+                const abMap = {
+                    'archived':       'ab-archived',
+                    'restored':       'ab-restored',
+                    'term_started':   'ab-created',
+                    'term_ended':     'ab-archived',
+                    'status_changed': 'ab-changed',
+                    'position_changed':'ab-changed',
+                    'term_updated':   'ab-changed',
+                };
+                const abClass   = abMap[h.action_type] || 'ab-changed';
+                const actionLbl = (h.action_type || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+                // Status change arrow
+                let statusHtml = '—';
+                if (h.old_status && h.new_status && h.old_status !== h.new_status) {
+                    statusHtml = `<span style="opacity:.6;">${esc(h.old_status)}</span>
+                        <span style="margin:0 5px;color:var(--ink-faint);">→</span>
+                        <strong>${esc(h.new_status)}</strong>`;
+                } else if (h.new_status) {
+                    statusHtml = `<strong>${esc(h.new_status)}</strong>`;
+                }
+
+                // Term period
+                const termHtml = h.term_period || '—';
+
+                const dateStr = h.created_at
+                    ? new Date(h.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : '—';
+
+                $body.append(`<tr>
+                    <td style="font-weight:600;">${esc(h.officer_name || h.resident_name || '—')}</td>
+                    <td style="font-size:12px;color:var(--ink-muted);">${esc(h.position || '—')}</td>
+                    <td><span class="action-badge ${abClass}">${esc(actionLbl)}</span></td>
+                    <td style="font-size:12px;">${statusHtml}</td>
+                    <td style="font-family:var(--f-mono);font-size:10.5px;color:var(--ink-muted);">${esc(termHtml)}</td>
+                    <td style="font-size:12px;color:var(--ink-muted);">${esc(h.user_name || '—')}</td>
+                    <td style="font-family:var(--f-mono);font-size:11px;color:var(--ink-muted);">${esc(dateStr)}</td>
+                </tr>`);
+            });
+            $('#histFooter').text(res.total + ' HISTORY RECORD' + (res.total !== 1 ? 'S' : ''));
+        });
+    }
+
+    /* ══════════════════════════════════════════════
+       UTILITIES
+    ══════════════════════════════════════════════ */
+    function fmtMonthYear(s) {
+        if (!s) return '—';
+        return new Date(s + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', year: 'numeric' });
+    }
+
+    $('body').show();
+});

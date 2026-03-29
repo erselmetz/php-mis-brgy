@@ -1,23 +1,19 @@
 -- =====================================================
 -- MIS BARANGAY - Complete Database Schema
+-- Generated: March 29, 2026 at 18:42:39
 -- =====================================================
--- This SQL file contains all database tables and structures
--- for the Management Information System - Barangay Module
---
 -- Usage:
--- 1. Open your database management tool (phpMyAdmin, MySQL Workbench, etc.)
--- 2. Create a new database named 'mis_brgy' (or your preferred name)
--- 3. Copy and paste this entire file into the SQL query editor
--- 4. Click "Execute" or "Run"
---
--- Generated: March 29, 2026 at 16:49:35
+--   1. Create a new database (e.g. php_mis_brgy)
+--   2. Import this file via phpMyAdmin or CLI:
+--      mysql -u root php_mis_brgy < database_complete.sql
 -- =====================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- =====================================================
 -- SECTION: INITIAL SETUP
--- =====================================================
 -- Creates all base tables required for the system
---
+-- =====================================================
 
 -- File: create_users_table.php
 CREATE TABLE IF NOT EXISTS users (
@@ -30,6 +26,10 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'users' created successfully.;
 
 -- File: create_households_table.php
 CREATE TABLE IF NOT EXISTS households (
@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS households (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'households' created successfully.;
 
 -- File: create_families_table.php
 CREATE TABLE IF NOT EXISTS families (
@@ -55,6 +59,10 @@ CREATE TABLE IF NOT EXISTS families (
         ON DELETE SET NULL
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'families' created successfully.;
 
 -- File: create_residents_table.php
 CREATE TABLE IF NOT EXISTS residents (
@@ -82,6 +90,10 @@ CREATE TABLE IF NOT EXISTS residents (
         ON DELETE SET NULL
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'residents' created successfully (with household_id column).;
 
 -- File: create_officers_table.php
 CREATE TABLE IF NOT EXISTS officers (
@@ -97,6 +109,10 @@ CREATE TABLE IF NOT EXISTS officers (
         ON DELETE SET NULL
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'officers' created successfully (with resident_id column).;
 
 -- File: create_certificates_request_table.php
 CREATE TABLE IF NOT EXISTS certificate_request (
@@ -109,6 +125,11 @@ CREATE TABLE IF NOT EXISTS certificate_request (
   requested_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE
 );
+
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'certificates_requests' created successfully.;
 
 -- File: create_blotter_table.php
 CREATE TABLE IF NOT EXISTS blotter (
@@ -136,6 +157,19 @@ CREATE TABLE IF NOT EXISTS blotter (
     INDEX idx_incident_date (incident_date),
     INDEX idx_created_by (created_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'blotter' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'blotter': " . $conn->error . "\n";
+}
+
+// Function to generate case number
+function generateCaseNumber($conn) {
+    $year = date('Y');
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM blotter WHERE case_number LIKE ?");
+    $pattern = "BLT-$year-%;
 
 -- File: create_events_scheduling.php
 CREATE TABLE IF NOT EXISTS events (
@@ -165,6 +199,29 @@ CREATE TABLE IF NOT EXISTS events (
     INDEX idx_priority (priority),
     INDEX idx_created_by (created_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'events' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'events': " . $conn->error . "\n";
+}
+
+/**
+ * Generate unique event code
+ * Example: EVT-2025-0001
+ */
+function generateEventCode(mysqli $conn): string
+{
+    $year = date('Y');
+
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) AS count 
+        FROM events 
+        WHERE event_code LIKE ?
+    ");
+
+    $pattern = "EVT-$year-%;
 
 -- File: create_inventory_table.php
 CREATE TABLE IF NOT EXISTS `inventory` (
@@ -193,6 +250,12 @@ CREATE TABLE IF NOT EXISTS `inventory` (
         REFERENCES `users`(`id`)
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql)) {
+    echo "✅ Table `inventory` created successfully\n";
+} else {
+    echo "❌ Error creating table: " . $conn->error . "\n;
 
 -- File: create_inventory_categories_table.php
 CREATE TABLE IF NOT EXISTS `inventory_category_list` (
@@ -202,6 +265,10 @@ CREATE TABLE IF NOT EXISTS `inventory_category_list` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'inventory_category_list' created successfully.;
 
 -- File: create_inventory_audit_trail_table.php
 CREATE TABLE IF NOT EXISTS `inventory_audit_trail` (
@@ -231,6 +298,12 @@ CREATE TABLE IF NOT EXISTS `inventory_audit_trail` (
   FOREIGN KEY (`inventory_id`) REFERENCES `inventory`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'inventory_audit_trail' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'inventory_audit_trail': " . $conn->error . "\n;
 
 -- File: create_medicines_table.php
 CREATE TABLE IF NOT EXISTS medicines (
@@ -255,6 +328,15 @@ CREATE TABLE IF NOT EXISTS medicines (
     KEY idx_reorder_level (reorder_level),
     KEY idx_expiration_date (expiration_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) !== TRUE) {
+    echo "❌ Error creating table 'medicines': " . $conn->error . "\n";
+    $conn->close();
+    exit;
+}
+
+echo "✅ Table 'medicines' created successfully.\n;
 
 -- File: create_medicine_categories_table.php
 CREATE TABLE IF NOT EXISTS medicine_categories (
@@ -267,6 +349,12 @@ CREATE TABLE IF NOT EXISTS medicine_categories (
     UNIQUE KEY uk_name (name),
     KEY idx_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'medicine_categories' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'medicine_categories': " . $conn->error . "\n;
 
 -- File: create_medicine_dispense_table.php
 CREATE TABLE IF NOT EXISTS medicine_dispense (
@@ -296,6 +384,12 @@ CREATE TABLE IF NOT EXISTS medicine_dispense (
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'medicine_dispense' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'medicine_dispense': " . $conn->error . "\n;
 
 -- File: create_health_metrics_table.php
 CREATE TABLE IF NOT EXISTS health_metrics (
@@ -320,6 +414,12 @@ CREATE TABLE IF NOT EXISTS health_metrics (
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'health_metrics' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'health_metrics': " . $conn->error . "\n;
 
 -- File: create_immunizations_table.php
 CREATE TABLE IF NOT EXISTS immunizations (
@@ -358,6 +458,12 @@ CREATE TABLE IF NOT EXISTS immunizations (
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'immunizations' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'immunizations': " . $conn->error . "\n;
 
 -- File: create_consultations_table.php
 CREATE TABLE IF NOT EXISTS consultations (
@@ -383,6 +489,12 @@ CREATE TABLE IF NOT EXISTS consultations (
         ON DELETE RESTRICT
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'consultations' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'consultations': " . $conn->error . "\n;
 
 -- File: create_backups_table.php
 CREATE TABLE IF NOT EXISTS `backups` (
@@ -397,6 +509,12 @@ CREATE TABLE IF NOT EXISTS `backups` (
   INDEX `idx_created_at` (`created_at`),
   FOREIGN KEY (`performed_by`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'backups' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'backups': " . $conn->error . "\n;
 
 -- File: create_patrol_schedule_table.php
 CREATE TABLE IF NOT EXISTS patrol_schedule (
@@ -421,6 +539,10 @@ CREATE TABLE IF NOT EXISTS patrol_schedule (
     INDEX idx_status      (status),
     INDEX idx_is_weekly   (is_weekly)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'patrol_schedule' created successfully.;
 
 -- File: create_tanod_duty_schedule_table.php
 CREATE TABLE IF NOT EXISTS tanod_duty_schedule (
@@ -441,6 +563,11 @@ CREATE TABLE IF NOT EXISTS tanod_duty_schedule (
     INDEX idx_shift      (shift),
     INDEX idx_status     (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ 
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'tanod_duty_schedule' created successfully.;
 
 -- File: create_court_schedule_table.php
 CREATE TABLE IF NOT EXISTS court_schedule (
@@ -465,6 +592,10 @@ CREATE TABLE IF NOT EXISTS court_schedule (
     INDEX idx_facility  (facility),
     INDEX idx_status    (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'court_schedule' created successfully.;
 
 -- File: create_borrowing_schedule_table.php
 CREATE TABLE IF NOT EXISTS borrowing_schedule (
@@ -493,6 +624,10 @@ CREATE TABLE IF NOT EXISTS borrowing_schedule (
     INDEX idx_status       (status),
     INDEX idx_inventory_id (inventory_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'borrowing_schedule' created successfully.;
 
 -- File: create_appointments_table.php
 CREATE TABLE IF NOT EXISTS appointments (
@@ -521,25 +656,56 @@ CREATE TABLE IF NOT EXISTS appointments (
     INDEX idx_status       (status),
     INDEX idx_appt_type    (appt_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+";
+
+if ($conn->query($sql)) {
+    echo "✅ Table `appointments` created.\n";
+} else {
+    echo "❌ " . $conn->error . "\n;
 
 -- =====================================================
 -- SECTION: FEATURE ADDITIONS
--- =====================================================
 -- Adds new features and columns to existing tables
---
+-- =====================================================
 
 -- File: add_profile_picture_to_users.php
-ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) NULL AFTER password
+ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255) NULL AFTER password";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "✅ Column 'profile_picture' added to 'users' table successfully.\n";
+    } else {
+        echo "❌ Error adding column 'profile_picture': " . $conn->error . "\n";
+    }
+} else {
+    echo "ℹ️ Column 'profile_picture' already exists in 'users' table.\n;
 
 -- File: add_archived_to_residents.php
 ALTER TABLE residents
     ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER updated_at,
     ADD INDEX idx_deleted_at (deleted_at);
+    ";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "✅ Added archived functionality to 'residents' table successfully.\n";
+    } else {
+        echo "❌ Error adding archived functionality to 'residents': " . $conn->error . "\n";
+    }
+} else {
+    echo "ℹ️ Column 'deleted_at' already exists in 'residents' table.\n;
 
 -- File: add_archived_at_to_blotter.php
 ALTER TABLE blotter 
     ADD COLUMN archived_at TIMESTAMP NULL DEFAULT NULL AFTER updated_at,
     ADD INDEX idx_archived_at (archived_at);
+    ";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "✅ Column 'archived_at' added to 'blotter' table successfully.\n";
+    } else {
+        echo "❌ Error adding column 'archived_at': " . $conn->error . "\n";
+    }
+} else {
+    echo "ℹ️ Column 'archived_at' already exists in 'blotter' table.\n;
 
 -- File: create_blotter_history_table.php
 CREATE TABLE IF NOT EXISTS `blotter_history` (
@@ -564,11 +730,26 @@ CREATE TABLE IF NOT EXISTS `blotter_history` (
   FOREIGN KEY (`blotter_id`) REFERENCES `blotter`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'blotter_history' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'blotter_history': " . $conn->error . "\n;
 
 -- File: add_archived_at_to_officers.php
 ALTER TABLE officers 
     ADD COLUMN archived_at TIMESTAMP NULL DEFAULT NULL AFTER updated_at,
     ADD INDEX idx_archived_at (archived_at);
+    ";
+
+    if ($conn->query($sql) === TRUE) {
+        echo "✅ Column 'archived_at' added to 'officers' table successfully.\n";
+    } else {
+        echo "❌ Error adding column 'archived_at': " . $conn->error . "\n";
+    }
+} else {
+    echo "ℹ️ Column 'archived_at' already exists in 'officers' table.\n;
 
 -- File: create_term_history_table.php
 CREATE TABLE IF NOT EXISTS `term_history` (
@@ -594,14 +775,24 @@ CREATE TABLE IF NOT EXISTS `term_history` (
   FOREIGN KEY (`officer_id`) REFERENCES `officers`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql) === TRUE) {
+    echo "✅ Table 'term_history' created successfully.\n";
+} else {
+    echo "❌ Error creating table 'term_history': " . $conn->error . "\n;
 
 -- File: add_archived_at_to_households.php
 ALTER TABLE households
             ADD COLUMN archived_at TIMESTAMP NULL DEFAULT NULL AFTER updated_at,
-            ADD INDEX idx_archived_at (archived_at)
-
--- File: fix_immunizations_columns.php
-ALTER TABLE `immunizations` ADD COLUMN `{$col}` {$def}
+            ADD INDEX idx_archived_at (archived_at)";
+    if ($conn->query($sql)) {
+        echo "✅ Column 'archived_at' added to 'households' table.\n";
+    } else {
+        echo "❌ Error: " . $conn->error . "\n";
+    }
+} else {
+    echo "ℹ️ Column 'archived_at' already exists.\n;
 
 -- File: create_care_visits_table.php
 CREATE TABLE IF NOT EXISTS care_visits (
@@ -618,12 +809,23 @@ CREATE TABLE IF NOT EXISTS care_visits (
   INDEX idx_care_resident (resident_id),
   INDEX idx_care_type_date (care_type, visit_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+
+if ($conn->query($sql)) {
+  echo "✅ care_visits table ready!\n";
+} else {
+  echo "❌ Error: " . $conn->error . "\n;
 
 -- =====================================================
 -- SECTION: STRUCTURAL CHANGES
--- =====================================================
 -- Major schema changes and refactoring
---
+-- =====================================================
+
+-- File: merge_staff_officers.php
+-- WARNING: No SQL found in this file — skipped
+
+-- File: make_officer_term_nullable.php
+-- WARNING: No SQL found in this file — skipped
 
 -- File: enhance_consultations.php
 CREATE TABLE IF NOT EXISTS consultation_detail (
@@ -681,57 +883,154 @@ CREATE TABLE IF NOT EXISTS consultation_detail (
 
     INDEX idx_cd_consult_id (consultation_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+";
+
+if ($conn->query($sql)) {
+    echo "✅ `consultation_detail` created\n";
+} else {
+    echo "❌ {$conn->error}\n";
+}
+
+/* ════════════════════════════════════════════════════
+   STEP 3 — Back-fill: migrate notes JSON → new columns
+   Only for existing rows that have a notes JSON blob
+════════════════════════════════════════════════════ */
+echo "\n📋 Back-filling notes JSON → new columns...\n";
+
+$rows = $conn->query("
+    SELECT id, notes FROM consultations
+    WHERE notes IS NOT NULL AND notes LIKE '{%'
+    AND (consult_type = 'general' OR consult_type IS NULL)
+");
+
+$updated = 0;
+$skipped = 0;
+if ($rows) {
+    while ($r = $rows->fetch_assoc()) {
+        $meta = json_decode($r['notes'], true);
+        if (!is_array($meta)) { $skipped++; continue; }
+
+        $program     = $meta['program']       ?? null;
+        $status      = $meta['status']        ?? null;
+        $worker      = $meta['health_worker'] ?? null;
+
+        // Map program to consult_type enum
+        $allowed = ['general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization','other'];
+        $ctype   = in_array($program, $allowed, true) ? $program : 'general';
+
+        $statusMap = [
+            'Completed' => 'Completed', 'Ongoing' => 'Ongoing',
+            'Follow-up' => 'Follow-up', 'Dismissed' => 'Dismissed',
+        ];
+        $cstatus = $statusMap[$status] ?? 'Ongoing';
+
+        $upd = $conn->prepare("
+            UPDATE consultations
+            SET consult_type = ?, consult_status = ?, health_worker = ?
+            WHERE id = ? AND (consult_type = 'general' OR consult_type IS NULL)
+        ");
+        $upd->bind_param('sssi', $ctype, $cstatus, $worker, $r['id']);
+        $upd->execute();
+        $updated++;
+    }
+}
+echo "  ✅ Migrated {$updated} existing rows from notes JSON\n";
+echo "  ℹ️  Skipped {$skipped} rows (not JSON or already migrated)\n";
+
+echo "\n═══════════════════════════════════════\n";
+echo "✅ Enhancement complete. Zero data loss.\n";
+echo "   All old consultation records still accessible.\n";
+echo "   New columns are nullable → no form breaks.\n;
 
 -- =====================================================
--- SECTION: INDEXES FOR BETTER QUERY PERFORMANCE
+-- SECTION: ENHANCED CONSULTATIONS
 -- =====================================================
 
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_status ON users(status);
-CREATE INDEX idx_residents_household ON residents(household_id);
-CREATE INDEX idx_residents_status ON residents(status);
-CREATE INDEX idx_residents_firstname ON residents(first_name);
-CREATE INDEX idx_residents_lastname ON residents(last_name);
-CREATE INDEX idx_officers_resident ON officers(resident_id);
-CREATE INDEX idx_officers_position ON officers(position);
-CREATE INDEX idx_officers_status ON officers(status);
-CREATE INDEX idx_blotter_date ON blotter(date_of_complain);
-CREATE INDEX idx_blotter_status ON blotter(status);
-CREATE INDEX idx_certificates_resident ON certificates_request(resident_id);
-CREATE INDEX idx_certificates_status ON certificates_request(status);
-CREATE INDEX idx_immunizations_resident ON immunizations(resident_id);
-CREATE INDEX idx_immunizations_status ON immunizations(status);
-CREATE INDEX idx_immunizations_date ON immunizations(scheduled_date);
-CREATE INDEX idx_consultations_resident ON consultations(resident_id);
-CREATE INDEX idx_consultations_date ON consultations(consultation_date);
-CREATE INDEX idx_appointments_resident ON appointments(resident_id);
-CREATE INDEX idx_appointments_date ON appointments(appointment_date);
-CREATE INDEX idx_appointments_status ON appointments(status);
-CREATE INDEX idx_health_metrics_resident ON health_metrics(resident_id);
-CREATE INDEX idx_health_metrics_date ON health_metrics(visit_date);
-CREATE INDEX idx_carevisit_resident ON care_visits(resident_id);
-CREATE INDEX idx_carevisit_date ON care_visits(visit_date);
-CREATE INDEX idx_carevisit_type ON care_visits(visit_type);
-CREATE INDEX idx_medicines_name ON medicines(medicine_name);
-CREATE INDEX idx_medicines_category ON medicines(category_id);
-CREATE INDEX idx_medicines_expiration ON medicines(expiration_date);
-CREATE INDEX idx_medicine_dispense_date ON medicine_dispense(date_dispensed);
-CREATE INDEX idx_patrol_schedule_date ON patrol_schedule(schedule_date);
-CREATE INDEX idx_patrol_schedule_tanod ON patrol_schedule(tanod_id);
-CREATE INDEX idx_duty_schedule_date ON tanod_duty_schedule(schedule_date);
-CREATE INDEX idx_duty_schedule_tanod ON tanod_duty_schedule(tanod_id);
-CREATE INDEX idx_court_schedule_date ON court_schedule(scheduled_date);
-CREATE INDEX idx_court_schedule_status ON court_schedule(status);
-CREATE INDEX idx_borrowing_date ON borrowing_schedule(borrowed_date);
-CREATE INDEX idx_borrowing_status ON borrowing_schedule(status);
-CREATE INDEX idx_inventory_status ON inventory(status);
-CREATE INDEX idx_inventory_category ON inventory(category_id);
+-- File: enhance_consultations.php (consultation_detail table)
+CREATE TABLE IF NOT EXISTS consultation_detail (
+    id                      INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    consultation_id         INT NOT NULL UNIQUE,
+    chief_complaint         TEXT NULL,
+    complaint_duration      VARCHAR(100) NULL,
+    complaint_onset         ENUM('Sudden','Gradual','Chronic') DEFAULT 'Sudden',
+    primary_diagnosis       TEXT NULL,
+    secondary_diagnosis     TEXT NULL,
+    icd_code                VARCHAR(20) NULL,
+    treatment               TEXT NULL,
+    medicines_prescribed    TEXT NULL,
+    procedures_done         TEXT NULL,
+    health_advice           TEXT NULL,
+    lifestyle_advice        TEXT NULL,
+    patient_education       TEXT NULL,
+    smoking_status          ENUM('Never','Former','Current','NA') DEFAULT 'NA',
+    alcohol_use             ENUM('None','Occasional','Regular','Heavy','NA') DEFAULT 'NA',
+    physical_activity       ENUM('Sedentary','Light','Moderate','Active','NA') DEFAULT 'NA',
+    nutritional_status      ENUM('Normal','Underweight','Overweight','Obese','NA') DEFAULT 'NA',
+    mental_health_screen    ENUM('Not screened','Normal','Needs follow-up','Referred') DEFAULT 'Not screened',
+    past_medical_history    TEXT NULL,
+    family_history          TEXT NULL,
+    current_medications     TEXT NULL,
+    known_allergies         TEXT NULL,
+    immunization_history    TEXT NULL,
+    occupation              VARCHAR(150) NULL,
+    civil_status            VARCHAR(50) NULL,
+    educational_attainment  VARCHAR(100) NULL,
+    living_conditions       TEXT NULL,
+    assessment              TEXT NULL,
+    plan                    TEXT NULL,
+    prognosis               ENUM('Good','Fair','Poor','NA') DEFAULT 'NA',
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_cd_consult_id (consultation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Enhanced consultations: add extra columns (safe)
+ALTER TABLE `consultations`
+    ADD COLUMN IF NOT EXISTS `consult_type`     ENUM('general','maternal','family_planning','prenatal','postnatal','child_nutrition','immunization','other') DEFAULT 'general',
+    ADD COLUMN IF NOT EXISTS `care_visit_id`    INT NULL,
+    ADD COLUMN IF NOT EXISTS `temp_celsius`     DECIMAL(4,1) NULL,
+    ADD COLUMN IF NOT EXISTS `bp_systolic`      SMALLINT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS `bp_diastolic`     SMALLINT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS `pulse_rate`       SMALLINT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS `respiratory_rate` TINYINT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS `o2_saturation`    TINYINT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS `weight_kg`        DECIMAL(5,2) NULL,
+    ADD COLUMN IF NOT EXISTS `height_cm`        DECIMAL(5,2) NULL,
+    ADD COLUMN IF NOT EXISTS `bmi`              DECIMAL(4,1) NULL,
+    ADD COLUMN IF NOT EXISTS `waist_cm`         DECIMAL(5,1) NULL,
+    ADD COLUMN IF NOT EXISTS `health_advice`    TEXT NULL,
+    ADD COLUMN IF NOT EXISTS `risk_level`       ENUM('Low','Moderate','High') DEFAULT 'Low',
+    ADD COLUMN IF NOT EXISTS `is_referred`      TINYINT(1) DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS `referred_to`      VARCHAR(150) NULL,
+    ADD COLUMN IF NOT EXISTS `follow_up_date`   DATE NULL,
+    ADD COLUMN IF NOT EXISTS `health_worker`    VARCHAR(100) NULL,
+    ADD COLUMN IF NOT EXISTS `consult_status`   ENUM('Ongoing','Completed','Follow-up','Dismissed') DEFAULT 'Ongoing';
+
+-- =====================================================
+-- SECTION: STRUCTURAL CHANGES
+-- =====================================================
+
+-- File: merge_staff_officers.php
+ALTER TABLE `users`
+    ADD COLUMN IF NOT EXISTS `position` VARCHAR(150) NULL AFTER `role`;
+
+ALTER TABLE `officers`
+    ADD COLUMN IF NOT EXISTS `user_id` INT(11) NULL AFTER `id`;
+
+-- FK (only add if missing — ignore error if already present)
+ALTER TABLE `officers`
+    ADD CONSTRAINT `fk_officer_user`
+        FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- File: make_officer_term_nullable.php
+ALTER TABLE `officers`
+    MODIFY COLUMN `term_start` DATE NULL DEFAULT NULL,
+    MODIFY COLUMN `term_end`   DATE NULL DEFAULT NULL;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
 -- END OF SCHEMA
--- =====================================================
--- All tables have been created successfully!
--- Files processed: 33/37
--- You can now use this database with your application.
+-- Files processed: 32/34
 -- =====================================================
