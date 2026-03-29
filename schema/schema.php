@@ -55,7 +55,6 @@ $migrations = [
             'create_immunizations_table.php',
             'create_consultations_table.php',
             'create_backups_table.php',
-            'create_account.php',
             'create_patrol_schedule_table.php',
             'create_tanod_duty_schedule_table.php',
             'create_court_schedule_table.php',
@@ -73,7 +72,9 @@ $migrations = [
             'add_archived_at_to_officers.php',
             'create_term_history_table.php',
             'add_archived_at_to_households.php',
-            'fix_immunizations_columns.php'
+            'fix_immunizations_columns.php',
+            'add_nip_card_field.php'
+
         ]
     ],
     'Structural Changes' => [

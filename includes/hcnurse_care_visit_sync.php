@@ -39,7 +39,7 @@ function hcnurse_sync_care_visit_from_consultation(mysqli $conn, array $data): ?
         return null;
     }
 
-    $syncTypes = ['prenatal', 'postnatal', 'family_planning', 'child_nutrition', 'immunization'];
+    $syncTypes = ['prenatal', 'postnatal', 'family_planning', 'child_nutrition'];
     if (!in_array($type, $syncTypes, true)) {
         return null;
     }
